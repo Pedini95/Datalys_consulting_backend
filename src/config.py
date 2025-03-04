@@ -27,6 +27,7 @@ class Config:
     REDIS_PORT = os.getenv('REDIS_PORT')
     REDIS_DB = os.getenv('REDIS_DB')
 
+    ENV = os.getenv('ENV', 'local')
     FILES_FOLDER = os.getenv('FILES_FOLDER')
 
     LOG_FILE_PATH=os.getenv('LOG_FILE_PATH')
