@@ -13,6 +13,16 @@ on:
 env:
   APP_PORT: 5000
 
+
 jobs:
-  deploy:
-    uses: OrangeLiberia/pipelines/.github/workflows/deploy.yml@main
+    vars:
+        uses: OrangeLiberia/pipelines/.github/workflows/vars.yml@main
+    deploy:
+        needs: vars
+        uses: OrangeLiberia/pipelines/.github/workflows/deploy.yml@main
+    postgresql:
+        needs: vars
+        uses: OrangeLiberia/pipelines/.github/workflows/postgresql.yml@main
+    redis:
+        needs: vars
+        uses: OrangeLiberia/pipelines/.github/workflows/redis.yml@main
