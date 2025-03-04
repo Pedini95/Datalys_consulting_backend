@@ -1,0 +1,58 @@
+#!/bin/bash
+
+USER="apache"
+GROUP="apache"
+APP_DIR="/var/www"
+DEPLOY_SCRIPT="deploy-before"
+
+function syntax() {
+    cat <<EOF
+Script to execute before deploy script was executed
+
+Usage: ${0##*/} [-h|-n <app_name> [-d <bin_dir>]
+    -h                Display this message
+    -n <app_name>     Application name
+    -d <bin_dir>      Binary dir (default: $APP_DOC_DIR + app_name + '/bin')
+EOF
+}
+
+while getopts "hn:d:" OPT; do
+    case $OPT in
+        h)
+            syntax
+            exit 0
+            ;;
+        n)
+            APP_NAME="${OPTARG}"
+            ;;
+        d)
+            APP_BIN_DIR="${OPTARG}"
+            ;;
+        *)
+            echo "Unknown option."
+            syntax
+            exit 1
+            ;;
+    esac
+done
+
+if [[ -z $APP_NAME ]]; then
+    syntax
+    exit 1
+fi
+
+if [[ -z $APP_BIN_DIR ]]; then
+    APP_BIN_DIR="${APP_DIR}/${APP_NAME}/bin"
+fi
+
+if [ -f ${APP_BIN_DIR}/${DEPLOY_SCRIPT} ]; then
+    chmod 750 ${APP_BIN_DIR}/${DEPLOY_SCRIPT}
+    chown $USER ${APP_BIN_DIR}/${DEPLOY_SCRIPT}
+    echo Execute script ${APP_BIN_DIR}/${DEPLOY_SCRIPT}
+    su -s /bin/bash $USER -c "cd ${APP_DIR}/${APP_NAME}/htdocs && ${APP_BIN_DIR}/${DEPLOY_SCRIPT}"
+    rc=$?
+else
+    echo "No ${APP_BIN_DIR}/${DEPLOY_SCRIPT} script available to execute. Nothing to do..."
+fi
+
+echo done
