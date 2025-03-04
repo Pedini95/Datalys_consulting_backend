@@ -5,3 +5,4 @@ ingress:
     - host: ${PROJECT_NAME}-${APP_NAME}.${SUFFIX_DOMAIN}
       paths: 
         - path: /
+        
