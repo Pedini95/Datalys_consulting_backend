@@ -8,9 +8,8 @@ on:
         - master
         - develop
         - staging
-    
-        
-        
+
+
 jobs:
   deploy:
     uses: OrangeLiberia/pipelines/.github/workflows/deploy.yml@main
