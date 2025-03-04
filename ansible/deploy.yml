@@ -1,0 +1,41 @@
+---
+
+- hosts: all
+  become: false
+  vars:
+    tmp_dir: /var/tmp
+  tasks:
+    - name: Upload project source archive on server
+      copy: 
+        src:  "{{ src_archive_file }}"
+        dest: "{{ tmp_dir }}"
+        
+    - name: Upload project script archive on server
+      copy:
+        src:  "{{ bin_archive_file | basename }}"
+        dest: "{{ tmp_dir }}"
+
+    - name: Deploy project scripts
+      command: "sudo /usr/local/sbin/apache-app-deploy -n {{ app_name }} -f {{ tmp_dir }}/{{ bin_archive_file }} -d bin"
+    
+    - name: Execute before deploy script
+      command: "sudo /usr/local/sbin/apache-app-deploy-before -n {{ app_name }}"
+      register: output
+
+    - name: Execute before deploy script (Output)
+      debug: var=output
+
+    - name: Deploy App folder to htdocs
+      command: "sudo /usr/local/sbin/apache-app-deploy -n {{ app_name }} -f {{ tmp_dir }}/{{ src_archive_file }}"
+
+    - name: Execute after deploy script
+      command: "sudo /usr/local/sbin/apache-app-deploy-after -n {{ app_name }}"
+      register: output
+
+    - name: Execute after deploy script (Output)
+      debug: var=output
+      
+    - name: Cleanup
+      file:
+        path: "{{ tmp_dir }}/{{ src_archive_file }}"
+        state: absent

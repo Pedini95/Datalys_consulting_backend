@@ -1,0 +1,82 @@
+#!/bin/bash
+
+USER="apache"
+GROUP="apache"
+APP_DIR="/var/www"
+
+APP_NAME=""
+APP_FILE=""
+
+function syntax() {
+    cat <<EOF
+Script to deploy new Apache application
+
+Usage: ${0##*/} [-h|-n <app_name> -f <archive_file>][-d <htdocs_dir>]
+    -h                Display this message
+    -n <app_name>     Application name
+    -d <htdocs_dir>   htdocs dir (default: $APP_DIR + app_name + '/htdocs')
+    -f <archive_file> Archive file in tar.gz format
+EOF
+}
+
+if [ "$UID" -ne 0 ]; then
+    >&2
+    echo "Script must be run with root privileges. Abording..."
+    exit 1
+fi
+
+while getopts "hn:p:d:f:" OPT; do
+    case $OPT in
+        h)
+            syntax
+            exit 0
+            ;;
+        n)
+            APP_NAME="${OPTARG}"
+            HTDOCS_DIR="${APP_DIR}/${APP_NAME}/htdocs"
+            ;;
+        f)
+            APP_FILE="${OPTARG}"
+            ;;
+        d)
+            if [[   $HTDOCS_DIR =~ ^/ ]]; then HTDOCS_DIR="${APP_DIR}/${APP_NAME}/${OPTARG}" ; fi
+            if [[ ! $HTDOCS_DIR =~ ^/ ]]; then HTDOCS_DIR="${OPTARG}" ; fi
+            ;;
+        *)
+            echo "Unknown option."
+            syntax
+            exit 1
+            ;;
+    esac
+done
+
+if [[ -z $APP_NAME ]] || [[ -z $APP_FILE ]]; then
+    syntax
+    exit 1
+fi
+
+if [ ! -r "$APP_FILE" ]; then
+    echo "$APP_FILE: No such file or directory"
+    exit 1
+fi
+
+if [ ! -d "${APP_DIR}" ]; then
+    echo "Application directory ${APP_DIR} not found."
+    exit 1
+fi
+
+echo Deploy ${APP_FILE} on ${HTDOCS_DIR}
+mkdir -p ${HTDOCS_DIR}
+tar -axf ${APP_FILE} -C ${HTDOCS_DIR}
+
+echo ==========================
+echo "Fix permissions"
+# Use find to fix weird case when using cifs
+find  ${HTDOCS_DIR} ! -fstype cifs ! -fstype nfs4 -type f -exec chmod 0640 {} +;
+find  ${HTDOCS_DIR} ! -fstype cifs ! -fstype nfs4 -type d -exec chmod 0750 {} +;
+find  ${HTDOCS_DIR} ! -fstype cifs ! -fstype nfs4 -exec chown ${USER}:${GROUP} {} +;
+
+restorecon -Rv ${HTDOCS_DIR}
+
+echo ==========================
+echo done
