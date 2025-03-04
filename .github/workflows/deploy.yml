@@ -10,7 +10,6 @@ on:
         - staging
 
 
-
 jobs:
     vars:
         uses: OrangeLiberia/pipelines/.github/workflows/vars.yml@main
