@@ -8,8 +8,7 @@ on:
         - master
         - develop
         - staging
-
-        
+      
 jobs:
     vars:
         uses: OrangeLiberia/pipelines/.github/workflows/vars.yml@main
