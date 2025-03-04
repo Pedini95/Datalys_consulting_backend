@@ -1,0 +1,19 @@
+2025-02-28 04:53:55,890 - WARNING -  * Debugger is active!
+2025-02-28 04:53:55,902 - INFO -  * Debugger PIN: 379-692-067
+2025-02-28 07:22:49,776 - INFO -  * Detected change in '/Users/louisinnocentkouadio/Documents/workspace-flask/PROJET-OLIB/fusion_kya_kyc/src/app.py', reloading
+2025-02-28 07:22:50,501 - WARNING -  * Debugger is active!
+2025-02-28 07:22:50,522 - INFO -  * Debugger PIN: 379-692-067
+2025-02-28 07:22:57,210 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-02-28 07:22:57,210 - INFO - [33mPress CTRL+C to quit[0m
+2025-02-28 07:22:57,211 - INFO -  * Restarting with stat
+2025-02-28 07:22:57,658 - WARNING -  * Debugger is active!
+2025-02-28 07:22:57,676 - INFO -  * Debugger PIN: 379-692-067
+2025-02-28 11:03:57,968 - INFO -  * Detected change in '/Users/louisinnocentkouadio/Documents/workspace-flask/PROJET-OLIB/fusion_kya_kyc/src/app.py', reloading
+2025-02-28 11:03:58,058 - INFO -  * Restarting with stat
+2025-02-28 11:03:58,697 - WARNING -  * Debugger is active!
+2025-02-28 11:03:58,723 - INFO -  * Debugger PIN: 379-692-067
+2025-02-28 11:03:59,893 - INFO -  * Detected change in '/Users/louisinnocentkouadio/Documents/workspace-flask/PROJET-OLIB/fusion_kya_kyc/src/app.py', reloading
+2025-02-28 11:03:59,964 - INFO -  * Restarting with stat
+2025-02-28 11:04:00,410 - WARNING -  * Debugger is active!
+2025-02-28 11:04:00,421 - INFO -  * Debugger PIN: 379-692-067
