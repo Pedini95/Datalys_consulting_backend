@@ -22,7 +22,7 @@ from flask_cors import CORS, cross_origin
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import os
-import pdfkit
+# import pdfkit
 from utils.notification import send_mail_login
 
 
