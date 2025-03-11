@@ -300,8 +300,8 @@ def county_type():
 
 @app.route("/kyc/types/county", methods=['POST'])
 @cross_origin()
-def county_type():
-    logging.info("**** Begin county_type ****")
+def county_types():
+    logging.info("**** Begin county_types ****")
     r = request.get_json() or {}
     data = r['data']
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
@@ -312,7 +312,7 @@ def county_type():
     res = requests.get('{}TIMM/v1/CRM/Types/Country'.format(url), data=json.dumps(data))
     res = res.json()
     response = {"status": res.get("exec_code", None), "message": res.get("message", None), "items": res.get("resultset", None), "code": 200}
-    logging.info("**** End county_type ****")
+    logging.info("**** End county_types ****")
     return response
 
 
