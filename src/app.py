@@ -14,6 +14,7 @@ swagger = Swagger(app)
 
 # Determine if in development environment
 is_dev = app.config.get('ENV', 'local') == 'local'
+print("is_dev:", is_dev)
 
 # Configure logging handlers based on environment
 handlers = [logging.StreamHandler()]  # Always include StreamHandler for console output
@@ -44,3 +45,7 @@ CORS(app)
 # Importer les routes ici pour éviter les imports circulaires
 from routes import fonctionalite
 from routes import kyc_api
+from routes import role
+from routes import user
+from routes import timm_config
+

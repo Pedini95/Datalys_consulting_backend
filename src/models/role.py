@@ -97,11 +97,11 @@ class Role(db.Model):
                 elif operator == "!=" and start_date_converted:
                     conditions.append(Role.created_at != start_date_converted)
 
+       # Appliquer toutes les conditions à la requête
+        query = query.filter(and_(*conditions))
+        # Ajouter l'ordre de tri par ID décroissant
+        query = query.order_by(Role.id.desc())
         # Ajouter la pagination
-        query = query.offset(index).limit(size)
-
-        # Exécuter la requête et obtenir les résultats
-        results = query.all()
-
-        # Retourner les résultats
-        return results
+        total_items = query.count()
+        query = query.offset(index * size).limit(size)
+        return query.all(), total_items

@@ -21,3 +21,6 @@ redis
 async-timeout
 tomli
 cryptography
+reportlab
+bcrypt
+pycryptodomex

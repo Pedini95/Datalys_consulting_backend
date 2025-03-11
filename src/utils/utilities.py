@@ -15,9 +15,12 @@ import json
 from werkzeug.utils import secure_filename
 from flask import request, jsonify
 import utils.functional_error as functional_error
+from models.timm_config import TimmConfig
 
 from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth
 from models.user import User
+from Crypto.Cipher import AES
+from Cryptodome.Cipher import AES
 
 import logging
 logger = logging.getLogger(__name__)
@@ -274,19 +277,18 @@ def verify_password(email, password):
         return user
 
 def save_base64_image(base64_str, file_name, extension):
-    app.logger.info("***** Begin save_base64_image ****")
+    logging.info("***** Begin save_base64_image ****")
     try:
-        upload_folder = "/Users/louisinnocentkouadio/Desktop/files"
         # Decode the base64 string
         image_data = base64.b64decode(base64_str)
         # Convert binary data to an image
         image = Image.open(BytesIO(image_data))
         # Create a secure filename
         filename = secure_filename(f"{file_name}_{datetime.now()}.{extension}")
-        file_path = os.path.join(upload_folder, filename)
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         # Save the image
         image.save(file_path)
-        app.logger.info("***** End save_base64_image %s****", file_path)
+        logging.info("***** End save_base64_image %s****", file_path)
         # Return the file path
         return file_path
     except Exception as e:
@@ -297,13 +299,13 @@ def save_base64_image(base64_str, file_name, extension):
 def check_token_and_get_user(auth_header):
     # auth_header = request.headers.get('token')
     message = True
-    app.logger.debug('***** message %s****', message)
+    logging.debug('***** message %s****', message)
     if not auth_header:
         message = False
         return jsonify({'message': 'ERROR', 'details': functional_error.MESSAGE_ACCESS_DENIED()}), 401
-    app.logger.debug('***** header **** %s', auth_header)
+    logging.debug('***** header **** %s', auth_header)
     user = User.find_by_token(auth_header, False)
-    app.logger.debug('***** user **** %s', user)
+    logging.debug('***** user **** %s', user)
     if not user or user == None:
         message = message = False
         return jsonify({'message': 'ERROR', 'details': functional_error.MESSAGE_ACCESS_DENIED()}), 401
@@ -365,11 +367,38 @@ def generate_alphanumeric_code_lite(nbre_caractere):
 
 def build_search_string(data):
     # Liste des champs à ignorer
-    image_fields = {}
+    image_fields = {'timm_password'}
     # Concaténer les valeurs des champs, en ignorant les champs d'images et en filtrant les champs non vides
     search_string = ', '.join(str(data.get(field, '')).strip() 
                     for field in data 
                     if field not in image_fields and data.get(field))
-    print("**** search_string ****")
-    print(search_string)
     return search_string
+
+def get_timm_user_password(projet_name):
+    timm_config = TimmConfig.find_by_projet_name(projet_name, False)
+    if not timm_config:
+        return None
+    return timm_config.timm_user, timm_config.timm_password
+
+
+def encrypt_password_lite(password):
+    """ Chiffre un mot de passe en utilisant AES avec un tag d'intégrité """
+    SECRET_KEY = base64.b64decode(app.config['SECRET_KEY'])  # Convertir la clé en bytes
+    cipher = AES.new(SECRET_KEY, AES.MODE_EAX)
+    nonce = cipher.nonce  # Génère un nonce unique
+    ciphertext, tag = cipher.encrypt_and_digest(password.encode('utf-8'))  # Chiffrement + Tag
+    # Stocker nonce + tag + ciphertext ensemble (encodé en Base64)
+    return base64.b64encode(nonce + tag + ciphertext).decode('utf-8')
+
+
+def decrypt_password_lite(encrypted_password):
+    """ Déchiffre un mot de passe chiffré avec AES et vérifie l'intégrité """
+    SECRET_KEY = base64.b64decode(app.config['SECRET_KEY'])  # Convertir la clé en bytes
+    encrypted_data = base64.b64decode(encrypted_password)  # Décoder le Base64
+    nonce = encrypted_data[:16]  # Extraire le nonce (16 bytes)
+    tag = encrypted_data[16:32]  # Extraire le tag (16 bytes)
+    ciphertext = encrypted_data[32:]  # Extraire le texte chiffré
+    cipher = AES.new(SECRET_KEY, AES.MODE_EAX, nonce=nonce)  # Déchiffreur avec nonce
+    decrypted_password = cipher.decrypt_and_verify(ciphertext, tag).decode('utf-8')  # Vérification du tag
+    return decrypted_password
+

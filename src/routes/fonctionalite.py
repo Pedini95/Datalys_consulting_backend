@@ -102,16 +102,17 @@ def update_fonctionalite():
         for field in required_fields:
             if field not in data or not data[field]:
                 return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
-            
-        id = data.get('id')
+        
         fonctionalite = Fonctionalite.query.get(data['id'])
         if utilities.not_blank(data.get('code')):
-            if Fonctionalite.find_by_code(data.get('code'), False):
+            existingFonctionaliteCode = Fonctionalite.find_by_code(data.get('code'), False)
+            if existingFonctionaliteCode and existingFonctionaliteCode.id != fonctionalite.id:
                 return jsonify({'message': 'ERROR', 'details': functional_error.MESSAGE_DATA_DUPLICATE()}), 400
             fonctionalite.code = data.get('code', fonctionalite.code)
 
         if utilities.not_blank(data.get('libelle')):
-            if Fonctionalite.find_by_libelle(data.get('libelle'), False):
+            existingFonctionaliteLibelle = Fonctionalite.find_by_libelle(data.get('libelle'), False)
+            if existingFonctionaliteLibelle and existingFonctionaliteLibelle.id != fonctionalite.id:
                 return jsonify({'message': 'ERROR', 'details': functional_error.MESSAGE_DATA_DUPLICATE()}), 400
             fonctionalite.libelle = data.get('libelle', fonctionalite.libelle)
 

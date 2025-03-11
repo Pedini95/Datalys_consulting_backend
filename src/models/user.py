@@ -77,6 +77,10 @@ class User(db.Model):
         return User.query.filter_by(email=email, is_deleted=is_deleted).first()
     
     @staticmethod
+    def find_by_telephone(telephone, is_deleted):
+        return User.query.filter_by(telephone=telephone, is_deleted=is_deleted).first()
+    
+    @staticmethod
     def find_by_login(login, is_deleted):
         return User.query.filter_by(login=login, is_deleted=is_deleted).first()
     

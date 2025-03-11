@@ -10,7 +10,7 @@ env_path = os.path.join(current_dir, '.env.local')
 load_dotenv(env_path, override=True)
 
 class Config:
-    SECRET_KEY = secrets.token_hex(256)
+    SECRET_KEY=os.getenv('SECRET_KEY')
     SESSION_EXPIRE_MINUTES = 30
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
     
@@ -28,7 +28,7 @@ class Config:
     REDIS_DB = os.getenv('REDIS_DB')
 
     ENV = os.getenv('ENV', 'local')
-    FILES_FOLDER = os.getenv('FILES_FOLDER')
+    UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER')
 
     LOG_FILE_PATH=os.getenv('LOG_FILE_PATH')
     

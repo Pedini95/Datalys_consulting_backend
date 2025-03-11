@@ -20,7 +20,7 @@ def get_role():
     logging.info("/role/getByCriteria")
     r = request.get_json() or {}
     logging.info("**** request input ****")
-    logging.info()
+    logging.info(r)
     index = r.get('index')
     size = r.get('size')
     roles, total_items = Role.get_by_criteria(r['data'], index, size)
@@ -48,7 +48,7 @@ def create_role():
     datas = r['datas']
     for data in datas:
         # Champs obligatoires
-        required_fields = ['code', 'libelle']
+        required_fields = ['libelle']
         for field in required_fields:
             if field not in data or not data[field]:
                 return {"status": "error", "message": f"Field {field} is missing or empty"}, 400

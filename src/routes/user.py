@@ -10,8 +10,6 @@ import utils.notification as notification
 import utils.functional_error as functional_error
 from datetime import datetime, date, timedelta
 import utils.utilities as utilities
-from auth import token_auth
-import jwt
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -83,14 +81,12 @@ def create_user():
     datas = r['datas']
     for data in datas:
         # Champs obligatoires
-        required_fields = ['first_name', 'last_name', 'email', 'role_id', 'telephone', 'is_ldap_user']
+        required_fields = ['first_name', 'last_name', 'email', 'role_id', 'telephone']
         for field in required_fields:
             if field not in data or not data[field]:
                 return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
             
         is_ldap_user = data.get('is_ldap_user')
-        first_name = data.get('first_name')
-        last_name = data.get('last_name')
         email = data.get('email')
         role_id = data.get('role_id')
         telephone=data.get('telephone'),
@@ -109,11 +105,11 @@ def create_user():
             return functional_error.MESSAGE_DATA_NOT_EXIST()
         
         # Gestion des fichiers
+        filename = None
         if data.get('file_base_64') and data.get('file_name') and data.get('extension'):
             file_base_64 = data.get('file_base_64')
             file_name = data.get('file_name')
             extension = data.get('extension')
-            filename = None
             if file_base_64 and file_name and extension:
                 filename = utilities.save_base64_image(file_base_64, file_name, extension)
     
@@ -124,33 +120,33 @@ def create_user():
             # on genere un mot de passe aleatoire
             password = utilities.generate_alphanumeric_code(8)
             password_encrypted = utilities.encrypt_password(password)
+        try:
+            # Creation de l'utilisateur
+            new_user = User(
+                email=data.get('email'),
+                first_name=data.get('first_name'),
+                last_name=data.get('last_name'),
+                telephone=data.get('telephone'),
+                role_id=role_id,
+                created_by=1,
+                password=password_encrypted,
+                file_path=filename,
+                created_at=datetime.now(),
+                is_ldap_user = is_ldap_user,
+                is_default_password = True,
+                search_string=utilities.build_search_string(data)
+            )
+            items.append(new_user)
+            db.session.add(new_user)
+            db.session.commit()
         
-        # Gestion de la recherche
-        search_string = f"{email},{telephone},{first_name},{last_name}, {role.libelle}"
-
-        # Creation de l'utilisateur
-        new_user = User(
-            email=data.get('email'),
-            first_name=data.get('first_name'),
-            last_name=data.get('last_name'),
-            telephone=data.get('telephone'),
-            role_id=role_id,
-            created_by=1,
-            password=password_encrypted,
-            file_path=filename,
-            created_at=datetime.now(),
-            search_string = search_string,
-            is_default_password = True,
-            search_string=utilities.build_search_string(data)
-        )
-        items.append(new_user)
-        db.session.add(new_user)
-        db.session.commit()
-        
-        # Envoyer l'email et le mot de passe par mail
-        emails = [data.get('email')]
-        send_mail_login(emails, password)
-        # notification.send_sms(data.get('telephone'), email_body)
+            # Envoyer l'email et le mot de passe par mail
+            emails = [data.get('email')]
+            send_mail_login(emails, password)
+            # notification.send_sms(data.get('telephone'), email_body)
+        except Exception as e:
+            db.session.rollback()
+            logging.info(str(e))
 
     if items:
         message = functional_error.MESSAGE_SUCCESS()
@@ -271,18 +267,19 @@ def login_user():
     
     user = User.find_by_email(email, False)
     if user:
+        datas_fonctionalites = []
         if utilities.check_password_hash(user.password, password):
             roleFonctionalites = RoleFonctionalite.find_by_role_id(user.role_id, False)
-            datas_fonctionalites = []
             if roleFonctionalites:
                 for roleFonctionalite in roleFonctionalites:
                     fonctionalite = Fonctionalite.find_one(roleFonctionalite.fonctionnalite_id, False)
-                    data_fonctionalite = {
-                        'fonctionalite_id': fonctionalite.id,
-                        'fonctionalite_libelle': fonctionalite.libelle,
-                        'fonctionalite_code': fonctionalite.code
-                    }
-                    datas_fonctionalites.append(data_fonctionalite)
+                    if fonctionalite:
+                        data_fonctionalite = {
+                            'fonctionalite_id': fonctionalite.id,
+                            'fonctionalite_libelle': fonctionalite.libelle,
+                            'fonctionalite_code': fonctionalite.code
+                        }
+                        datas_fonctionalites.append(data_fonctionalite)
             data_user = {
                 'id': user.id,
                 'first_name': user.first_name,
@@ -290,6 +287,8 @@ def login_user():
                 'email': user.email,
                 'token': user.token,
                 'telephone': user.telephone,
+                'role_id': user.role_id,
+                'role_libelle': user.role.libelle,
                 'is_default_password': user.is_default_password,
                 'fonctionalites': datas_fonctionalites
             }
@@ -346,12 +345,13 @@ def validation_otp():
             if roleFonctionalites:
                 for roleFonctionalite in roleFonctionalites:
                     fonctionalite = Fonctionalite.find_one(roleFonctionalite.fonctionnalite_id, False)
-                    data_fonctionalite = {
-                        'fonctionalite_id': fonctionalite.id,
-                        'fonctionalite_libelle': fonctionalite.libelle,
-                        'fonctionalite_code': fonctionalite.code
-                    }
-                    datas_fonctionalites.append(data_fonctionalite)
+                    if fonctionalite:
+                        data_fonctionalite = {
+                            'fonctionalite_id': fonctionalite.id,
+                            'fonctionalite_libelle': fonctionalite.libelle,
+                            'fonctionalite_code': fonctionalite.code
+                        }
+                        datas_fonctionalites.append(data_fonctionalite)
             data_user = {
                 'id': user.id,
                 'first_name': user.first_name,
