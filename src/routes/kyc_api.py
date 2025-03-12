@@ -1,4 +1,5 @@
-from flask import request, jsonify, requests
+from flask import request, jsonify
+import requests
 from app import app, db
 from models.fonctionalite import Fonctionalite
 import logging
