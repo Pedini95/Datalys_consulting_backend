@@ -1,14 +1,10 @@
-from flask import request, jsonify, json
+from flask import request, json
 import requests
-from app import app, db
-from models.fonctionalite import Fonctionalite
+from app import app
 import logging
-import utils.functional_error as functional_error
-from datetime import datetime, date
+from datetime import datetime
 import utils.utilities as utilities
-from models.timm_config import TimmConfig
 from flasgger import swag_from
-from utils.session_utils import get_user_session
 from flask_cors import CORS, cross_origin
 
 logger = logging.getLogger(__name__)
