@@ -378,7 +378,7 @@ def get_timm_user_password(projet_name):
     timm_config = TimmConfig.find_by_projet_name(projet_name, False)
     if not timm_config:
         return None
-    return timm_config.timm_user, timm_config.timm_password
+    return timm_config.timm_user, timm_config.timm_password, timm_config.timm_url
 
 
 def encrypt_password_lite(password):
