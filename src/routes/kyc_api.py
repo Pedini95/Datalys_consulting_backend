@@ -259,14 +259,17 @@ def custorms_add():
     return response
 
 
-
-
 @app.route("/kyc/custorms/check", methods=['POST'])
 @cross_origin()
 def custorms_check():
     logging.info("**** Begin custorms_check ****")
     r = request.get_json() or {}
     data = r['data']
+    # Champs obligatoires
+    required_fields = ['msisdn', 'pin']
+    for field in required_fields:
+        if field not in data or not data[field]:
+            return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
     resp = kyc_kya_auth(data['msisdn'], data['pin'])
     if resp['exec_code']==200:
         res = kyc_checkParty(data['msisdn'])
@@ -290,12 +293,12 @@ def county_type():
         }
     res = requests.get('{}TIMM/v1/CRM/Types/County'.format(url), data=json.dumps(data))
     res = res.json()
-    response = {"status": res.get("exec_code", None), "message": res.get("message", None), "items": res.get("resultset", None), "code": 200}
+    response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200}
     logging.info("**** End county_type ****")
     return response
 
 
-@app.route("/kyc/types/county", methods=['POST'])
+@app.route("/kyc/types/country", methods=['POST'])
 @cross_origin()
 def county_types():
     logging.info("**** Begin county_types ****")
@@ -308,7 +311,7 @@ def county_types():
         }
     res = requests.get('{}TIMM/v1/CRM/Types/Country'.format(url), data=json.dumps(data))
     res = res.json()
-    response = {"status": res.get("exec_code", None), "message": res.get("message", None), "items": res.get("resultset", None), "code": 200}
+    response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200}
     logging.info("**** End county_types ****")
     return response
 
@@ -326,7 +329,7 @@ def gender_type():
         }
     res = requests.get('{}TIMM/v1/CRM/Types/Gender'.format(url), data=json.dumps(data))
     res = res.json()
-    response = {"status": res.get("exec_code", None), "message": res.get("message", None), "items": res.get("resultset", None), "code": 200}
+    response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200}
     logging.info("**** End gender_type ****")
     return response
 
@@ -344,7 +347,7 @@ def get_occupation():
         }
     res = requests.get('{}TIMM/v1/CRM/Types/Occupation'.format(url), data=json.dumps(data))
     res = res.json()
-    response = {"status": res.get("exec_code", None), "message": res.get("message", None), "items": res.get("resultset", None), "code": 200}
+    response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200}
     logging.info("**** End occupation ****")
     return response
 
@@ -362,7 +365,7 @@ def get_document_id():
         }
     res = requests.get('{}TIMM/v1/CRM/Types/Document/ID'.format(url), data=json.dumps(data))
     res = res.json()
-    response = {"status": res.get("exec_code", None), "message": res.get("message", None), "items": res.get("resultset", None), "code": 200}
+    response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200}
     logging.info("**** End document_id ****")
     return response
 
@@ -380,7 +383,7 @@ def get_address():
         }
     res = requests.get('{}TIMM/v1/CRM/Types/Address'.format(url), data=json.dumps(data))
     res = res.json()
-    response = {"status": res.get("exec_code", None), "message": res.get("message", None), "items": res.get("resultset", None), "code": 200}
+    response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200}
     logging.info("**** End address ****")
     return response
 
