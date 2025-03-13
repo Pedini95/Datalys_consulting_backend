@@ -16,18 +16,16 @@ logging.basicConfig(level=logging.DEBUG)
 def get_header_enrichement():
     logging.info("**** Begin get_header_enrichement ****")
     logging.info("/kyc/header/enrichement")
+    response = {"status": "success", "message": "Header enrichement retrieved successfully !", "code": 200}
     logging.info("**** End get_header_enrichement ****")
-    return "OK"
+    return response
 
 
 def kyc_checkParty(msisdn):
     logging.info('***** Begin checkParty ****')
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
-    data = {
-            "auth":{"user":username, "pwd":password },
-            "param":{"MSISDN":msisdn}
-        }
+    data = {"auth":{"user":username, "pwd":password }, "param":{"MSISDN":msisdn}}
     res = requests.get('{}TIMM/v1/CRM/Subscriber'.format(url), data=json.dumps(data))
     logging.info('***** End checkParty ****')
     return res
@@ -36,10 +34,7 @@ def kyc_kya_auth(msisdn, pin):
     logging.info('***** Begin kyc_kya_auth ****')
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
-    data = {
-        "auth":{ "user":username, "pwd": password},
-        "param":{ "msisdn":msisdn, "pin":pin, "AppVersion":"KYC:1.0"}
-    }
+    data = {"auth":{ "user":username, "pwd": password}, "param":{ "msisdn":msisdn, "pin":pin, "AppVersion":"KYC:1.0"}}
     resp = requests.post('{}TIMM/v1/OM/Subscriber/Pin/Check'.format(url), data=json.dumps(data))
     logging.info('***** End kyc_kya_auth ****')
     return resp
@@ -61,11 +56,11 @@ def kyc_kya_login():
         custo_inf = kyc_checkParty(data['msisdn'])
         if 'resultset' in resp and 'resultset' in custo_inf.text:
             resp['resultset']["details"] = custo_inf.json().get("resultset", None)
-            reponse = {"status": "success", "message": "Agent authenticated successfully", "items": resp.json().get("resultset", None), "code": 200}
+            response = {"status": "success", "message": "Agent authenticated successfully", "items": resp.json().get("resultset", None), "code": 200}
     else:
-        reponse = {"status": "error", "message": "Agent authentication failed", "code": 400}
+        response = {"status": "error", "message": "Agent authentication failed", "code": 400}
     logging.info("**** End kyc_kya_login ****")
-    return reponse
+    return response
 
 
 @app.route("/kyc/agent/statistics", methods=['POST'])
@@ -85,10 +80,7 @@ def agent_statistics():
         agentID = resp['resultset']['AgentID']
         username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
         password = utilities.decrypt_password_lite(password)
-        data = {
-            "auth":{ "user":username, "pwd": password},
-            "param":{"AGENTID":agentID}
-        }
+        data = {"auth":{ "user":username, "pwd": password}, "param":{"AGENTID":agentID}}
         logging.info('***** Request : {} - date_action {} ****'.format(data, datetime.now()))
         res = requests.get('{}TIMM/v1/SIMREG/Agent/Statistics'.format(url), data=json.dumps(data))
         logging.info('***** Response : {} - date_action {} ****'.format(res, datetime.now()))
@@ -232,8 +224,6 @@ def registerOM(data, username, password):
     }
     return data_om
 
-
-
 @app.route("/kyc/custorms/add", methods=['POST'])
 @cross_origin()
 def custorms_add():
@@ -295,9 +285,7 @@ def county_type():
     data = r['data']
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
-    data = {
-            "auth":{ "user":username, "pwd": password}
-        }
+    data = {"auth":{ "user":username, "pwd": password}}
     res = requests.get('{}TIMM/v1/CRM/Types/County'.format(url), data=json.dumps(data))
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
@@ -317,9 +305,7 @@ def county_types():
     data = r['data']
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
-    data = {
-        "auth":{ "user":username, "pwd": password}
-    }
+    data = {"auth":{ "user":username, "pwd": password}}
     res = requests.get('{}TIMM/v1/CRM/Types/Country'.format(url), data=json.dumps(data))
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
@@ -339,9 +325,7 @@ def gender_type():
     data = r['data']
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
-    data = {
-            "auth":{ "user":username, "pwd": password}
-        }
+    data = {"auth":{ "user":username, "pwd": password}}
     res = requests.get('{}TIMM/v1/CRM/Types/Gender'.format(url), data=json.dumps(data))
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
@@ -361,9 +345,7 @@ def get_occupation():
     data = r['data']
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
-    data = {
-            "auth":{ "user":username, "pwd": password}
-        }
+    data = {"auth":{ "user":username, "pwd": password}}
     res = requests.get('{}TIMM/v1/CRM/Types/Occupation'.format(url), data=json.dumps(data))
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
@@ -383,9 +365,7 @@ def get_document_id():
     data = r['data']
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
-    data = {
-            "auth":{ "user":username, "pwd": password}
-        }
+    data = {"auth":{ "user":username, "pwd": password}}
     res = requests.get('{}TIMM/v1/CRM/Types/Document/ID'.format(url), data=json.dumps(data))
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
@@ -405,9 +385,7 @@ def get_address():
     data = r['data']
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
-    data = {
-            "auth":{ "user":username, "pwd": password}
-        }
+    data = {"auth":{ "user":username, "pwd": password}}
     res = requests.get('{}TIMM/v1/CRM/Types/Address'.format(url), data=json.dumps(data))
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
