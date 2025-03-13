@@ -38,9 +38,9 @@ def kyc_kya_auth(msisdn, pin):
     password = utilities.decrypt_password_lite(password)
     data = {
         "auth":{ "user":username, "pwd": password},
-        "param":{ "msisdn":msisdn, "pin":pin,"AppVersion":"KYC:1.0" }
+        "param":{ "msisdn":msisdn, "pin":pin, "AppVersion":"KYC:1.0"}
     }
-    resp = requests.post('{}TIMM/v1/SIMREG/Agent/Authenticate'.format(url), data=json.dumps(data))
+    resp = requests.post('{}TIMM/v1/OM/Subscriber/Pin/Check'.format(url), data=json.dumps(data))
     logging.info('***** End kyc_kya_auth ****')
     return resp
 
@@ -57,11 +57,13 @@ def kyc_kya_login():
         if field not in data or not data[field]:
             return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
     resp = kyc_kya_auth(data['msisdn'], data['pin'])
-    custo_inf = kyc_checkParty(data['msisdn'])
-    reponse = {"status": "error", "message": "Agent authenticated failed", "code": 400}
-    if 'resultset' in resp and 'resultset' in custo_inf.text:
-        resp['resultset']["details"] = custo_inf.json().get("resultset", None)
-        reponse = {"status": "success", "message": "Agent authenticated successfully", "items": resp.json().get("resultset", None), "code": 200}
+    if resp.status_code == 200:
+        custo_inf = kyc_checkParty(data['msisdn'])
+        if 'resultset' in resp and 'resultset' in custo_inf.text:
+            resp['resultset']["details"] = custo_inf.json().get("resultset", None)
+            reponse = {"status": "success", "message": "Agent authenticated successfully", "items": resp.json().get("resultset", None), "code": 200}
+    else:
+        reponse = {"status": "error", "message": "Agent authentication failed", "code": 400}
     logging.info("**** End kyc_kya_login ****")
     return reponse
 
@@ -79,7 +81,7 @@ def agent_statistics():
             return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
 
     resp = kyc_kya_auth(data['msisdn'], data['pin'])
-    if resp['exec_code']==200:
+    if resp['exec_code'] == 200:
         agentID = resp['resultset']['AgentID']
         username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
         password = utilities.decrypt_password_lite(password)
@@ -228,7 +230,6 @@ def registerOM(data, username, password):
             }
         }
     }
-
     return data_om
 
 
@@ -239,13 +240,18 @@ def custorms_add():
     logging.info("**** Begin custorms_add ****")
     r = request.get_json() or {}
     data = r['data']
+    # Champs obligatoires
+    required_fields = ['msisdn', 'pin']
+    for field in required_fields:
+        if field not in data or not data[field]:
+            return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
     resp = kyc_kya_auth(data['msisdn'], data['pin'])
     if resp['exec_code']==200:
         username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
         password = utilities.decrypt_password_lite(password)
-        if (data['RegType'] == 'GSM'):
+        if (data['reg_type'] == 'GSM'):
             data = registerGSM(data, username, password)
-        elif (data['RegType'] == 'OM'):
+        elif (data['reg_type'] == 'OM'):
             data = registerOM(data, username, password)
         else:
             response = {"status":"error", "message":"Invalid registration type !", "code": 400}
@@ -257,6 +263,7 @@ def custorms_add():
         
     logging.info("**** End custorms_add ****")
     return response
+
 
 
 @app.route("/kyc/custorms/check", methods=['POST'])
@@ -292,8 +299,12 @@ def county_type():
             "auth":{ "user":username, "pwd": password}
         }
     res = requests.get('{}TIMM/v1/CRM/Types/County'.format(url), data=json.dumps(data))
-    res = res.json()
-    response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200}
+    logging.info("**** res : {}".format(res))
+    if res.status_code == 200:
+        res = res.json()
+        response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200}
+    else:
+        response = {"status": "error", "message": "Failed to retrieve county type", "code": 400}
     logging.info("**** End county_type ****")
     return response
 
@@ -307,11 +318,15 @@ def county_types():
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     data = {
-            "auth":{ "user":username, "pwd": password}
-        }
+        "auth":{ "user":username, "pwd": password}
+    }
     res = requests.get('{}TIMM/v1/CRM/Types/Country'.format(url), data=json.dumps(data))
-    res = res.json()
-    response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200}
+    logging.info("**** res : {}".format(res))
+    if res.status_code == 200:
+        res = res.json()
+        response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200}
+    else:
+        response = {"status": "error", "message": "Failed to retrieve country types", "code": 400}
     logging.info("**** End county_types ****")
     return response
 
@@ -328,8 +343,12 @@ def gender_type():
             "auth":{ "user":username, "pwd": password}
         }
     res = requests.get('{}TIMM/v1/CRM/Types/Gender'.format(url), data=json.dumps(data))
-    res = res.json()
-    response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200}
+    logging.info("**** res : {}".format(res))
+    if res.status_code == 200:
+        res = res.json()
+        response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200}
+    else:
+        response = {"status": "error", "message": "Failed to retrieve gender types", "code": 400}
     logging.info("**** End gender_type ****")
     return response
 
@@ -346,8 +365,12 @@ def get_occupation():
             "auth":{ "user":username, "pwd": password}
         }
     res = requests.get('{}TIMM/v1/CRM/Types/Occupation'.format(url), data=json.dumps(data))
-    res = res.json()
-    response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200}
+    logging.info("**** res : {}".format(res))
+    if res.status_code == 200:
+        res = res.json()
+        response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200}
+    else:
+        response = {"status": "error", "message": "Failed to retrieve occupation types", "code": 400}
     logging.info("**** End occupation ****")
     return response
 
@@ -364,8 +387,12 @@ def get_document_id():
             "auth":{ "user":username, "pwd": password}
         }
     res = requests.get('{}TIMM/v1/CRM/Types/Document/ID'.format(url), data=json.dumps(data))
-    res = res.json()
-    response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200}
+    logging.info("**** res : {}".format(res))
+    if res.status_code == 200:
+        res = res.json()
+        response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200}
+    else:
+        response = {"status": "error", "message": "Failed to retrieve document ID types", "code": 400}
     logging.info("**** End document_id ****")
     return response
 
@@ -382,8 +409,22 @@ def get_address():
             "auth":{ "user":username, "pwd": password}
         }
     res = requests.get('{}TIMM/v1/CRM/Types/Address'.format(url), data=json.dumps(data))
-    res = res.json()
-    response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200}
+    logging.info("**** res : {}".format(res))
+    if res.status_code == 200:
+        res = res.json()
+        response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200}
+    else:
+        response = {"status": "error", "message": "Failed to retrieve address types", "code": 400}
     logging.info("**** End address ****")
     return response
 
+
+# @app.route("/kya/partner/create", methods=['POST'])
+# @cross_origin()
+# def create_partner():
+#     logging.info("**** Begin create_partner ****")
+#     r = request.get_json() or {}
+#     data = r['data']
+    
+#     logging.info("**** End create_partner ****")
+#     return response
