@@ -39,3 +39,13 @@ class Config:
     MAIL_USERNAME = os.getenv('MAIL_USERNAME')
     MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER')
+
+
+    # Configuration Seamfix
+    SEAMFIX_PUBLIC_KEY = os.getenv('SEAMFIX_PUBLIC_KEY')
+    SEAMFIX_PRIVATE_KEY = os.getenv('SEAMFIX_PRIVATE_KEY')
+    SEAMFIX_USER_ID = os.getenv('SEAMFIX_USER_ID')
+    SEAMFIX_URL = os.getenv('SEAMFIX_URL')
+    SEAMFIX_URL_VERIFY = os.getenv('SEAMFIX_URL_VERIFY')
+    SEAMFIX_URL_VALIDATE = os.getenv('SEAMFIX_URL_VALIDATE')
+    SEAMFIX_OCR_URL = os.getenv('SEAMFIX_OCR_URL')
