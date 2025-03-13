@@ -34,7 +34,7 @@ def kyc_kya_auth(msisdn, pin):
     logging.info('***** Begin kyc_kya_auth ****')
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
-    data = {"auth":{ "user":username, "pwd": password}, "param":{ "msisdn":msisdn, "pin":pin, "AppVersion":"KYC:1.0"}}
+    data = {"auth":{ "user":username, "pwd": password}, "param":{ "MSISDN":msisdn, "PIN":pin, "CURRENCY":"usd"}}
     resp = requests.post('{}TIMM/v1/OM/Subscriber/Pin/Check'.format(url), data=json.dumps(data))
     logging.info('***** End kyc_kya_auth ****')
     return resp
