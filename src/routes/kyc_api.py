@@ -52,13 +52,12 @@ def kyc_kya_login():
         if field not in data or not data[field]:
             return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
     resp = kyc_kya_auth(data['msisdn'], data['pin'])
+    response = {"status": "error", "message": "Agent authentication failed", "code": 400}
     if resp.status_code == 200:
         custo_inf = kyc_checkParty(data['msisdn'])
         if 'resultset' in resp and 'resultset' in custo_inf.text:
             resp['resultset']["details"] = custo_inf.json().get("resultset", None)
             response = {"status": "success", "message": "Agent authenticated successfully", "items": resp.json().get("resultset", None), "code": 200}
-    else:
-        response = {"status": "error", "message": "Agent authentication failed", "code": 400}
     logging.info("**** End kyc_kya_login ****")
     return response
 
