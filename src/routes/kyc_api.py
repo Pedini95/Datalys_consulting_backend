@@ -25,8 +25,8 @@ def kyc_checkParty(msisdn):
     logging.info('***** Begin checkParty ****')
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
-    data = {"auth":{"user":username, "pwd":password }, "param":{"MSISDN":msisdn}}
-    res = requests.get('{}TIMM/v1/CRM/Subscriber'.format(url), data=json.dumps(data))
+    data_api = {"auth":{"user":username, "pwd":password }, "param":{"MSISDN":msisdn}}
+    res = requests.get('{}TIMM/v1/CRM/Subscriber'.format(url), data=json.dumps(data_api))
     logging.info('***** End checkParty ****')
     return res
 
@@ -36,7 +36,7 @@ def kyc_kya_auth(msisdn, pin):
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{ "user":username, "pwd": password}, "param":{ "MSISDN":msisdn, "PIN":pin, "CURRENCY":"usd"}}
     logging.info('***** request : {} - date_action {} ****')
-    resp = requests.post('{}TIMM/v1/OM/Subscriber/Pin/Check'.format(app.config['TIMM_URL_AUTH']), data=json.dumps(data))
+    resp = requests.post('{}TIMM/v1/OM/Subscriber/Pin/Check'.format(app.config['TIMM_URL_AUTH']), data=json.dumps(data_api))
     logging.info('***** End kyc_kya_auth ****')
     return resp
 
@@ -81,9 +81,9 @@ def agent_statistics():
         agentID = resp['resultset']['AgentID']
         username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
         password = utilities.decrypt_password_lite(password)
-        data = {"auth":{ "user":username, "pwd": password}, "param":{"AGENTID":agentID}}
-        logging.info('***** Request : {} - date_action {} ****'.format(data, datetime.now()))
-        res = requests.get('{}TIMM/v1/SIMREG/Agent/Statistics'.format(url), data=json.dumps(data))
+        data_api = {"auth":{ "user":username, "pwd": password}, "param":{"AGENTID":agentID}}
+        logging.info('***** Request : {} - date_action {} ****'.format(data_api, datetime.now()))
+        res = requests.get('{}TIMM/v1/SIMREG/Agent/Statistics'.format(url), data=json.dumps(data_api))
         logging.info('***** Response : {} - date_action {} ****'.format(res, datetime.now()))
         res = res.json()
         week = getWeekDate()
@@ -241,13 +241,13 @@ def custorms_add():
         username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
         password = utilities.decrypt_password_lite(password)
         if (data['reg_type'] == 'GSM'):
-            data = registerGSM(data, username, password)
+            data_api = registerGSM(data, username, password)
         elif (data['reg_type'] == 'OM'):
-            data = registerOM(data, username, password)
+            data_api = registerOM(data, username, password)
         else:
             response = {"status":"error", "message":"Invalid registration type !", "code": 400}
             return response
-        res = requests.post('{}TIMM/v1/SIMREG/Subscriber/Register'.format(url), data=json.dumps(data))
+        res = requests.post('{}TIMM/v1/SIMREG/Subscriber/Register'.format(url), data=json.dumps(data_api))
         response = {"status":"success", "message":"Customer added successfully !", "items": res.json(), "code": 200}
     else:
         response = {"status":"error", "message":"Customer authentication failed !", "code": 400}
@@ -286,8 +286,8 @@ def county_type():
     data = r['data']
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
-    data = {"auth":{ "user":username, "pwd": password}}
-    res = requests.get('{}TIMM/v1/CRM/Types/County'.format(url), data=json.dumps(data))
+    data_api = {"auth":{ "user":username, "pwd": password}}
+    res = requests.get('{}TIMM/v1/CRM/Types/County'.format(url), data=json.dumps(data_api))
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
         res = res.json()
@@ -306,8 +306,8 @@ def county_types():
     data = r['data']
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
-    data = {"auth":{ "user":username, "pwd": password}}
-    res = requests.get('{}TIMM/v1/CRM/Types/Country'.format(url), data=json.dumps(data))
+    data_api = {"auth":{ "user":username, "pwd": password}}
+    res = requests.get('{}TIMM/v1/CRM/Types/Country'.format(url), data=json.dumps(data_api))
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
         res = res.json()
@@ -326,8 +326,8 @@ def gender_type():
     data = r['data']
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
-    data = {"auth":{ "user":username, "pwd": password}}
-    res = requests.get('{}TIMM/v1/CRM/Types/Gender'.format(url), data=json.dumps(data))
+    data_api = {"auth":{ "user":username, "pwd": password}}
+    res = requests.get('{}TIMM/v1/CRM/Types/Gender'.format(url), data=json.dumps(data_api))
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
         res = res.json()
@@ -346,8 +346,8 @@ def get_occupation():
     data = r['data']
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
-    data = {"auth":{ "user":username, "pwd": password}}
-    res = requests.get('{}TIMM/v1/CRM/Types/Occupation'.format(url), data=json.dumps(data))
+    data_api = {"auth":{ "user":username, "pwd": password}}
+    res = requests.get('{}TIMM/v1/CRM/Types/Occupation'.format(url), data=json.dumps(data_api))
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
         res = res.json()
@@ -366,8 +366,8 @@ def get_document_id():
     data = r['data']
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
-    data = {"auth":{ "user":username, "pwd": password}}
-    res = requests.get('{}TIMM/v1/CRM/Types/Document/ID'.format(url), data=json.dumps(data))
+    data_api = {"auth":{ "user":username, "pwd": password}}
+    res = requests.get('{}TIMM/v1/CRM/Types/Document/ID'.format(url), data=json.dumps(data_api))
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
         res = res.json()
@@ -386,8 +386,8 @@ def get_address():
     data = r['data']
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
-    data = {"auth":{ "user":username, "pwd": password}}
-    res = requests.get('{}TIMM/v1/CRM/Types/Address'.format(url), data=json.dumps(data))
+    data_api = {"auth":{ "user":username, "pwd": password}}
+    res = requests.get('{}TIMM/v1/CRM/Types/Address'.format(url), data=json.dumps(data_api))
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
         res = res.json()
@@ -400,8 +400,8 @@ def get_address():
 
 def portrait_seamfix_authenticate():
     logging.info("**** Begin portrait_seamfix_authenticate ****")
-    data = {"publicKey": app.config['SEAMFIX_PUBLIC_KEY'],"privateKey": app.config['SEAMFIX_PRIVATE_KEY'],"userId": app.config['SEAMFIX_USER_ID']}
-    response = requests.post(app.config['SEAMFIX_URL'], data=json.dumps(data))
+    data_api = {"publicKey": app.config['SEAMFIX_PUBLIC_KEY'],"privateKey": app.config['SEAMFIX_PRIVATE_KEY'],"userId": app.config['SEAMFIX_USER_ID']}
+    response = requests.post(app.config['SEAMFIX_URL'], data=json.dumps(data_api))
     logging.info("**** response : {}".format(response))
     logging.info("**** End portrait_seamfix_authenticate ****")
     return response
@@ -469,10 +469,7 @@ def ocr_seamfix():
         if field not in data or not data[field]:
             return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
     headers = {"Content-Type": "application/json"}
-    data_api = {
-        "image": data['image'],
-        "imageType": data['imageType']
-    }
+    data_api = {"image": data['image'],"imageType": data['imageType']}
     # Appel de l'OCR
     response = requests.post(app.config['SEAMFIX_OCR_URL'], data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
