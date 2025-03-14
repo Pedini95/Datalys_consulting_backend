@@ -49,3 +49,6 @@ class Config:
     SEAMFIX_URL_VERIFY = os.getenv('SEAMFIX_URL_VERIFY')
     SEAMFIX_URL_VALIDATE = os.getenv('SEAMFIX_URL_VALIDATE')
     SEAMFIX_OCR_URL = os.getenv('SEAMFIX_OCR_URL')
+
+    # Configuration TIMM
+    TIMM_URL_AUTH = os.getenv('TIMM_URL_AUTH')
