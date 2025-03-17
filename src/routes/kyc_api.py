@@ -444,7 +444,7 @@ def portrait_seamfix_validate():
     r = request.get_json() or {}
     data = r['data']
     # Champs obligatoires
-    required_fields = ['image', 'transactionId', 'actions']
+    required_fields = ['image', 'transactionId']
     for field in required_fields:
         if field not in data or not data[field]:
             return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
@@ -452,11 +452,12 @@ def portrait_seamfix_validate():
     # Appel de l'authentification
     auth_response = portrait_seamfix_authenticate()
     logging.info("**** auth_response : {}".format(auth_response))
-    if auth_response.status_code != 200:
+    logging.info("**** auth_response.token : {}".format(auth_response.token))
+    if auth_response.code != 0:
         return {"status": "error", "message": "Failed to authenticate with Seamfix"}, 400
 
-    headers = {"Authorization": f"Bearer {auth_response.json()['token']}", "Content-Type": "application/json"}
-    data_api = {"image": data['image'],"transactionId": data['transactionId'],"actions": ["PLC"]}
+    headers = {"Authorization": f"Bearer {auth_response.token}", "Content-Type": "application/json"}
+    data_api = {"image": data['image'],"transactionId": data['transactionId'], "actions": ["PLC"]}
     # Appel de la validation
     response = requests.post(app.config['SEAMFIX_URL_VALIDATE'], data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
