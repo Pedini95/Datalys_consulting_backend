@@ -488,7 +488,7 @@ def ocr_seamfix_get():
     headers = {"Content-Type": "application/json"}
     # Appel de l'OCR
     url = app.config['SEAMFIX_OCR_URL']
-    url = url+"/invocations"
+    url = url+"/ping"
     response = requests.get(url, headers=headers)
     logging.info("**** response : {}".format(response))
     logging.info("**** End ocr_seamfix_get ****")
