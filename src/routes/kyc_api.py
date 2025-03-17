@@ -451,7 +451,7 @@ def portrait_seamfix_validate():
         return {"status": "error", "message": "Failed to authenticate with Seamfix"}, 400
 
     headers = {"Authorization": f"Bearer {auth_response.json()['token']}", "Content-Type": "application/json"}
-    data_api = {"image": data['image'],"transactionId": data['transactionId'],"actions": data['actions']}
+    data_api = {"image": data['image'],"transactionId": data['transactionId'],"actions": ["PLC"]}
     # Appel de la validation
     response = requests.post(app.config['SEAMFIX_URL_VALIDATE'], data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
@@ -473,7 +473,9 @@ def ocr_seamfix():
     headers = {"Content-Type": "application/json"}
     data_api = {"image": data['image'],"imageType": data['imageType']}
     # Appel de l'OCR
-    response = requests.post(app.config['SEAMFIX_OCR_URL'], data=json.dumps(data_api), headers=headers)
+    url = app.config['SEAMFIX_OCR_URL']
+    url = url+"/invocations"
+    response = requests.post(url, data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
     logging.info("**** End ocr_seamfix ****")
     return response
@@ -485,7 +487,9 @@ def ocr_seamfix_get():
     logging.info("**** Begin ocr_seamfix_get ****")
     headers = {"Content-Type": "application/json"}
     # Appel de l'OCR
-    response = requests.get(app.config['SEAMFIX_OCR_URL'], headers=headers)
+    url = app.config['SEAMFIX_OCR_URL']
+    url = url+"/invocations"
+    response = requests.get(url, headers=headers)
     logging.info("**** response : {}".format(response))
     logging.info("**** End ocr_seamfix_get ****")
     return response
