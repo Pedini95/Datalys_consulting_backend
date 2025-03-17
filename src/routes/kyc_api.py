@@ -440,7 +440,7 @@ def portrait_seamfix_verify():
 
     # Appel de l'authentification
     auth_response = portrait_seamfix_authenticate()
-    if auth_response.code != 0:
+    if auth_response.get("code") != 0:
         return {"status": "error", "message": "Failed to authenticate with Seamfix"}, 400
 
     headers = {"Authorization": f"Bearer {auth_response.get('accessToken')}", "Content-Type": "application/json"}
@@ -469,7 +469,7 @@ def portrait_seamfix_validate():
     auth_response = portrait_seamfix_authenticate()
     logging.info("**** auth_response : {}".format(auth_response))
     logging.info("**** auth_response.accessToken : {}".format(auth_response.get("accessToken")))
-    if auth_response.code != 0:
+    if auth_response.get("code") != 0:
         return {"status": "error", "message": "Failed to authenticate with Seamfix"}, 400
 
     headers = {"Authorization": f"Bearer {auth_response.get('accessToken')}", "Content-Type": "application/json"}
