@@ -491,6 +491,8 @@ def ocr_seamfix_get():
     url = url+"/ping"
     response = requests.get(url, headers=headers)
     logging.info("**** response : {}".format(response))
+    logging.info("**** response : {}".format(response.text))
+    response = response.text
     logging.info("**** End ocr_seamfix_get ****")
     return response
 
