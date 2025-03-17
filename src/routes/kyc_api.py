@@ -443,7 +443,7 @@ def portrait_seamfix_verify():
     if auth_response.code != 0:
         return {"status": "error", "message": "Failed to authenticate with Seamfix"}, 400
 
-    headers = {"Authorization": f"Bearer {auth_response.accessToken}", "Content-Type": "application/json"}
+    headers = {"Authorization": f"Bearer {auth_response.get("accessToken")}", "Content-Type": "application/json"}
     data_api = {"probe": data['probe'],"candidate": data['candidate']}
     # Appel de la vérification
     response = requests.post(app.config['SEAMFIX_URL_VERIFY'], data=json.dumps(data_api), headers=headers)
@@ -468,11 +468,11 @@ def portrait_seamfix_validate():
     # Appel de l'authentification
     auth_response = portrait_seamfix_authenticate()
     logging.info("**** auth_response : {}".format(auth_response))
-    logging.info("**** auth_response.accessToken : {}".format(auth_response.accessToken))
+    logging.info("**** auth_response.accessToken : {}".format(auth_response.get("accessToken")))
     if auth_response.code != 0:
         return {"status": "error", "message": "Failed to authenticate with Seamfix"}, 400
 
-    headers = {"Authorization": f"Bearer {auth_response.accessToken}", "Content-Type": "application/json"}
+    headers = {"Authorization": f"Bearer {auth_response.get('accessToken')}", "Content-Type": "application/json"}
     data_api = {"image": data['image'],"transactionId": data['transactionId'], "actions": ["PLC"]}
     # Appel de la validation
     response = requests.post(app.config['SEAMFIX_URL_VALIDATE'], data=json.dumps(data_api), headers=headers)
