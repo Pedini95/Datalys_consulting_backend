@@ -430,6 +430,8 @@ def portrait_seamfix_verify():
     # Appel de la vérification
     response = requests.post(app.config['SEAMFIX_URL_VERIFY'], data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
+    response = response.json()
+    logging.info("**** response : {}".format(response))
     logging.info("**** End portrait_seamfix_verify ****")
     return response
 
@@ -455,6 +457,8 @@ def portrait_seamfix_validate():
     # Appel de la validation
     response = requests.post(app.config['SEAMFIX_URL_VALIDATE'], data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
+    response = response.json()
+    logging.info("**** response : {}".format(response))
     logging.info("**** End portrait_seamfix_validate ****")
     return response
 
@@ -477,7 +481,8 @@ def ocr_seamfix():
     url = url+"/invocations"
     response = requests.post(url, data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
-    logging.info("**** response : {}".format(response.json()))
+    response = response.json()
+    logging.info("**** response : {}".format(response))
     logging.info("**** End ocr_seamfix ****")
     return response
 
