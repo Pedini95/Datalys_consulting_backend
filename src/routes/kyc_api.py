@@ -399,13 +399,15 @@ def get_address():
     logging.info("**** End address ****")
     return response
 
+
 @app.route("/kyc/portrait/seamfix/authenticate", methods=['POST'])
 @cross_origin()
 def portrait_seamfix_authenticate_lite():
     logging.info("**** Begin portrait_seamfix_authenticate ****")
+    headers = {"Content-Type": "application/json"}
     data_api = {"publicKey": app.config['SEAMFIX_PUBLIC_KEY'],"privateKey": app.config['SEAMFIX_PRIVATE_KEY'],"userId": app.config['SEAMFIX_USER_ID']}
     logging.info("**** data_api : {}".format(data_api))
-    response = requests.post(app.config['SEAMFIX_URL'], data=json.dumps(data_api))
+    response = requests.post(app.config['SEAMFIX_URL'], data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
     response = response.json()
     logging.info("**** response : {}".format(response))
