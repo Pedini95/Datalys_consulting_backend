@@ -417,8 +417,9 @@ def portrait_seamfix_authenticate_lite():
 
 def portrait_seamfix_authenticate():
     logging.info("**** Begin portrait_seamfix_authenticate ****")
+    headers = {"Content-Type": "application/json"}
     data_api = {"publicKey": app.config['SEAMFIX_PUBLIC_KEY'],"privateKey": app.config['SEAMFIX_PRIVATE_KEY'],"userId": app.config['SEAMFIX_USER_ID']}
-    response = requests.post(app.config['SEAMFIX_URL'], data=json.dumps(data_api))
+    response = requests.post(app.config['SEAMFIX_URL'], data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
     response = response.json()
     logging.info("**** response : {}".format(response))
@@ -439,10 +440,10 @@ def portrait_seamfix_verify():
 
     # Appel de l'authentification
     auth_response = portrait_seamfix_authenticate()
-    if auth_response.status_code != 200:
+    if auth_response.code != 0:
         return {"status": "error", "message": "Failed to authenticate with Seamfix"}, 400
 
-    headers = {"Authorization": f"Bearer {auth_response.json()['token']}", "Content-Type": "application/json"}
+    headers = {"Authorization": f"Bearer {auth_response.accessToken}", "Content-Type": "application/json"}
     data_api = {"probe": data['probe'],"candidate": data['candidate']}
     # Appel de la vérification
     response = requests.post(app.config['SEAMFIX_URL_VERIFY'], data=json.dumps(data_api), headers=headers)
@@ -467,11 +468,11 @@ def portrait_seamfix_validate():
     # Appel de l'authentification
     auth_response = portrait_seamfix_authenticate()
     logging.info("**** auth_response : {}".format(auth_response))
-    logging.info("**** auth_response.token : {}".format(auth_response.token))
+    logging.info("**** auth_response.accessToken : {}".format(auth_response.accessToken))
     if auth_response.code != 0:
         return {"status": "error", "message": "Failed to authenticate with Seamfix"}, 400
 
-    headers = {"Authorization": f"Bearer {auth_response.token}", "Content-Type": "application/json"}
+    headers = {"Authorization": f"Bearer {auth_response.accessToken}", "Content-Type": "application/json"}
     data_api = {"image": data['image'],"transactionId": data['transactionId'], "actions": ["PLC"]}
     # Appel de la validation
     response = requests.post(app.config['SEAMFIX_URL_VALIDATE'], data=json.dumps(data_api), headers=headers)
