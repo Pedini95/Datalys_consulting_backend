@@ -477,6 +477,7 @@ def ocr_seamfix():
     url = url+"/invocations"
     response = requests.post(url, data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
+    logging.info("**** response : {}".format(response.json()))
     logging.info("**** End ocr_seamfix ****")
     return response
 
