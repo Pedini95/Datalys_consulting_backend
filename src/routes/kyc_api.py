@@ -400,10 +400,10 @@ def get_address():
     return response
 
 
-@app.route("/kyc/portrait/seamfix/authenticate", methods=['POST'])
+@app.route("/kyc/seamfix/authenticate", methods=['POST'])
 @cross_origin()
-def portrait_seamfix_authenticate_lite():
-    logging.info("**** Begin portrait_seamfix_authenticate ****")
+def seamfix_authenticate():
+    logging.info("**** Begin seamfix_authenticate ****")
     headers = {"Content-Type": "application/json"}
     data_api = {"publicKey": app.config['SEAMFIX_PUBLIC_KEY'],"privateKey": app.config['SEAMFIX_PRIVATE_KEY'],"userId": app.config['SEAMFIX_USER_ID']}
     logging.info("**** data_api : {}".format(data_api))
@@ -411,7 +411,7 @@ def portrait_seamfix_authenticate_lite():
     logging.info("**** response : {}".format(response))
     response = response.json()
     logging.info("**** response : {}".format(response))
-    logging.info("**** End portrait_seamfix_authenticate ****")
+    logging.info("**** End seamfix_authenticate ****")
     return response
 
 
