@@ -405,6 +405,8 @@ def portrait_seamfix_authenticate():
     data_api = {"publicKey": app.config['SEAMFIX_PUBLIC_KEY'],"privateKey": app.config['SEAMFIX_PRIVATE_KEY'],"userId": app.config['SEAMFIX_USER_ID']}
     response = requests.post(app.config['SEAMFIX_URL'], data=json.dumps(data_api))
     logging.info("**** response : {}".format(response))
+    response = response.json()
+    logging.info("**** response : {}".format(response))
     logging.info("**** End portrait_seamfix_authenticate ****")
     return response
 
@@ -449,6 +451,7 @@ def portrait_seamfix_validate():
 
     # Appel de l'authentification
     auth_response = portrait_seamfix_authenticate()
+    logging.info("**** auth_response : {}".format(auth_response))
     if auth_response.status_code != 200:
         return {"status": "error", "message": "Failed to authenticate with Seamfix"}, 400
 
