@@ -1,3 +1,4 @@
+from urllib import response
 from flask import request, json
 import requests
 from app import app
@@ -397,6 +398,13 @@ def get_address():
     else:
         response = {"status": "error", "message": "Failed to retrieve address types", "code": 400}
     logging.info("**** End address ****")
+    return response
+
+
+@app.route("/kyc/seamfix/authenticate/lite", methods=['POST'])
+@cross_origin()
+def seamfix_authenticate_lite():
+    response = {"status": "ok"}
     return response
 
 
