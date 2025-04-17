@@ -401,13 +401,6 @@ def get_address():
     return response
 
 
-@app.route("/kyc/seamfix/authenticate/lite", methods=['POST'])
-@cross_origin()
-def seamfix_authenticate_lite():
-    response = {"status": "ok"}
-    return response
-
-
 @app.route("/kyc/seamfix/authenticate", methods=['POST'])
 @cross_origin()
 def seamfix_authenticate():
@@ -481,6 +474,7 @@ def portrait_seamfix_validate():
         return {"status": "error", "message": "Failed to authenticate with Seamfix"}, 400
 
     headers = {"Authorization": f"Bearer {auth_response.get('accessToken')}", "Content-Type": "application/json"}
+    logging.info("**** headers : {}".format(headers))
     data_api = {"image": data['image'],"transactionId": data['transactionId'], "actions": ["PLC"]}
     # Appel de la validation
     response = requests.post(app.config['SEAMFIX_URL_VALIDATE'], data=json.dumps(data_api), headers=headers)
@@ -498,16 +492,22 @@ def ocr_seamfix():
     r = request.get_json() or {}
     data = r['data']
     # Champs obligatoires
-    required_fields = ['image', 'imageType']
+    required_fields = ['document', 'documentType', 'documentFormat']
     for field in required_fields:
         if field not in data or not data[field]:
             return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
-    headers = {"Content-Type": "application/json"}
-    data_api = {"image": data['image'],"imageType": data['imageType']}
+
+    # Appel de l'authentification
+    auth_response = portrait_seamfix_authenticate()
+    logging.info("**** auth_response : {}".format(auth_response))
+    logging.info("**** auth_response.accessToken : {}".format(auth_response.get("accessToken")))
+    if auth_response.get("code") != 0:
+        return {"status": "error", "message": "Failed to authenticate with Seamfix"}, 400
+
+    headers = {"Authorization": f"Bearer {auth_response.get('accessToken')}", "Content-Type": "application/json"}
+    data_api = {"document": data['document'],"documentType": data['documentType'], "documentFormat": data['documentFormat']}
     # Appel de l'OCR
-    url = app.config['SEAMFIX_OCR_URL']
-    url = url+"/invocations"
-    response = requests.post(url, data=json.dumps(data_api), headers=headers)
+    response = requests.post(app.config['SEAMFIX_DOC_PROCESSING_URL'], data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
     response = response.json()
     logging.info("**** response : {}".format(response))
@@ -521,12 +521,10 @@ def ocr_seamfix_get():
     logging.info("**** Begin ocr_seamfix_get ****")
     headers = {"Content-Type": "application/json"}
     # Appel de l'OCR
-    url = app.config['SEAMFIX_OCR_URL']
-    url = url+"/ping"
-    response = requests.get(url, headers=headers)
+    response = requests.get(app.config['SEAMFIX_HEALTH_CHECK_URL'], headers=headers)
     logging.info("**** response : {}".format(response))
-    logging.info("**** response : {}".format(response.text))
-    response = response.text
+    logging.info("**** response : {}".format(response.json()))
+    response = response.json()
     logging.info("**** End ocr_seamfix_get ****")
     return response
 
