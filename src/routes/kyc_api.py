@@ -497,14 +497,7 @@ def ocr_seamfix():
         if field not in data or not data[field]:
             return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
 
-    # Appel de l'authentification
-    auth_response = portrait_seamfix_authenticate()
-    logging.info("**** auth_response : {}".format(auth_response))
-    logging.info("**** auth_response.accessToken : {}".format(auth_response.get("accessToken")))
-    if auth_response.get("code") != 0:
-        return {"status": "error", "message": "Failed to authenticate with Seamfix"}, 400
-
-    headers = {"Authorization": f"Bearer {auth_response.get('accessToken')}", "Content-Type": "application/json"}
+    headers = {"Authorization": f"Bearer {app.config['SEAMFIX_TOKEN']}", "Content-Type": "application/json"}
     data_api = {"document": data['document'],"documentType": data['documentType'], "documentFormat": data['documentFormat']}
     # Appel de l'OCR
     response = requests.post(app.config['SEAMFIX_DOC_PROCESSING_URL'], data=json.dumps(data_api), headers=headers)

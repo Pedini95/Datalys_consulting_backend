@@ -51,6 +51,7 @@ class Config:
     SEAMFIX_OCR_URL = os.getenv('SEAMFIX_OCR_URL')
     SEAMFIX_HEALTH_CHECK_URL = os.getenv('SEAMFIX_HEALTH_CHECK_URL')
     SEAMFIX_DOC_PROCESSING_URL = os.getenv('SEAMFIX_DOC_PROCESSING_URL')
+    SEAMFIX_TOKEN = os.getenv('SEAMFIX_TOKEN')
 
     # Configuration TIMM
     TIMM_URL_AUTH = os.getenv('TIMM_URL_AUTH')

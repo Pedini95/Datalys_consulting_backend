@@ -1,0 +1,73 @@
+class OlibPurchaseRequest(models.Model):
+    _name = "olib.purchase.request"
+    _order = "create_date desc"
+
+
+    name = fields.Char('Request ID', readonly=True)
+    employee_id = fields.Many2one('hr.employee', default=_get_employee_id, readonly=True, string="Requester Name")
+    employee_name = fields.Char(related='employee_id.name', string='Employee Name', store=True)
+    employee_number = fields.Char('ID', related="employee_id.registration_number", readonly=True, store=True)
+    employee_position = fields.Many2one('hr.job', related="employee_id.job_id", readonly=True, store=True, string="Job")
+    department_id = fields.Many2one('hr.department', related="employee_id.department_id", store=True, string="Department")
+    section_id = fields.Many2one('hr.department', related="employee_id.office_sc_id", store=True, string="Section")
+    now_date = fields.Date("Date", default=fields.Date.today())
+    date_now = fields.Char("Date", compute="check_days_cour")
+    number_sequence = fields.Integer('Number for request', size=5, compute_sudo=False, store=True)
+    year_lite = fields.Char("Year", default=get_current_year, store=True)
+    type_request = fields.Selection([('purchase_request', "Purchase Request")], 'Type request', default='purchase_request')
+    state = fields.Selection([('new','New'),('dept_manager','Department Head'),('fin_control','Controlling-Team'),('fin_acc_team','Controlling-Manager'),('proc_team','PR-Team'),('in_progress','IN PROGRESS'),('finance_team','FINANCE TEAM'),('paid','Paid'),('refuse','Refuse'),('cancel', "Cancel")], string='State', default='new')
+    # state = fields.Selection([('new','New'),('dept_manager','Department Head'),('fin_control','Controlling Team'),('fin_acc_team','Controller Manager'),('proc_team','Procument Team'),('proc_manager','Procument Manager'),('proc_director','Procument Director'),('cfo','CFO'),('ceo','CEO'),('accepted','Accepted'),('refuse','Refuse'),('paid','Paid'),], string='State', default='new')
+    purchase_detail_ids = fields.One2many('olib.purchase.request.detail', 'purchase_id')
+    purchase_request_validator_ids = fields.One2many('olib.purchase.request.validator', 'purchase_id')
+    is_validator = fields.Boolean("Is validator user", compute='_check_validator_user')
+    attachement_recep = fields.Many2many("ir.attachment", "rel_inventory_attachement", "iv_id", "a_id", string="Document Attached")
+    attachement_validate = fields.Many2many("ir.attachment", "rel_validation_attachement", "sh_id", "a_id", string="Validation Sheet Attached", readonly=True)
+    attachement_purshas = fields.Many2many("ir.attachment", "rel_pusrchase_attachement", "pr_id", "a_id", string="Purchase Order Attached", readonly=True)
+    attachement_invoice = fields.Many2many("ir.attachment", "rel_invoice_attachement", "in_id", "a_id", string="Invoice Attached", readonly=True)
+    total_amount = fields.Float("Total Amount ($)", readonly=True)
+    date_payment = fields.Date("Date Payment")
+    action_dept_manager = fields.Char(default='first action')
+    action_proc_team = fields.Char(default='first action')
+    last_state = fields.Char('Old State')
+    company_id = fields.Many2one('res.company', 'company', default=_get_company_id)
+    # another manager
+    another_manager = fields.Boolean('Another Manager')
+    another_manager_id = fields.Many2one('hr.employee')
+    manager_department_id = fields.Many2one('hr.department', related="another_manager_id.department_id", store=True)
+    manager_email = fields.Char('Email', related="another_manager_id.work_email", store=True, readonly=True)
+    manager_phone = fields.Char('Phone Number', related='another_manager_id.work_phone', readonly=True)
+    # Gestion du transfert de demandes
+    is_transferred = fields.Char("Is Transferred", copy=False, readonly=True)
+    transferred_to_employee_id = fields.Many2one("hr.employee", string="Transfer To", copy=False, readonly=True)
+    transfer_state = fields.Char("Transfer State", copy=False, readonly=True)
+    comment = fields.Text("comment")
+    message_ids = fields.One2many('mail.message', 'res_id', string='Messages', ondelete='cascade')
+
+
+
+    class OlibPurchaseRequestDetail(models.Model):
+        _name = "olib.purchase.request.detail"
+        _order = "create_date desc"
+        
+
+        purchase_id = fields.Many2one('olib.purchase.request')
+        item = fields.Char("Item")
+        currency_id = fields.Many2one('res.currency', 'Currency')
+        quantity = fields.Integer("Quantity")
+        uint_price = fields.Float("Unit Price")
+        purpose = fields.Char("Purpose")
+        site = fields.Char("Site")
+        supplied = fields.Char("Supplier")
+        total = fields.Float("Total", compute="compute_total", store=True)
+        in_sql_serveur = fields.Char("In SQL Serveur", default='no')
+
+        date_now = fields.Char("Date", related="purchase_id.date_now", readonly=True, store=True)
+        now_date = fields.Date("Date", related="purchase_id.now_date", readonly=True, store=True)
+        employee_id = fields.Many2one('hr.employee', related="purchase_id.employee_id", readonly=True, store=True)
+        department_id = fields.Many2one('hr.department', related="purchase_id.department_id", readonly=True, store=True)
+        section_id = fields.Many2one('hr.department', related="purchase_id.section_id", readonly=True, store=True)
+        employee_position = fields.Many2one('hr.job', related="purchase_id.employee_position", readonly=True, store=True)
+        date_payment = fields.Date("Date Payment", related="purchase_id.date_payment", readonly=True, store=True)
+        total_amount = fields.Float("Total Amount ($)", related="purchase_id.total_amount", readonly=True, store=True)
+        name = fields.Char('Name', related="purchase_id.name", readonly=True, store=True)
+        state = fields.Selection([('new','New'),('dept_manager','Department Head'),('fin_control','Controlling-Team'),('fin_acc_team','Controlling-Manager'),('proc_team','PR-Team'),('proc_manager','PR-Manager'),('proc_director','PR-Director'),('cfo','CFO'),('ceo','CEO'),('accepted','Accepted'),('refuse','Refuse'),('paid','Paid'),], string='State', related="purchase_id.state", readonly=True, store=True)
