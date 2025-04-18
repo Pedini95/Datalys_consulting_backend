@@ -1,5 +1,5 @@
 from urllib import response
-from flask import request, json
+from flask import request, json, jsonify
 import requests
 from app import app
 import logging
@@ -475,14 +475,12 @@ def portrait_seamfix_validate():
 
     headers = {"Authorization": f"Bearer {auth_response.get('accessToken')}", "Content-Type": "application/json"}
     logging.info("**** headers : {}".format(headers))
-    data_api = {"image": data['image'],"transactionId": data['transactionId'], "actions": ["PLC"]}
+    data_api = {"image": data['image'], "transactionId": data['transactionId'], "actions": ["PLC"]}
     # Appel de la validation
     response = requests.post(app.config['SEAMFIX_URL_VALIDATE'], data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
-    response = response.json()
-    logging.info("**** response : {}".format(response))
     logging.info("**** End portrait_seamfix_validate ****")
-    return response
+    return jsonify(response.json()), response.status_code
 
 
 @app.route("/kyc/ocr/seamfix", methods=['POST'])
