@@ -27,7 +27,7 @@ def kyc_checkParty(msisdn):
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{"user":username, "pwd":password }, "param":{"MSISDN":msisdn}}
-    res = requests.get('{}TIMM/v1/CRM/Subscriber'.format(url), data=json.dumps(data_api))
+    res = requests.get('{}TIMM/v1/CRM/Subscriber'.format(url), data=json.dumps(data_api), verify=False)
     logging.info('***** End checkParty ****')
     return res
 
@@ -86,7 +86,7 @@ def agent_statistics():
         password = utilities.decrypt_password_lite(password)
         data_api = {"auth":{ "user":username, "pwd": password}, "param":{"AGENTID":agentID}}
         logging.info('***** Request : {} - date_action {} ****'.format(data_api, datetime.now()))
-        res = requests.get('{}TIMM/v1/SIMREG/Agent/Statistics'.format(url), data=json.dumps(data_api))
+        res = requests.get('{}TIMM/v1/SIMREG/Agent/Statistics'.format(url), data=json.dumps(data_api), verify=False)
         logging.info('***** Response : {} - date_action {} ****'.format(res, datetime.now()))
         res = res.json()
         week = getWeekDate()
@@ -250,7 +250,7 @@ def custorms_add():
         else:
             response = {"status":"error", "message":"Invalid registration type !", "code": 400}
             return response
-        res = requests.post('{}TIMM/v1/SIMREG/Subscriber/Register'.format(url), data=json.dumps(data_api))
+        res = requests.post('{}TIMM/v1/SIMREG/Subscriber/Register'.format(url), data=json.dumps(data_api), verify=False)
         response = {"status":"success", "message":"Customer added successfully !", "items": res.json(), "code": 200}
     else:
         response = {"status":"error", "message":"Customer authentication failed !", "code": 400}
@@ -290,7 +290,7 @@ def county_type():
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{ "user":username, "pwd": password}}
-    res = requests.get('{}TIMM/v1/CRM/Types/County'.format(url), data=json.dumps(data_api))
+    res = requests.get('{}TIMM/v1/CRM/Types/County'.format(url), data=json.dumps(data_api), verify=False)
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
         res = res.json()
@@ -310,7 +310,7 @@ def county_types():
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{ "user":username, "pwd": password}}
-    res = requests.get('{}TIMM/v1/CRM/Types/Country'.format(url), data=json.dumps(data_api))
+    res = requests.get('{}TIMM/v1/CRM/Types/Country'.format(url), data=json.dumps(data_api), verify=False)
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
         res = res.json()
@@ -330,7 +330,7 @@ def gender_type():
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{ "user":username, "pwd": password}}
-    res = requests.get('{}TIMM/v1/CRM/Types/Gender'.format(url), data=json.dumps(data_api))
+    res = requests.get('{}TIMM/v1/CRM/Types/Gender'.format(url), data=json.dumps(data_api), verify=False)
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
         res = res.json()
@@ -350,7 +350,7 @@ def get_occupation():
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{ "user":username, "pwd": password}}
-    res = requests.get('{}TIMM/v1/CRM/Types/Occupation'.format(url), data=json.dumps(data_api))
+    res = requests.get('{}TIMM/v1/CRM/Types/Occupation'.format(url), data=json.dumps(data_api), verify=False)
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
         res = res.json()
@@ -370,7 +370,7 @@ def get_document_id():
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{ "user":username, "pwd": password}}
-    res = requests.get('{}TIMM/v1/CRM/Types/Document/ID'.format(url), data=json.dumps(data_api))
+    res = requests.get('{}TIMM/v1/CRM/Types/Document/ID'.format(url), data=json.dumps(data_api), verify=False)
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
         res = res.json()
@@ -390,7 +390,7 @@ def get_address():
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{ "user":username, "pwd": password}}
-    res = requests.get('{}TIMM/v1/CRM/Types/Address'.format(url), data=json.dumps(data_api))
+    res = requests.get('{}TIMM/v1/CRM/Types/Address'.format(url), data=json.dumps(data_api), verify=False)
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
         res = res.json()
