@@ -407,7 +407,7 @@ def decrypt_password_lite(encrypted_password):
     return decrypted_password
 
 
-def check_service_connection(url: str, timeout: int = 10) -> dict:
+def check_service_connection(url: str, timeout: int = None) -> dict:
     """
     Teste la connectivité vers un service donné et retourne un résultat détaillé.
 
@@ -435,20 +435,20 @@ def check_service_connection(url: str, timeout: int = 10) -> dict:
         result["message"] = f"Connexion réussie avec code {response.status_code}"
 
     except socket.gaierror:
-        result["message"] = "Échec de résolution DNS"
         logging.error("Échec de résolution DNS")
+        result["message"] = "DNS resolution failed"
     except SSLError:
-        result["message"] = "Erreur SSL : certificat invalide ou refusé"
         logging.error("Erreur SSL : certificat invalide ou refusé")
+        result["message"] = "SSL error: invalid or untrusted certificate"
     except Timeout:
-        result["message"] = f"Timeout après {timeout} secondes"
         logging.error(f"Timeout après {timeout} secondes")
+        result["message"] = f"Connection timed out after {int(timeout)} seconds"
     except ConnectionError:
-        result["message"] = "Connexion échouée : hôte injoignable"
         logging.error("Connexion échouée : hôte injoignable")
+        result["message"] = "Connection failed: host unreachable"
     except RequestException as e:
-        result["message"] = f"Erreur lors de la requête : {e}"
         logging.error(f"Erreur lors de la requête : {e}")
+        result["message"] = "Unexpected error during request"
 
     return result
 

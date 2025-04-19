@@ -27,6 +27,8 @@ class Config:
     REDIS_PORT = os.getenv('REDIS_PORT')
     REDIS_DB = os.getenv('REDIS_DB')
 
+    TIME_OUT = int(os.getenv('TIME_OUT'))
+
     ENV = os.getenv('ENV', 'local')
     UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER')
 
