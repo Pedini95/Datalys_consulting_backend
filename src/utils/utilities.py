@@ -436,14 +436,19 @@ def check_service_connection(url: str, timeout: int = 10) -> dict:
 
     except socket.gaierror:
         result["message"] = "Échec de résolution DNS"
+        logging.error("Échec de résolution DNS")
     except SSLError:
         result["message"] = "Erreur SSL : certificat invalide ou refusé"
+        logging.error("Erreur SSL : certificat invalide ou refusé")
     except Timeout:
         result["message"] = f"Timeout après {timeout} secondes"
+        logging.error(f"Timeout après {timeout} secondes")
     except ConnectionError:
         result["message"] = "Connexion échouée : hôte injoignable"
+        logging.error("Connexion échouée : hôte injoignable")
     except RequestException as e:
         result["message"] = f"Erreur lors de la requête : {e}"
+        logging.error(f"Erreur lors de la requête : {e}")
 
     return result
 
