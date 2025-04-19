@@ -22,6 +22,10 @@ from models.user import User
 from Crypto.Cipher import AES
 from Cryptodome.Cipher import AES
 
+import requests
+from requests.exceptions import RequestException, ConnectionError, Timeout, SSLError
+import socket
+
 import logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -401,4 +405,45 @@ def decrypt_password_lite(encrypted_password):
     cipher = AES.new(SECRET_KEY, AES.MODE_EAX, nonce=nonce)  # Déchiffreur avec nonce
     decrypted_password = cipher.decrypt_and_verify(ciphertext, tag).decode('utf-8')  # Vérification du tag
     return decrypted_password
+
+
+def check_service_connection(url: str, timeout: int = 10) -> dict:
+    """
+    Teste la connectivité vers un service donné et retourne un résultat détaillé.
+
+    :param url: URL complète du service à tester
+    :param timeout: Délai d'attente en secondes
+    :return: Dictionnaire avec les champs : success, message, ip (si dispo), status_code (si dispo)
+    """
+    result = {
+        "success": False,
+        "message": "",
+        "ip": None,
+        "status_code": None
+    }
+
+    try:
+        # Résolution DNS
+        host = url.split("//")[-1].split("/")[0]
+        ip = socket.gethostbyname(host)
+        result["ip"] = ip
+
+        # Requête test
+        response = requests.get(url, timeout=timeout)
+        result["status_code"] = response.status_code
+        result["success"] = response.status_code < 500
+        result["message"] = f"Connexion réussie avec code {response.status_code}"
+
+    except socket.gaierror:
+        result["message"] = "Échec de résolution DNS"
+    except SSLError:
+        result["message"] = "Erreur SSL : certificat invalide ou refusé"
+    except Timeout:
+        result["message"] = f"Timeout après {timeout} secondes"
+    except ConnectionError:
+        result["message"] = "Connexion échouée : hôte injoignable"
+    except RequestException as e:
+        result["message"] = f"Erreur lors de la requête : {e}"
+
+    return result
 

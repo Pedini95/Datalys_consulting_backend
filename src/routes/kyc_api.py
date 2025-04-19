@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.DEBUG)
 def get_header_enrichement():
     logging.info("**** Begin get_header_enrichement ****")
     logging.info("/kyc/header/enrichement")
-    response = {"status": "success", "message": "Header enrichement retrieved successfully !", "code": 200}
+    response = {"status": "success", "message": "Header enrichement retrieved successfully !", "code": 200, "has_error": False}
     logging.info("**** End get_header_enrichement ****")
     return response
 
@@ -27,6 +27,9 @@ def kyc_checkParty(msisdn):
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{"user":username, "pwd":password }, "param":{"MSISDN":msisdn}}
+    check_connection = utilities.check_service_connection(url)
+    if not check_connection['success']:
+        return {"status": "error", "message": "Failed to connect to TIMM service", "code": 502, "has_error": True}, 502
     res = requests.get('{}TIMM/v1/CRM/Subscriber'.format(url), data=json.dumps(data_api), verify=False)
     logging.info('***** End checkParty ****')
     return res
@@ -38,6 +41,9 @@ def kyc_kya_auth(msisdn, pin):
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{ "user":username, "pwd": password}, "param":{ "MSISDN":msisdn, "PIN":pin, "CURRENCY":"usd"}}
     logging.info('***** request : {} - date_action {} ****'.format(data_api, datetime.now()))
+    check_connection = utilities.check_service_connection(app.config['TIMM_URL_AUTH'])
+    if not check_connection['success']:
+        return {"status": "error", "message": "Failed to connect to TIMM service", "code": 502, "has_error": True}
     resp = requests.post('{}TIMM/v1/OM/Subscriber/Pin/Check'.format(app.config['TIMM_URL_AUTH']), data=json.dumps(data_api), verify=False)
     logging.info('***** response : {} - date_action {} ****'.format(resp, datetime.now()))
     logging.info('***** End kyc_kya_auth ****')
@@ -54,15 +60,15 @@ def kyc_kya_login():
     required_fields = ['msisdn', 'pin']
     for field in required_fields:
         if field not in data or not data[field]:
-            return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
+            return {"status": "error", "message": f"Field {field} is missing or empty", "code": 400, "has_error": True}, 400
     resp = kyc_kya_auth(data['msisdn'], data['pin'])
     resp = resp.json()
-    response = {"status": "error", "message": "Agent authentication failed", "code": 400}
+    response = {"status": "error", "message": "Agent authentication failed", "code": 400, "has_error": True}, 400
     if resp['exec_code'] == 200:
         # custo_inf = kyc_checkParty(data['msisdn'])
         # if 'resultset' in resp and 'resultset' in custo_inf.text:
         #     resp['resultset']["details"] = custo_inf.json().get("resultset", None)
-        response = {"status": resp['exec_code'], "message": resp['exec_msg'], "items": resp.get("resultset", None), "code": 200}
+        response = {"status": resp['exec_code'], "message": resp['exec_msg'], "items": resp.get("resultset", None), "code": 200, "has_error": False}, 200
     logging.info("**** End kyc_kya_login ****")
     return response
 
@@ -77,7 +83,7 @@ def agent_statistics():
     required_fields = ['msisdn', 'pin']
     for field in required_fields:
         if field not in data or not data[field]:
-            return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
+            return {"status": "error", "message": f"Field {field} is missing or empty", "code": 400, "has_error": True}, 400
 
     resp = kyc_kya_auth(data['msisdn'], data['pin'])
     if resp['exec_code'] == 200:
@@ -86,6 +92,9 @@ def agent_statistics():
         password = utilities.decrypt_password_lite(password)
         data_api = {"auth":{ "user":username, "pwd": password}, "param":{"AGENTID":agentID}}
         logging.info('***** Request : {} - date_action {} ****'.format(data_api, datetime.now()))
+        check_connection = utilities.check_service_connection(url)
+        if not check_connection['success']:
+            return {"status": "error", "message": "Failed to connect to TIMM service", "code": 502, "has_error": True}, 502
         res = requests.get('{}TIMM/v1/SIMREG/Agent/Statistics'.format(url), data=json.dumps(data_api), verify=False)
         logging.info('***** Response : {} - date_action {} ****'.format(res, datetime.now()))
         res = res.json()
@@ -102,9 +111,9 @@ def agent_statistics():
                         week["data_type"]["statOm"]["registriesValues"][i]["value"] = int(item["GSMOMRegistrations"])
                     i+=1
             res["resultset"] = week["data_type"]
-        response = {"status":"success","message":"Agent statistics retrieved successfully !", "items": res["resultset"], "code": 200}
+        response = {"status":"success","message":"Agent statistics retrieved successfully !", "items": res["resultset"], "code": 200, "has_error": False}, 200
     else:
-        response = {"status":"error","message":"Agent authentication failed !", "code": 400}
+        response = {"status":"error","message":"Agent authentication failed !", "code": 400, "has_error": True}, 400
     logging.info("**** End agent_statistics ****")
     return response
 
@@ -238,7 +247,7 @@ def custorms_add():
     required_fields = ['msisdn', 'pin']
     for field in required_fields:
         if field not in data or not data[field]:
-            return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
+            return {"status": "error", "message": f"Field {field} is missing or empty", "code": 400, "has_error": True}, 400
     resp = kyc_kya_auth(data['msisdn'], data['pin'])
     if resp['exec_code']==200:
         username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
@@ -248,12 +257,15 @@ def custorms_add():
         elif (data['reg_type'] == 'OM'):
             data_api = registerOM(data, username, password)
         else:
-            response = {"status":"error", "message":"Invalid registration type !", "code": 400}
+            response = {"status":"error", "message":"Invalid registration type !", "code": 400, "has_error": True}, 400
             return response
+        check_connection = utilities.check_service_connection(url)
+        if not check_connection['success']:
+            return {"status": "error", "message": "Failed to connect to TIMM service", "code": 502, "has_error": True}, 502
         res = requests.post('{}TIMM/v1/SIMREG/Subscriber/Register'.format(url), data=json.dumps(data_api), verify=False)
-        response = {"status":"success", "message":"Customer added successfully !", "items": res.json(), "code": 200}
+        response = {"status":"success", "message":"Customer added successfully !", "items": res.json(), "code": 200, "has_error": False}, 200
     else:
-        response = {"status":"error", "message":"Customer authentication failed !", "code": 400}
+        response = {"status":"error", "message":"Customer authentication failed !", "code": 400, "has_error": True}, 400
         
     logging.info("**** End custorms_add ****")
     return response
@@ -270,13 +282,13 @@ def custorms_check():
     required_fields = ['msisdn', 'pin']
     for field in required_fields:
         if field not in data or not data[field]:
-            return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
+            return {"status": "error", "message": f"Field {field} is missing or empty", "code": 400, "has_error": True}, 400
     resp = kyc_kya_auth(data['msisdn'], data['pin'])
     if resp['exec_code']==200:
         res = kyc_checkParty(data['msisdn'])
-        response = {"status":"success", "message":"Customer checked successfully !", "items": res.json(), "code": 200}
+        response = {"status":"success", "message":"Customer checked successfully !", "items": res.json(), "code": 200, "has_error": False}, 200
     else:
-        response = {"status":"error", "message":"Customer authentication failed !", "code": 400}
+        response = {"status":"error", "message":"Customer authentication failed !", "code": 400, "has_error": True}, 400
     logging.info("**** End custorms_check ****")
     return response
 
@@ -290,13 +302,16 @@ def county_type():
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{ "user":username, "pwd": password}}
+    check_connection = utilities.check_service_connection(url)
+    if not check_connection['success']:
+        return {"status": "error", "message": "Failed to connect to TIMM service", "code": 502, "has_error": True}, 502
     res = requests.get('{}TIMM/v1/CRM/Types/County'.format(url), data=json.dumps(data_api), verify=False)
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
         res = res.json()
-        response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200}
+        response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200, "has_error": False}, 200
     else:
-        response = {"status": "error", "message": "Failed to retrieve county type", "code": 400}
+        response = {"status": "error", "message": "Failed to retrieve county type", "code": 400, "has_error": True}, 400
     logging.info("**** End county_type ****")
     return response
 
@@ -310,13 +325,16 @@ def county_types():
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{ "user":username, "pwd": password}}
+    check_connection = utilities.check_service_connection(url)
+    if not check_connection['success']:
+        return {"status": "error", "message": "Failed to connect to TIMM service", "code": 502, "has_error": True}, 502
     res = requests.get('{}TIMM/v1/CRM/Types/Country'.format(url), data=json.dumps(data_api), verify=False)
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
         res = res.json()
-        response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200}
+        response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200, "has_error": False}, 200
     else:
-        response = {"status": "error", "message": "Failed to retrieve country types", "code": 400}
+        response = {"status": "error", "message": "Failed to retrieve country types", "code": 400, "has_error": True}, 400
     logging.info("**** End county_types ****")
     return response
 
@@ -330,13 +348,16 @@ def gender_type():
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{ "user":username, "pwd": password}}
+    check_connection = utilities.check_service_connection(url)
+    if not check_connection['success']:
+        return {"status": "error", "message": "Failed to connect to TIMM service", "code": 502, "has_error": True}, 502
     res = requests.get('{}TIMM/v1/CRM/Types/Gender'.format(url), data=json.dumps(data_api), verify=False)
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
         res = res.json()
-        response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200}
+        response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200, "has_error": False}, 200
     else:
-        response = {"status": "error", "message": "Failed to retrieve gender types", "code": 400}
+        response = {"status": "error", "message": "Failed to retrieve gender types", "code": 400, "has_error": True}, 400
     logging.info("**** End gender_type ****")
     return response
 
@@ -350,13 +371,16 @@ def get_occupation():
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{ "user":username, "pwd": password}}
+    check_connection = utilities.check_service_connection(url)
+    if not check_connection['success']:
+        return {"status": "error", "message": "Failed to connect to TIMM service", "code": 502, "has_error": True}, 502
     res = requests.get('{}TIMM/v1/CRM/Types/Occupation'.format(url), data=json.dumps(data_api), verify=False)
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
         res = res.json()
-        response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200}
+        response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200, "has_error": False}, 200
     else:
-        response = {"status": "error", "message": "Failed to retrieve occupation types", "code": 400}
+        response = {"status": "error", "message": "Failed to retrieve occupation types", "code": 400, "has_error": True}, 400
     logging.info("**** End occupation ****")
     return response
 
@@ -370,13 +394,16 @@ def get_document_id():
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{ "user":username, "pwd": password}}
+    check_connection = utilities.check_service_connection(url)
+    if not check_connection['success']:
+        return {"status": "error", "message": "Failed to connect to TIMM service", "code": 502, "has_error": True}, 502
     res = requests.get('{}TIMM/v1/CRM/Types/Document/ID'.format(url), data=json.dumps(data_api), verify=False)
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
         res = res.json()
-        response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200}
+        response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200, "has_error": False}, 200
     else:
-        response = {"status": "error", "message": "Failed to retrieve document ID types", "code": 400}
+        response = {"status": "error", "message": "Failed to retrieve document ID types", "code": 400, "has_error": True}, 400
     logging.info("**** End document_id ****")
     return response
 
@@ -390,13 +417,16 @@ def get_address():
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{ "user":username, "pwd": password}}
+    check_connection = utilities.check_service_connection(url)
+    if not check_connection['success']:
+        return {"status": "error", "message": "Failed to connect to TIMM service", "code": 502, "has_error": True}, 502
     res = requests.get('{}TIMM/v1/CRM/Types/Address'.format(url), data=json.dumps(data_api), verify=False)
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
         res = res.json()
-        response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200}
+        response = {"status": res.get("exec_code", None), "message": res.get("exec_msg", None), "items": res.get("resultset", None), "code": 200, "has_error": False}, 200
     else:
-        response = {"status": "error", "message": "Failed to retrieve address types", "code": 400}
+        response = {"status": "error", "message": "Failed to retrieve address types", "code": 400, "has_error": True}, 400
     logging.info("**** End address ****")
     return response
 
@@ -408,6 +438,9 @@ def seamfix_authenticate():
     headers = {"Content-Type": "application/json"}
     data_api = {"publicKey": app.config['SEAMFIX_PUBLIC_KEY'],"privateKey": app.config['SEAMFIX_PRIVATE_KEY'],"userId": app.config['SEAMFIX_USER_ID']}
     logging.info("**** data_api : {}".format(data_api))
+    check_connection = utilities.check_service_connection(app.config['SEAMFIX_URL'])
+    if not check_connection['success']:
+        return {"status": "error", "message": "Failed to connect to Seamfix service", "code": 502, "has_error": True}, 502
     response = requests.post(app.config['SEAMFIX_URL'], data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
     response = response.json()
@@ -420,6 +453,9 @@ def portrait_seamfix_authenticate():
     logging.info("**** Begin portrait_seamfix_authenticate ****")
     headers = {"Content-Type": "application/json"}
     data_api = {"publicKey": app.config['SEAMFIX_PUBLIC_KEY'],"privateKey": app.config['SEAMFIX_PRIVATE_KEY'],"userId": app.config['SEAMFIX_USER_ID']}
+    check_connection = utilities.check_service_connection(app.config['SEAMFIX_URL'])
+    if not check_connection['success']:
+        return {"status": "error", "message": "Failed to connect to Seamfix service", "code": 502, "has_error": True}, 502
     response = requests.post(app.config['SEAMFIX_URL'], data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
     response = response.json()
@@ -437,16 +473,19 @@ def portrait_seamfix_verify():
     required_fields = ['probe', 'candidate']
     for field in required_fields:
         if field not in data or not data[field]:
-            return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
+            return {"status": "error", "message": f"Field {field} is missing or empty", "code": 400, "has_error": True}, 400
 
     # Appel de l'authentification
     auth_response = portrait_seamfix_authenticate()
     if auth_response.get("code") != 0:
-        return {"status": "error", "message": "Failed to authenticate with Seamfix"}, 400
+        return {"status": "error", "message": "Failed to authenticate with Seamfix", "code": 400, "has_error": True}, 400
 
     headers = {"Authorization": f"Bearer {auth_response.get('accessToken')}", "Content-Type": "application/json"}
     data_api = {"probe": data['probe'],"candidate": data['candidate']}
     # Appel de la vérification
+    check_connection = utilities.check_service_connection(app.config['SEAMFIX_URL_VERIFY'])
+    if not check_connection['success']:
+        return {"status": "error", "message": "Failed to connect to Seamfix service", "code": 502, "has_error": True}, 502
     response = requests.post(app.config['SEAMFIX_URL_VERIFY'], data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
     response = response.json()
@@ -464,19 +503,22 @@ def portrait_seamfix_validate():
     required_fields = ['image', 'transactionId']
     for field in required_fields:
         if field not in data or not data[field]:
-            return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
+            return {"status": "error", "message": f"Field {field} is missing or empty", "code": 400, "has_error": True}, 400
 
     # Appel de l'authentification
     auth_response = portrait_seamfix_authenticate()
     logging.info("**** auth_response : {}".format(auth_response))
     logging.info("**** auth_response.accessToken : {}".format(auth_response.get("accessToken")))
     if auth_response.get("code") != 0:
-        return {"status": "error", "message": "Failed to authenticate with Seamfix"}, 400
+        return {"status": "error", "message": "Failed to authenticate with Seamfix", "code": 400, "has_error": True}, 400
 
     headers = {"Authorization": f"Bearer {auth_response.get('accessToken')}", "Content-Type": "application/json"}
     logging.info("**** headers : {}".format(headers))
     data_api = {"image": data['image'], "transactionId": data['transactionId'], "actions": ["PLC"]}
     # Appel de la validation
+    check_connection = utilities.check_service_connection(app.config['SEAMFIX_URL_VALIDATE'])
+    if not check_connection['success']:
+        return {"status": "error", "message": "Failed to connect to Seamfix service", "code": 502, "has_error": True}, 502
     response = requests.post(app.config['SEAMFIX_URL_VALIDATE'], data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
     logging.info("**** End portrait_seamfix_validate ****")
@@ -493,11 +535,14 @@ def ocr_seamfix():
     required_fields = ['document', 'documentType', 'documentFormat']
     for field in required_fields:
         if field not in data or not data[field]:
-            return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
+            return {"status": "error", "message": f"Field {field} is missing or empty", "code": 400, "has_error": True}, 400
 
     headers = {"Authorization": f"Bearer {app.config['SEAMFIX_TOKEN']}", "Content-Type": "application/json"}
     data_api = {"document": data['document'],"documentType": data['documentType'], "documentFormat": data['documentFormat']}
     # Appel de l'OCR
+    check_connection = utilities.check_service_connection(app.config['SEAMFIX_DOC_PROCESSING_URL'])
+    if not check_connection['success']:
+        return {"status": "error", "message": "Failed to connect to Seamfix service", "code": 502, "has_error": True}, 502
     response = requests.post(app.config['SEAMFIX_DOC_PROCESSING_URL'], data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
     response = response.json()
@@ -512,12 +557,16 @@ def ocr_seamfix_get():
     logging.info("**** Begin ocr_seamfix_get ****")
     headers = {"Content-Type": "application/json"}
     # Appel de l'OCR
+    check_connection = utilities.check_service_connection(app.config['SEAMFIX_HEALTH_CHECK_URL'])
+    if not check_connection['success']:
+        return {"status": "error", "message": "Failed to connect to Seamfix service", "code": 502, "has_error": True}, 502
     response = requests.get(app.config['SEAMFIX_HEALTH_CHECK_URL'], headers=headers)
     logging.info("**** response : {}".format(response))
     logging.info("**** response : {}".format(response.json()))
     response = response.json()
     logging.info("**** End ocr_seamfix_get ****")
     return response
+
 
 # @app.route("/kya/partner/create", methods=['POST'])
 # @cross_origin()
