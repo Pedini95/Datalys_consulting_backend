@@ -27,9 +27,9 @@ def kyc_checkParty(msisdn):
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{"user":username, "pwd":password }, "param":{"MSISDN":msisdn}}
-    check_connection = utilities.check_service_connection(url, timeout=app.config['TIME_OUT'])
-    if not check_connection['success']:
-        return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
+    # check_connection = utilities.check_service_connection(url, timeout=app.config['TIME_OUT'])
+    # if not check_connection['success']:
+    #     return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
     res = requests.get('{}TIMM/v1/CRM/Subscriber'.format(url), data=json.dumps(data_api), verify=False)
     logging.info('***** End checkParty ****')
     return res
@@ -41,9 +41,9 @@ def kyc_kya_auth(msisdn, pin):
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{ "user":username, "pwd": password}, "param":{ "MSISDN":msisdn, "PIN":pin, "CURRENCY":"usd"}}
     logging.info('***** request : {} - date_action {} ****'.format(data_api, datetime.now()))
-    check_connection = utilities.check_service_connection(app.config['TIMM_URL_AUTH'], timeout=app.config['TIME_OUT'])
-    if not check_connection['success']:
-        return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}
+    # check_connection = utilities.check_service_connection(app.config['TIMM_URL_AUTH'], timeout=app.config['TIME_OUT'])
+    # if not check_connection['success']:
+    #     return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}
     resp = requests.post('{}TIMM/v1/OM/Subscriber/Pin/Check'.format(app.config['TIMM_URL_AUTH']), data=json.dumps(data_api), verify=False)
     logging.info('***** response : {} - date_action {} ****'.format(resp, datetime.now()))
     logging.info('***** End kyc_kya_auth ****')
@@ -92,9 +92,9 @@ def agent_statistics():
         password = utilities.decrypt_password_lite(password)
         data_api = {"auth":{ "user":username, "pwd": password}, "param":{"AGENTID":agentID}}
         logging.info('***** Request : {} - date_action {} ****'.format(data_api, datetime.now()))
-        check_connection = utilities.check_service_connection(url, timeout=app.config['TIME_OUT'])
-        if not check_connection['success']:
-            return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
+        # check_connection = utilities.check_service_connection(url, timeout=app.config['TIME_OUT'])
+        # if not check_connection['success']:
+        #     return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
         res = requests.get('{}TIMM/v1/SIMREG/Agent/Statistics'.format(url), data=json.dumps(data_api), verify=False)
         logging.info('***** Response : {} - date_action {} ****'.format(res, datetime.now()))
         res = res.json()
@@ -259,9 +259,9 @@ def custorms_add():
         else:
             response = {"status":"error", "message":"Invalid registration type !", "code": 400, "has_error": True}, 400
             return response
-        check_connection = utilities.check_service_connection(url, timeout=app.config['TIME_OUT'])
-        if not check_connection['success']:
-            return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
+        # check_connection = utilities.check_service_connection(url, timeout=app.config['TIME_OUT'])
+        # if not check_connection['success']:
+        #     return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
         res = requests.post('{}TIMM/v1/SIMREG/Subscriber/Register'.format(url), data=json.dumps(data_api), verify=False)
         response = {"status":"success", "message":"Customer added successfully !", "items": res.json(), "code": 200, "has_error": False}, 200
     else:
@@ -302,9 +302,9 @@ def county_type():
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{ "user":username, "pwd": password}}
-    check_connection = utilities.check_service_connection(url, timeout=app.config['TIME_OUT'])
-    if not check_connection['success']:
-        return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
+    # check_connection = utilities.check_service_connection(url, timeout=app.config['TIME_OUT'])
+    # if not check_connection['success']:
+    #     return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
     res = requests.get('{}TIMM/v1/CRM/Types/County'.format(url), data=json.dumps(data_api), verify=False)
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
@@ -325,9 +325,10 @@ def county_types():
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{ "user":username, "pwd": password}}
-    check_connection = utilities.check_service_connection(url, timeout=app.config['TIME_OUT'])
-    if not check_connection['success']:
-        return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
+    # check_connection = utilities.check_service_connection(url, timeout=app.config['TIME_OUT'])
+    # logging.info("**** check_connection : {}".format(check_connection))
+    # if not check_connection['success']:
+    #     return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
     res = requests.get('{}TIMM/v1/CRM/Types/Country'.format(url), data=json.dumps(data_api), verify=False)
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
@@ -348,9 +349,9 @@ def gender_type():
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{ "user":username, "pwd": password}}
-    check_connection = utilities.check_service_connection(url, timeout=app.config['TIME_OUT'])
-    if not check_connection['success']:
-        return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
+    # check_connection = utilities.check_service_connection(url, timeout=app.config['TIME_OUT'])
+    # if not check_connection['success']:
+    #     return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
     res = requests.get('{}TIMM/v1/CRM/Types/Gender'.format(url), data=json.dumps(data_api), verify=False)
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
@@ -371,9 +372,9 @@ def get_occupation():
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{ "user":username, "pwd": password}}
-    check_connection = utilities.check_service_connection(url, timeout=app.config['TIME_OUT'])
-    if not check_connection['success']:
-        return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
+    # check_connection = utilities.check_service_connection(url, timeout=app.config['TIME_OUT'])
+    # if not check_connection['success']:
+    #     return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
     res = requests.get('{}TIMM/v1/CRM/Types/Occupation'.format(url), data=json.dumps(data_api), verify=False)
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
@@ -394,9 +395,9 @@ def get_document_id():
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{ "user":username, "pwd": password}}
-    check_connection = utilities.check_service_connection(url, timeout=app.config['TIME_OUT'])
-    if not check_connection['success']:
-        return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
+    # check_connection = utilities.check_service_connection(url, timeout=app.config['TIME_OUT'])
+    # if not check_connection['success']:
+    #     return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
     res = requests.get('{}TIMM/v1/CRM/Types/Document/ID'.format(url), data=json.dumps(data_api), verify=False)
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
@@ -417,9 +418,9 @@ def get_address():
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{ "user":username, "pwd": password}}
-    check_connection = utilities.check_service_connection(url, timeout=app.config['TIME_OUT'])
-    if not check_connection['success']:
-        return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
+    # check_connection = utilities.check_service_connection(url, timeout=app.config['TIME_OUT'])
+    # if not check_connection['success']:
+    #     return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
     res = requests.get('{}TIMM/v1/CRM/Types/Address'.format(url), data=json.dumps(data_api), verify=False)
     logging.info("**** res : {}".format(res))
     if res.status_code == 200:
@@ -438,9 +439,9 @@ def seamfix_authenticate():
     headers = {"Content-Type": "application/json"}
     data_api = {"publicKey": app.config['SEAMFIX_PUBLIC_KEY'],"privateKey": app.config['SEAMFIX_PRIVATE_KEY'],"userId": app.config['SEAMFIX_USER_ID']}
     logging.info("**** data_api : {}".format(data_api))
-    check_connection = utilities.check_service_connection(app.config['SEAMFIX_URL'], timeout=app.config['TIME_OUT'])
-    if not check_connection['success']:
-        return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
+    # check_connection = utilities.check_service_connection(app.config['SEAMFIX_URL'], timeout=app.config['TIME_OUT'])
+    # if not check_connection['success']:
+    #     return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
     response = requests.post(app.config['SEAMFIX_URL'], data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
     response = response.json()
@@ -453,9 +454,9 @@ def portrait_seamfix_authenticate():
     logging.info("**** Begin portrait_seamfix_authenticate ****")
     headers = {"Content-Type": "application/json"}
     data_api = {"publicKey": app.config['SEAMFIX_PUBLIC_KEY'],"privateKey": app.config['SEAMFIX_PRIVATE_KEY'],"userId": app.config['SEAMFIX_USER_ID']}
-    check_connection = utilities.check_service_connection(app.config['SEAMFIX_URL'], timeout=app.config['TIME_OUT'])
-    if not check_connection['success']:
-        return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
+    # check_connection = utilities.check_service_connection(app.config['SEAMFIX_URL'], timeout=app.config['TIME_OUT'])
+    # if not check_connection['success']:
+    #     return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
     response = requests.post(app.config['SEAMFIX_URL'], data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
     response = response.json()
@@ -483,9 +484,9 @@ def portrait_seamfix_verify():
     headers = {"Authorization": f"Bearer {auth_response.get('accessToken')}", "Content-Type": "application/json"}
     data_api = {"probe": data['probe'],"candidate": data['candidate']}
     # Appel de la vérification
-    check_connection = utilities.check_service_connection(app.config['SEAMFIX_URL_VERIFY'], timeout=app.config['TIME_OUT'])
-    if not check_connection['success']:
-        return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
+    # check_connection = utilities.check_service_connection(app.config['SEAMFIX_URL_VERIFY'], timeout=app.config['TIME_OUT'])
+    # if not check_connection['success']:
+    #     return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
     response = requests.post(app.config['SEAMFIX_URL_VERIFY'], data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
     response = response.json()
@@ -516,9 +517,9 @@ def portrait_seamfix_validate():
     logging.info("**** headers : {}".format(headers))
     data_api = {"image": data['image'], "transactionId": data['transactionId'], "actions": ["PLC"]}
     # Appel de la validation
-    check_connection = utilities.check_service_connection(app.config['SEAMFIX_URL_VALIDATE'], timeout=app.config['TIME_OUT'])
-    if not check_connection['success']:
-        return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
+    # check_connection = utilities.check_service_connection(app.config['SEAMFIX_URL_VALIDATE'], timeout=app.config['TIME_OUT'])
+    # if not check_connection['success']:
+    #     return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
     response = requests.post(app.config['SEAMFIX_URL_VALIDATE'], data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
     logging.info("**** End portrait_seamfix_validate ****")
@@ -540,9 +541,9 @@ def ocr_seamfix():
     headers = {"Authorization": f"Bearer {app.config['SEAMFIX_TOKEN']}", "Content-Type": "application/json"}
     data_api = {"document": data['document'],"documentType": data['documentType'], "documentFormat": data['documentFormat']}
     # Appel de l'OCR
-    check_connection = utilities.check_service_connection(app.config['SEAMFIX_DOC_PROCESSING_URL'], timeout=app.config['TIME_OUT'])
-    if not check_connection['success']:
-        return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
+    # check_connection = utilities.check_service_connection(app.config['SEAMFIX_DOC_PROCESSING_URL'], timeout=app.config['TIME_OUT'])
+    # if not check_connection['success']:
+    #     return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
     response = requests.post(app.config['SEAMFIX_DOC_PROCESSING_URL'], data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
     response = response.json()
@@ -557,9 +558,9 @@ def ocr_seamfix_get():
     logging.info("**** Begin ocr_seamfix_get ****")
     headers = {"Content-Type": "application/json"}
     # Appel de l'OCR
-    check_connection = utilities.check_service_connection(app.config['SEAMFIX_HEALTH_CHECK_URL'], timeout=app.config['TIME_OUT'])
-    if not check_connection['success']:
-        return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
+    # check_connection = utilities.check_service_connection(app.config['SEAMFIX_HEALTH_CHECK_URL'], timeout=app.config['TIME_OUT'])
+    # if not check_connection['success']:
+    #     return {"status": "error", "message": check_connection["message"], "code": 502, "has_error": True}, 502
     response = requests.get(app.config['SEAMFIX_HEALTH_CHECK_URL'], headers=headers)
     logging.info("**** response : {}".format(response))
     logging.info("**** response : {}".format(response.json()))

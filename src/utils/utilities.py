@@ -429,7 +429,8 @@ def check_service_connection(url: str, timeout: int = None) -> dict:
         result["ip"] = ip
 
         # Requête test
-        response = requests.get(url, timeout=timeout)
+        response = requests.get(url, timeout=timeout, verify=False)
+        logging.info("**** response : {}".format(response))
         result["status_code"] = response.status_code
         result["success"] = response.status_code < 500
         result["message"] = f"Connexion réussie avec code {response.status_code}"
