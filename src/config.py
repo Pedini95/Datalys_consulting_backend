@@ -57,3 +57,6 @@ class Config:
 
     # Configuration TIMM
     TIMM_URL_AUTH = os.getenv('TIMM_URL_AUTH')
+
+    # Configuration KYC Kya
+    KYC_KYA_URL = os.getenv('KYC_KYA_URL')
