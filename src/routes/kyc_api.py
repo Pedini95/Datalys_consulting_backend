@@ -235,23 +235,7 @@ def custorms_add():
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     # on fait appel a la fonction de save face_matching
-    data_ocr = {"data":{"probe": data['customer_image'], "candidate": data['customer_image_ocr']}}
-    logging.info("Data OCR : {}".format(data_ocr))
-    headers = {'Content-Type': 'application/json'}
-    url_ocr = app.config['KYC_KYA_URL']+"kyc/portrait/seamfix/verify"
-    logging.info("URL : {}".format(url_ocr))
-    response = requests.post(url_ocr, headers=headers, data=json.dumps(data_ocr))
-    logging.info("Response : {}".format(response))
-    response = response.json()
-    new_face_matching = FacesMatching(
-        description="Face matching",
-        request=json.dumps(data),
-        response=json.dumps(response),
-        created_at=datetime.utcnow(),
-        is_deleted=False
-    )
-    db.session.add(new_face_matching)
-    db.session.commit()
+    portrait_seamfix_verify_lite(data['customer_image'], data['customer_image_ocr'])
     reg_type = data.get('reg_type')
     logging.info("======= reg_type ===== {}".format(reg_type))
     if (reg_type == 'GSM'):
@@ -1965,8 +1949,51 @@ def portrait_seamfix_verify():
     response = requests.post(app.config['SEAMFIX_URL_VERIFY'], data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
     response = response.json()
+    new_face_matching = FacesMatching(
+        description="Face matching",
+        request=json.dumps(data_api),
+        response=json.dumps(response),
+        created_at=datetime.utcnow(),
+        is_deleted=False
+    )
+    db.session.add(new_face_matching)
+    db.session.commit()
     logging.info("**** response : {}".format(response))
     logging.info("**** End portrait_seamfix_verify ****")
+    return response
+
+
+def portrait_seamfix_verify_lite(probe=None, candidate=None):
+    logging.info("**** Begin portrait_seamfix_verify_lite ****")
+    data = {"probe": probe, "candidate": candidate}
+    # Champs obligatoires   
+    if probe is None:
+        return {"status": "error", "message": "Missing required fields probe", "code": 400, "has_error": True}, 400
+
+    if candidate is None:
+        return {"status": "error", "message": "Missing required fields candidate", "code": 400, "has_error": True}, 400
+
+    # Appel de l'authentification
+    auth_response = portrait_seamfix_authenticate()
+    if auth_response.get("code") != 0:
+        return {"status": "error", "message": "Failed to authenticate with Seamfix", "code": 400, "has_error": True}, 400
+
+    headers = {"Authorization": f"Bearer {auth_response.get('accessToken')}", "Content-Type": "application/json"}
+    data_api = {"probe": probe,"candidate": candidate}
+    response = requests.post(app.config['SEAMFIX_URL_VERIFY'], data=json.dumps(data_api), headers=headers)
+    logging.info("**** response : {}".format(response))
+    response = response.json()
+    new_face_matching = FacesMatching(
+        description="Face matching",
+        request=json.dumps(data_api),
+        response=json.dumps(response),
+        created_at=datetime.utcnow(),
+        is_deleted=False
+    )
+    db.session.add(new_face_matching)
+    db.session.commit()
+    logging.info("**** response : {}".format(response))
+    logging.info("**** End portrait_seamfix_verify_lite ****")
     return response
 
 
