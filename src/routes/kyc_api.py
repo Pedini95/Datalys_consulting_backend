@@ -67,7 +67,8 @@ def kyc_kya_login():
         response = {"status": resp['exec_code'], "message": resp['exec_msg'], "items": resp.get("resultset", None), "code": 200, "has_error": False}, 200
     logging.info("**** End kyc_kya_login ****")
     # on save fin de logs dans action logs
-    ActionsLogs.action_logs_final_save(libelle, json.dumps(response), response.get("status"))
+    response_body, status_code = response
+    ActionsLogs.action_logs_final_save(libelle, json.dumps(response_body), response_body.get("status"))
     return response
 
 
