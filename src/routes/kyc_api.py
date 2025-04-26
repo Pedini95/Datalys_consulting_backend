@@ -8,6 +8,7 @@ import utils.utilities as utilities
 from flasgger import swag_from
 from flask_cors import CORS, cross_origin
 from models.faces_matching import FacesMatching
+from models.actions_logs import ActionsLogs
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -50,6 +51,9 @@ def kyc_kya_auth(msisdn, pin):
 def kyc_kya_login():
     logging.info("**** Begin kyc_kya_login ****")
     r = request.get_json() or {}
+    # on save debut des logs dans action logs
+    libelle = "kyc_kya_login_"+datetime.now().strftime("%Y%m%d_%H%M%S")
+    ActionsLogs.action_logs_init_save(libelle, "/kyc_kya/agent/login", json.dumps(r))
     data = r['data']
     # Champs obligatoires
     required_fields = ['msisdn', 'pin']
@@ -62,6 +66,8 @@ def kyc_kya_login():
     if resp['exec_code'] == 200:
         response = {"status": resp['exec_code'], "message": resp['exec_msg'], "items": resp.get("resultset", None), "code": 200, "has_error": False}, 200
     logging.info("**** End kyc_kya_login ****")
+    # on save fin de logs dans action logs
+    ActionsLogs.action_logs_final_save(libelle, json.dumps(response), response.get("status"))
     return response
 
 
@@ -70,6 +76,9 @@ def kyc_kya_login():
 def agent_statistics():
     logging.info("**** Begin agent_statistics ****")
     r = request.get_json() or {}
+    # on save debut des logs dans action logs
+    libelle = "agent_statistics_"+datetime.now().strftime("%Y%m%d_%H%M%S")
+    ActionsLogs.action_logs_init_save(libelle, "/kyc/agent/statistics", json.dumps(r))
     data = r['data']
     # Champs obligatoires
     required_fields = ['msisdn', 'pin']
@@ -100,10 +109,12 @@ def agent_statistics():
                         week["data_type"]["statOm"]["registriesValues"][i]["value"] = int(item["GSMOMRegistrations"])
                     i+=1
             res["resultset"] = week["data_type"]
-        response = {"status":"success","message":"Agent statistics retrieved successfully !", "items": res["resultset"], "code": 200, "has_error": False}, 200
+        response = {"status":"success", "message":"Agent statistics retrieved successfully !", "items": res["resultset"], "code": 200, "has_error": False}, 200
     else:
-        response = {"status":"error","message":"Agent authentication failed !", "code": 400, "has_error": True}, 400
+        response = {"status": "error","message":"Agent authentication failed !", "code": 400, "has_error": True}, 400
     logging.info("**** End agent_statistics ****")
+    # on save fin de logs dans action logs
+    ActionsLogs.action_logs_final_save(libelle, json.dumps(response), response.get("status"))
     return response
 
 
@@ -231,6 +242,9 @@ def registerOM(data, username, password):
 def custorms_add():
     logging.info("**** Begin custorms_add ****")
     r = request.get_json() or {}
+    # on save debut des logs dans action logs
+    libelle = "custorms_add_"+datetime.now().strftime("%Y%m%d_%H%M%S")
+    ActionsLogs.action_logs_init_save(libelle, "/kyc/custorms/add", json.dumps(r))
     data = r['data']
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
@@ -250,6 +264,8 @@ def custorms_add():
     res = requests.post('{}TIMM/v1/SIMREG/Subscriber/Register'.format(url), data=json.dumps(data_api), verify=False)
     response = {"status":"success", "message":"Customer added successfully !", "items": res.json(), "code": 200, "has_error": False}, 200
     logging.info("**** End custorms_add ****")
+    # on save fin de logs dans action logs
+    ActionsLogs.action_logs_final_save(libelle, json.dumps(response), response.get("status"))
     return response
 
 
@@ -259,6 +275,9 @@ def custorms_add():
 def custorms_check():
     logging.info("**** Begin custorms_check ****")
     r = request.get_json() or {}
+    # on save debut des logs dans action logs
+    libelle = "custorms_check_"+datetime.now().strftime("%Y%m%d_%H%M%S")
+    ActionsLogs.action_logs_init_save(libelle, "/kyc/custorms/check", json.dumps(r))
     data = r['data']
     # Champs obligatoires
     required_fields = ['msisdn', 'pin']
@@ -272,6 +291,8 @@ def custorms_check():
     else:
         response = {"status":"error", "message":"Customer authentication failed !", "code": 400, "has_error": True}, 400
     logging.info("**** End custorms_check ****")
+    # on save fin de logs dans action logs
+    ActionsLogs.action_logs_final_save(libelle, json.dumps(response), response.get("status"))
     return response
 
 
@@ -1932,6 +1953,9 @@ def portrait_seamfix_authenticate():
 def portrait_seamfix_verify():
     logging.info("**** Begin portrait_seamfix_verify ****")
     r = request.get_json() or {}
+    # on save debut des logs dans action logs
+    libelle = "portrait_seamfix_verify_"+datetime.now().strftime("%Y%m%d_%H%M%S")
+    ActionsLogs.action_logs_init_save(libelle, "/kyc/portrait/seamfix/verify", json.dumps(r))
     data = r['data']
     # Champs obligatoires
     required_fields = ['probe', 'candidate']
@@ -1960,6 +1984,8 @@ def portrait_seamfix_verify():
     db.session.commit()
     logging.info("**** response : {}".format(response))
     logging.info("**** End portrait_seamfix_verify ****")
+    # on save fin de logs dans action logs
+    ActionsLogs.action_logs_final_save(libelle, json.dumps(response), response.get("description"))
     return response
 
 
@@ -2002,6 +2028,9 @@ def portrait_seamfix_verify_lite(probe=None, candidate=None):
 def portrait_seamfix_validate():
     logging.info("**** Begin portrait_seamfix_validate ****")
     r = request.get_json() or {}
+    # on save debut des logs dans action logs
+    libelle = "portrait_seamfix_validate_"+datetime.now().strftime("%Y%m%d_%H%M%S")
+    ActionsLogs.action_logs_init_save(libelle, "/kyc/portrait/seamfix/validate", json.dumps(r))
     data = r['data']
     # Champs obligatoires
     required_fields = ['image', 'transactionId']
@@ -2023,6 +2052,8 @@ def portrait_seamfix_validate():
     response = requests.post(app.config['SEAMFIX_URL_VALIDATE'], data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
     logging.info("**** End portrait_seamfix_validate ****")
+    # on save fin de logs dans action logs
+    ActionsLogs.action_logs_final_save(libelle, json.dumps(response.json()), response.json().get("transactionStatus"))
     return jsonify(response.json()), response.status_code
 
 
@@ -2031,6 +2062,9 @@ def portrait_seamfix_validate():
 def ocr_seamfix():
     logging.info("**** Begin ocr_seamfix ****")
     r = request.get_json() or {}
+    # on save debut des logs dans action logs
+    libelle = "ocr_seamfix_" + datetime.now().strftime("%Y%m%d_%H%M%S")
+    ActionsLogs.action_logs_init_save(libelle, "/kyc/ocr/seamfix", json.dumps(r))
     data = r['data']
     # Champs obligatoires
     required_fields = ['document', 'documentType', 'documentFormat']
@@ -2046,6 +2080,11 @@ def ocr_seamfix():
     response = response.json()
     logging.info("**** response : {}".format(response))
     logging.info("**** End ocr_seamfix ****")
+    # on save fin de logs dans action logs
+    status = "ERROR"
+    if response.get("code") == 0:
+        status = "SUCCESS"
+    ActionsLogs.action_logs_final_save(libelle, json.dumps(response), status)
     return response
 
 
@@ -2053,6 +2092,10 @@ def ocr_seamfix():
 @cross_origin()
 def ocr_seamfix_get():
     logging.info("**** Begin ocr_seamfix_get ****")
+    # r = request.get_json() or {}
+    # # on save debut des logs dans action logs
+    # libelle = "ocr_seamfix_get_"+datetime.now()
+    # ActionsLogs.action_logs_init_save(libelle, "/kyc/ocr/seamfix/get", json.dumps(r))
     headers = {"Content-Type": "application/json"}
     # Appel de l'OCR
     response = requests.get(app.config['SEAMFIX_HEALTH_CHECK_URL'], headers=headers)
@@ -2060,6 +2103,8 @@ def ocr_seamfix_get():
     logging.info("**** response : {}".format(response.json()))
     response = response.json()
     logging.info("**** End ocr_seamfix_get ****")
+    # on save fin de logs dans action logs
+    # ActionsLogs.action_logs_final_save(libelle, response, response.get("status"))
     return response
 
 

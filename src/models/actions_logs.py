@@ -17,7 +17,6 @@ class ActionsLogs(db.Model):
     statut = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
-    search_string = db.Column(db.Text)
     is_deleted = db.Column(db.Boolean, default=False)
 
     def as_dict(self):
@@ -39,6 +38,26 @@ class ActionsLogs(db.Model):
     def find_by_libelle(libelle, is_deleted):
         actions_logs = ActionsLogs.query.filter_by(libelle=libelle, is_deleted=is_deleted).first()
         return actions_logs
+
+    def action_logs_init_save(libelle, uri, request, response=None):
+        actions_log = ActionsLogs(
+            libelle=libelle,
+            uri=uri,
+            request=request,
+            is_deleted=False,
+            response=response,
+            statut="Init",
+            created_at=datetime.now(),
+        )
+        db.session.add(actions_log)
+        db.session.commit()
+
+    def action_logs_final_save(libelle, response=None, statut=None):
+        action_log = ActionsLogs.find_by_libelle(libelle, False)
+        action_log.response = response
+        action_log.statut = statut
+        action_log.updated_at = datetime.now()
+        db.session.commit()
 
     def save(self):
         db.session.add(self)
