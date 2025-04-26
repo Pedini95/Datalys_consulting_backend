@@ -115,7 +115,8 @@ def agent_statistics():
         response = {"status": "error","message":"Agent authentication failed !", "code": 400, "has_error": True}, 400
     logging.info("**** End agent_statistics ****")
     # on save fin de logs dans action logs
-    ActionsLogs.action_logs_final_save(libelle, json.dumps(response), response.get("status"))
+    response_body, status_code = response
+    ActionsLogs.action_logs_final_save(libelle, json.dumps(response_body), response_body.get("status"))
     return response
 
 
@@ -266,7 +267,8 @@ def custorms_add():
     response = {"status":"success", "message":"Customer added successfully !", "items": res.json(), "code": 200, "has_error": False}, 200
     logging.info("**** End custorms_add ****")
     # on save fin de logs dans action logs
-    ActionsLogs.action_logs_final_save(libelle, json.dumps(response), response.get("status"))
+    response_body, status_code = response
+    ActionsLogs.action_logs_final_save(libelle, json.dumps(response_body), response_body.get("status"))
     return response
 
 
@@ -293,7 +295,8 @@ def custorms_check():
         response = {"status":"error", "message":"Customer authentication failed !", "code": 400, "has_error": True}, 400
     logging.info("**** End custorms_check ****")
     # on save fin de logs dans action logs
-    ActionsLogs.action_logs_final_save(libelle, json.dumps(response), response.get("status"))
+    response_body, status_code = response
+    ActionsLogs.action_logs_final_save(libelle, json.dumps(response_body), response_body.get("status"))
     return response
 
 
