@@ -5,7 +5,6 @@ from app import app, db
 import logging
 from datetime import datetime
 import utils.utilities as utilities
-from flasgger import swag_from
 from flask_cors import CORS, cross_origin
 from models.faces_matching import FacesMatching
 from models.actions_logs import ActionsLogs
@@ -147,7 +146,7 @@ def registerGSM(data, username, password):
                     "ICCID": data['iccid'],
                     "FName": data['first_name'],
                     "LName": data['last_name'],
-                    "BDay": data['birth_date'],
+                    "BDay": datetime.strptime(data['birth_date'], "%a %b %d %Y %H:%M:%S GMT%z").strftime("%Y-%m-%d"),
                     "BPlace": data['birth_place'],
                     "GenderID": data['gender_id'],
                     "IDCard": data['id_card_Number'],
@@ -159,7 +158,7 @@ def registerGSM(data, username, password):
                     "eMail": data['email'],
                     "CountryID": data['country_id'],
                     "WorkAddress": data['workaddress'],
-                    "RegDate":data['reg_date'],
+                    "RegDate":datetime.strptime(data['reg_date'], "%a %b %d %Y %H:%M:%S GMT%z").strftime("%Y-%m-%d"),
                     "KName":data['k_name'],
                     "AgentMSISDN": data['agentmsisdn'],
                     "AgentIMEI": data['agentimei'] if data['agentimei'] else data['agentdeviceId'],
@@ -244,6 +243,16 @@ def registerOM(data, username, password):
 def custorms_add():
     logging.info("**** Begin custorms_add ****")
     r = request.get_json() or {}
+    data = r['data']
+    # Champs obligatoires
+    required_fields = ['county_id', 'address','address_types_id', 'agenticcid', 'agentimei','agentmsisdn', 
+                       'birth_date', 'birth_place', 'country_id', 'first_name', 'gender_id', 'id_card_Number', 
+                       'id_card_type_id', 'last_name', 'msisdn', 'occupation_id', 'reg_date', 'workaddress']
+    for field in required_fields:
+        if field not in data or not data[field]:
+            return {"status": "error", "message": f"Field {field} is missing or empty", "code": 400, "has_error": True}, 400
+            
+    # resp = kyc_kya_auth(data['msisdn'], data['pin'])
     # on save debut des logs dans action logs
     libelle = "custorms_add_"+datetime.now().strftime("%Y%m%d_%H%M%S")
     ActionsLogs.action_logs_init_save(libelle, "/kyc/custorms/add", json.dumps(r))
@@ -1995,18 +2004,26 @@ def portrait_seamfix_verify():
 
 def portrait_seamfix_verify_lite(probe=None, candidate=None):
     logging.info("**** Begin portrait_seamfix_verify_lite ****")
-    data = {"probe": probe, "candidate": candidate}
-    # Champs obligatoires   
+    libelle = "portrait_seamfix_verify_lite_"+datetime.now().strftime("%Y%m%d_%H%M%S")
+    ActionsLogs.action_logs_init_save(libelle, "/kyc/portrait/seamfix/verify", json.dumps({"probe": probe,"candidate": candidate}))
     if probe is None:
-        return {"status": "error", "message": "Missing required fields probe", "code": 400, "has_error": True}, 400
+        response = {"status": "error", "message": "Missing required fields probe", "code": 400, "has_error": True}, 400
+        ActionsLogs.action_logs_final_save(libelle, json.dumps(response), "Face matching")
+        return response
 
+    
     if candidate is None:
-        return {"status": "error", "message": "Missing required fields candidate", "code": 400, "has_error": True}, 400
+        response = {"status": "error", "message": "Missing required fields candidate", "code": 400, "has_error": True}, 400
+        ActionsLogs.action_logs_final_save(libelle, json.dumps(response), "Face matching")
+        return response
 
+    logging.info("**** End portrait_seamfix_verify_lite ****")
     # Appel de l'authentification
     auth_response = portrait_seamfix_authenticate()
     if auth_response.get("code") != 0:
-        return {"status": "error", "message": "Failed to authenticate with Seamfix", "code": 400, "has_error": True}, 400
+        response = {"status": "error", "message": "Failed to authenticate with Seamfix", "code": 400, "has_error": True}, 400
+        ActionsLogs.action_logs_final_save(libelle, json.dumps(response), "Face matching")
+        return response
 
     headers = {"Authorization": f"Bearer {auth_response.get('accessToken')}", "Content-Type": "application/json"}
     data_api = {"probe": probe,"candidate": candidate}
@@ -2024,6 +2041,8 @@ def portrait_seamfix_verify_lite(probe=None, candidate=None):
     db.session.commit()
     logging.info("**** response : {}".format(response))
     logging.info("**** End portrait_seamfix_verify_lite ****")
+    # on save fin de logs dans action logs
+    ActionsLogs.action_logs_final_save(libelle, json.dumps(response), response.get("description"))
     return response
 
 
