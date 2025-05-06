@@ -274,7 +274,7 @@ def custorms_add():
     else:
         response = {"status":"error", "message":"Invalid registration type !", "code": 400, "has_error": True}, 400
         return response
-    res = requests.post('{}TIMM/v1/SIMREG/Subscriber/Register'.format(url), data=json.dumps(data_api))
+    res = requests.post('{}TIMM/v1/SIMREG/Subscriber/Register'.format(url), data=json.dumps(data_api), verify=False)
     res_json = res.json()
     exec_code = res_json.get('exec_code')
     exec_msg = res_json.get('exec_msg')
