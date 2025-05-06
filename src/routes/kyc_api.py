@@ -9,6 +9,9 @@ from flask_cors import CORS, cross_origin
 from models.faces_matching import FacesMatching
 from models.actions_logs import ActionsLogs
 
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
