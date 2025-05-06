@@ -245,7 +245,7 @@ def custorms_add():
     r = request.get_json() or {}
     data = r['data']
     # Champs obligatoires
-    required_fields = ['county_id', 'address','address_types_id', 'agenticcid', 'agentimei','agentmsisdn', 
+    required_fields = ['county_id', 'address','address_types_id','agentmsisdn', 
                        'birth_date', 'birth_place', 'country_id', 'first_name', 'gender_id', 'id_card_Number', 
                        'id_card_type_id', 'last_name', 'msisdn', 'occupation_id', 'reg_date', 'workaddress']
     for field in required_fields:
