@@ -281,9 +281,9 @@ def custorms_add():
     exec_code = res_json.get('exec_code')
     exec_msg = res_json.get('exec_msg')
     if exec_code > 0:
-        response = {"status": exec_msg, "message":"Customer added successfully !", "items": res.json(), "code": exec_code, "has_error": False}, exec_code
+        response = {"status": exec_msg, "message":"Customer added successfully !", "items": res.json(), "code": exec_code, "has_error": False}, 200
     else:
-        response = {"status": exec_msg, "message":"Customer added failed !", "items": res.json(), "code": exec_code, "has_error": True}, exec_code
+        response = {"status": exec_msg, "message":"Customer added failed !", "items": res.json(), "code": exec_code, "has_error": True}, 400
     logging.info("**** End custorms_add ****")
     # on save fin de logs dans action logs
     response_body, status_code = response
