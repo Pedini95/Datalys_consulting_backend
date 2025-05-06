@@ -245,9 +245,8 @@ def custorms_add():
     r = request.get_json() or {}
     data = r['data']
     # Champs obligatoires
-    required_fields = ['county_id', 'address','address_types_id','agentmsisdn', 
-                       'birth_date', 'birth_place', 'country_id', 'first_name', 'gender_id', 'id_card_Number', 
-                       'id_card_type_id', 'last_name', 'msisdn', 'occupation_id', 'reg_date', 'workaddress']
+    required_fields = ['county_id', 'address','address_types_id','agentmsisdn','birth_date', 'birth_place', 'country_id', 'first_name', 
+                    'gender_id', 'id_card_Number', 'id_card_type_id', 'last_name', 'msisdn', 'occupation_id', 'reg_date', 'workaddress']
     for field in required_fields:
         if field not in data or not data[field]:
             return {"status": "error", "message": f"Field {field} is missing or empty", "code": 400, "has_error": True}, 400
@@ -273,7 +272,13 @@ def custorms_add():
         response = {"status":"error", "message":"Invalid registration type !", "code": 400, "has_error": True}, 400
         return response
     res = requests.post('{}TIMM/v1/SIMREG/Subscriber/Register'.format(url), data=json.dumps(data_api), verify=False)
-    response = {"status":"success", "message":"Customer added successfully !", "items": res.json(), "code": 200, "has_error": False}, 200
+    res_json = res.json()
+    exec_code = res_json.get('exec_code')
+    exec_msg = res_json.get('exec_msg')
+    if exec_code > 0:
+        response = {"status": exec_msg, "message":"Customer added successfully !", "items": res.json(), "code": exec_code, "has_error": False}, exec_code
+    else:
+        response = {"status": exec_msg, "message":"Customer added failed !", "items": res.json(), "code": exec_code, "has_error": True}, exec_code
     logging.info("**** End custorms_add ****")
     # on save fin de logs dans action logs
     response_body, status_code = response
