@@ -27,12 +27,13 @@ class Config:
     REDIS_PORT = os.getenv('REDIS_PORT')
     REDIS_DB = os.getenv('REDIS_DB')
 
-    TIME_OUT = int(os.getenv('TIME_OUT'))
+    TIME_OUT = int(os.getenv('TIME_OUT', 30))
 
     ENV = os.getenv('ENV', 'local')
     UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER')
 
-    LOG_FILE_PATH=os.getenv('LOG_FILE_PATH')
+    # LOG_FILE_PATH=os.getenv('LOG_FILE_PATH')
+    LOG_FILE_PATH = os.getenv("LOG_FILE_PATH", "logs/app.log")
     
     # Configuration des emails 
     MAIL_SERVER = os.getenv('MAIL_SERVER')
