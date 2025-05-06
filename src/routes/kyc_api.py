@@ -254,7 +254,6 @@ def custorms_add():
         if field not in data or not data[field]:
             return {"status": "error", "message": f"Field {field} is missing or empty", "code": 400, "has_error": True}, 400
             
-    # resp = kyc_kya_auth(data['msisdn'], data['pin'])
     # on save debut des logs dans action logs
     libelle = "custorms_add_"+datetime.now().strftime("%Y%m%d_%H%M%S")
     ActionsLogs.action_logs_init_save(libelle, "/kyc/custorms/add", json.dumps(r))
