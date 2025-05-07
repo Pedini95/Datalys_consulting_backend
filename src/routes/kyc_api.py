@@ -38,10 +38,11 @@ def kyc_checkParty(msisdn):
 
 def kyc_kya_auth(msisdn, pin):
     logging.info('***** Begin kyc_kya_auth ****')
+    libelle = "kyc_kya_auth_"+datetime.now().strftime("%Y%m%d_%H%M%S")
+    ActionsLogs.action_logs_init_save(libelle, "/kyc_kya/agent/login", json.dumps({"msisdn":msisdn, "pin":encrypt_password_lite(pin)}))
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{ "user":username, "pwd": password}, "param":{ "MSISDN":msisdn, "PIN":pin, "CURRENCY":"usd"}}
-    logging.info('***** request : {} - date_action {} ****'.format(data_api, datetime.now()))
     resp = requests.post('{}TIMM/v1/OM/Agent/Pin/Check'.format(app.config['TIMM_URL_AUTH']), data=json.dumps(data_api), verify=False)
     logging.info('***** response : {} - date_action {} ****'.format(resp, datetime.now()))
     logging.info('***** End kyc_kya_auth ****')
@@ -50,12 +51,16 @@ def kyc_kya_auth(msisdn, pin):
 
 def kyc_agent_auth(msisdn, pin):
     logging.info('***** Begin kyc_agent_auth ****')
+    libelle = "kyc_kya_login_"+datetime.now().strftime("%Y%m%d_%H%M%S")
+    ActionsLogs.action_logs_init_save(libelle, "/kyc_kya/agent/login", json.dumps({"msisdn":msisdn, "pin":encrypt_password_lite(pin)}))
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{ "user":username, "pwd": password}, "param":{ "MSISDN":msisdn, "AppVersion":"FUSION-KYA-KYC"}}
     logging.info('***** request : {} - date_action {} ****'.format(data_api, datetime.now()))
     resp = requests.post('{}TIMM/v1/SIMREG/Agent/Authenticate'.format(url), data=json.dumps(data_api), verify=False)
     logging.info('***** response : {} - date_action {} ****'.format(resp, datetime.now()))
+    response_body = resp.json()
+    ActionsLogs.action_logs_final_save(libelle, json.dumps(response_body), response_body.get("exec_code"))
     logging.info('***** End kyc_kya_auth ****')
     return resp
 
@@ -103,7 +108,6 @@ def agent_statistics():
 
     resp = kyc_agent_auth(data['msisdn'], data['pin'])
     resp = resp.json()
-    
     if resp['exec_code'] == 200:
         agentID = resp['resultset']['AgentID']
         username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
@@ -249,7 +253,7 @@ def registerOM(data, username, password):
                 "KINName": data['kin_name'],
                 "KINPhone": data['kin_phone'],
                 "KINEmail": data['kin_email'],
-                "AGENTPINENC": data['agent_pin'].replace("\n", "")
+                "AgentPIN": data['agent_pin'].replace("\n", "")
             }
         }
     }
