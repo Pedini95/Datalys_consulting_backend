@@ -48,6 +48,18 @@ def kyc_kya_auth(msisdn, pin):
     return resp
 
 
+def kyc_agent_auth(msisdn, pin):
+    logging.info('***** Begin kyc_agent_auth ****')
+    username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
+    password = utilities.decrypt_password_lite(password)
+    data_api = {"auth":{ "user":username, "pwd": password}, "param":{ "MSISDN":msisdn, "AppVersion":"FUSION-KYA-KYC"}}
+    logging.info('***** request : {} - date_action {} ****'.format(data_api, datetime.now()))
+    resp = requests.post('{}TIMM/v1/SIMREG/Agent/Authenticate'.format(url), data=json.dumps(data_api), verify=False)
+    logging.info('***** response : {} - date_action {} ****'.format(resp, datetime.now()))
+    logging.info('***** End kyc_kya_auth ****')
+    return resp
+
+
 @app.route("/kyc_kya/agent/login", methods=['POST'])
 @cross_origin()
 def kyc_kya_login():
@@ -89,7 +101,9 @@ def agent_statistics():
         if field not in data or not data[field]:
             return {"status": "error", "message": f"Field {field} is missing or empty", "code": 400, "has_error": True}, 400
 
-    resp = kyc_kya_auth(data['msisdn'], data['pin'])
+    resp = kyc_agent_auth(data['msisdn'], data['pin'])
+    resp = resp.json()
+    
     if resp['exec_code'] == 200:
         agentID = resp['resultset']['AgentID']
         username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
@@ -166,7 +180,7 @@ def registerGSM(data, username, password):
                     "AgentMSISDN": data['agentmsisdn'],
                     "AgentIMEI": data['agentimei'] if data['agentimei'] else data['agentdeviceId'],
                     "AgentICCID": data['agenticcid'] if data['agenticcid'] else data['agentmsisdn'],
-                    "AppVersion":data['app_version'] if data['app_version'] else "KYC:1.0",
+                    "AppVersion":"FUSION-KYA-KYC",
                     "LAT": data['latitude'],
                     "LNG": data['longitude'],
                     "CellID":data['cell_id'],
@@ -211,7 +225,7 @@ def registerOM(data, username, password):
                 "ICCID": data['iccid'],
                 "FName": data['first_name'],
                 "LName": data['last_name'],
-                "BDay": data['birth_date'],
+                "BDay": datetime.strptime(data['birth_date'], "%a %b %d %Y %H:%M:%S GMT%z").strftime("%Y-%m-%d"),
                 "BPlace": data['birth_place'],
                 "GenderID": data['gender_id'],
                 "IDCard": data['id_card_Number'],
@@ -223,12 +237,12 @@ def registerOM(data, username, password):
                 "eMail": data['email'],
                 "CountryID": data['country_id'],
                 "WorkAddress": data['workaddress'],
-                "RegDate":data['reg_date'],
+                "RegDate":datetime.strptime(data['reg_date'], "%a %b %d %Y %H:%M:%S GMT%z").strftime("%Y-%m-%d"),
                 "KName":data['k_name'],
                 "AgentMSISDN": data['agentmsisdn'],
                 "AgentIMEI": data['agentimei'] if data['agentimei'] else data['agentdeviceId'],
                 "AgentICCID": data['agenticcid'] if data['agenticcid'] else data['agentmsisdn'],
-                "AppVersion":data['app_version'] if data['app_version'] else "KYC:1.0",
+                "AppVersion":"FUSION-KYA-KYC",
                 "LAT": data['latitude'],
                 "LNG": data['longitude'],
                 "CellID":data['cell_id'],
