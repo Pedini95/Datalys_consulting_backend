@@ -42,7 +42,7 @@ def kyc_kya_auth(msisdn, pin):
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{ "user":username, "pwd": password}, "param":{ "MSISDN":msisdn, "PIN":pin, "CURRENCY":"usd"}}
     logging.info('***** request : {} - date_action {} ****'.format(data_api, datetime.now()))
-    resp = requests.post('{}TIMM/v1/OM/Subscriber/Pin/Check'.format(app.config['TIMM_URL_AUTH']), data=json.dumps(data_api), verify=False)
+    resp = requests.post('{}TIMM/v1/OM/Agent/Pin/Check'.format(app.config['TIMM_URL_AUTH']), data=json.dumps(data_api), verify=False)
     logging.info('***** response : {} - date_action {} ****'.format(resp, datetime.now()))
     logging.info('***** End kyc_kya_auth ****')
     return resp
