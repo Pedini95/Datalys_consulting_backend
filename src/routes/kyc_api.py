@@ -8,6 +8,7 @@ import utils.utilities as utilities
 from flask_cors import CORS, cross_origin
 from models.faces_matching import FacesMatching
 from models.actions_logs import ActionsLogs
+from models.registration import Registration
 
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -39,7 +40,7 @@ def kyc_checkParty(msisdn):
 def kyc_kya_auth(msisdn, pin):
     logging.info('***** Begin kyc_kya_auth ****')
     libelle = "kyc_kya_auth_"+datetime.now().strftime("%Y%m%d_%H%M%S")
-    ActionsLogs.action_logs_init_save(libelle, "/kyc_kya/agent/login", json.dumps({"msisdn":msisdn, "pin":encrypt_password_lite(pin)}))
+    ActionsLogs.action_logs_init_save(libelle, "/kyc_kya/agent/login", json.dumps({"msisdn":msisdn, "pin":utilities.encrypt_password_lite(pin)}))
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{ "user":username, "pwd": password}, "param":{ "MSISDN":msisdn, "PIN":pin, "CURRENCY":"usd"}}
@@ -52,7 +53,7 @@ def kyc_kya_auth(msisdn, pin):
 def kyc_agent_auth(msisdn, pin):
     logging.info('***** Begin kyc_agent_auth ****')
     libelle = "kyc_kya_login_"+datetime.now().strftime("%Y%m%d_%H%M%S")
-    ActionsLogs.action_logs_init_save(libelle, "/kyc_kya/agent/login", json.dumps({"msisdn":msisdn, "pin":encrypt_password_lite(pin)}))
+    ActionsLogs.action_logs_init_save(libelle, "/kyc_kya/agent/login", json.dumps({"msisdn":msisdn, "pin":utilities.encrypt_password_lite(pin)}))
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{ "user":username, "pwd": password}, "param":{ "MSISDN":msisdn, "AppVersion":"FUSION-KYA-KYC"}}
@@ -280,21 +281,18 @@ def custorms_add():
     password = utilities.decrypt_password_lite(password)
     # on fait appel a la fonction de save face_matching
     portrait_seamfix_verify_lite(data['customer_image'], data['customer_image_ocr'])
+    save_registration(data)
     reg_type = data.get('reg_type')
-    logging.info("======= reg_type ===== {}".format(reg_type))
+    logging.info("Registration type : {} ".format(reg_type))
     if (reg_type == 'GSM'):
-        logging.info("======= GSM =====")
         data_api = registerGSM(data, username, password)
     elif (reg_type == 'OM'):
-        logging.info("======= OM =====")
         data_api = registerOM(data, username, password)
     else:
         response = {"status":"error", "message":"Invalid registration type !", "code": 400, "has_error": True}, 400
         return response
     res = requests.post('{}TIMM/v1/SIMREG/Subscriber/Register'.format(url), data=json.dumps(data_api), verify=False)
-    logging.info("======= res ===== {}".format(res))
     res_json = res.json()
-    logging.info("======= res_json ===== {}".format(res_json))
     exec_code = res_json.get('exec_code')
     exec_msg = res_json.get('exec_msg')
     if exec_code > 0:
@@ -2037,7 +2035,6 @@ def portrait_seamfix_verify_lite(probe=None, candidate=None):
         response = {"status": "error", "message": "Missing required fields probe", "code": 400, "has_error": True}, 400
         ActionsLogs.action_logs_final_save(libelle, json.dumps(response), "Face matching")
         return response
-
     
     if candidate is None:
         response = {"status": "error", "message": "Missing required fields candidate", "code": 400, "has_error": True}, 400
@@ -2156,6 +2153,53 @@ def ocr_seamfix_get():
     # on save fin de logs dans action logs
     # ActionsLogs.action_logs_final_save(libelle, response, response.get("status"))
     return response
+
+
+def save_registration(data: dict):
+    """
+    Enregistre une nouvelle ligne dans la table registration avec traitement d’images.
+    """
+    try:
+        # Nettoyage des données
+        cleaned_data = {k: (v if v not in ("", None) else None) for k, v in data.items()}
+
+        # Liste des champs images à traiter
+        image_fields = [
+            "contract_image",
+            "agent_signature",
+            "id_document_image",
+            "id_document_image_back",
+            "customer_image",
+            "customer_image_ocr"
+        ]
+
+        for field in image_fields:
+            if cleaned_data.get(field):
+                # Appel d'une fonction qui sauvegarde l'image et retourne le chemin du fichier
+                cleaned_data[field] = utilities.save_base64_image_lite(
+                    cleaned_data[field],
+                    prefix=field  # permet d’avoir un nom clair pour chaque fichier
+                )
+
+        # Valeurs par défaut
+        cleaned_data.setdefault("created_at", datetime.utcnow())
+        cleaned_data.setdefault("updated_at", datetime.utcnow())
+        cleaned_data.setdefault("is_deleted", False)
+        cleaned_data["birth_date"] = datetime.strptime(cleaned_data['birth_date'], "%a %b %d %Y %H:%M:%S GMT%z").strftime("%Y-%m-%d"),
+        cleaned_data["reg_date"] = datetime.strptime(cleaned_data['reg_date'], "%a %b %d %Y %H:%M:%S GMT%z").strftime("%Y-%m-%d %H:%M:%S"),
+        cleaned_data["agent_pin"] = utilities.encrypt_password_lite(cleaned_data["agent_pin"])
+        cleaned_data["search_string"] = utilities.build_search_string(cleaned_data)
+
+
+        # Création de l'entité SQLAlchemy
+        registration = Registration(**cleaned_data)
+        db.session.add(registration)
+        db.session.commit()
+
+        return registration
+    except Exception as e:
+        db.session.rollback()
+        raise RuntimeError(f"Erreur lors de l’enregistrement : {str(e)}")
 
 
 # @app.route("/kya/partner/create", methods=['POST'])

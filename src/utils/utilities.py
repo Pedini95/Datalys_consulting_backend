@@ -371,7 +371,7 @@ def generate_alphanumeric_code_lite(nbre_caractere):
 
 def build_search_string(data):
     # Liste des champs à ignorer
-    image_fields = {'timm_password'}
+    image_fields = {'timm_password','contract_image','id_document_image','id_document_image_back','customer_image','customer_image_ocr','agent_signature'}
     # Concaténer les valeurs des champs, en ignorant les champs d'images et en filtrant les champs non vides
     search_string = ', '.join(str(data.get(field, '')).strip() 
                     for field in data 
@@ -405,6 +405,20 @@ def decrypt_password_lite(encrypted_password):
     cipher = AES.new(SECRET_KEY, AES.MODE_EAX, nonce=nonce)  # Déchiffreur avec nonce
     decrypted_password = cipher.decrypt_and_verify(ciphertext, tag).decode('utf-8')  # Vérification du tag
     return decrypted_password
+
+def save_base64_image_lite(base64_str, prefix="image"):
+    try:
+        filename = f"{prefix}_{datetime.now().strftime('%Y%m%d%H%M%S')}.jpg"
+        folder = "static/files"
+        os.makedirs(folder, exist_ok=True)
+        filepath = os.path.join(folder, filename)
+
+        with open(filepath, "wb") as f:
+            f.write(base64.b64decode(base64_str))
+        logging.info("***** End save_base64_image_lite %s****", filepath)
+        return filepath
+    except Exception as e:
+        raise RuntimeError(f"Erreur lors de la sauvegarde de l’image : {e}")
 
 
 def check_service_connection(url: str, timeout: int = None) -> dict:
