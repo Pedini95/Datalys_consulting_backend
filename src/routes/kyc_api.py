@@ -282,7 +282,7 @@ def custorms_add():
     log_data['data']['agent_pin'] = "****"  # masquer la donnée sensible
     msisdn = data['msisdn']
     logging.info("MSISDN : {} ".format(msisdn))
-    ActionsLogs.action_logs_init_save(libelle, "/kyc/custorms/add", json.dumps(log_data), msisdn=msisdn)
+    ActionsLogs.action_logs_init_save(libelle, "/kyc/custorms/add", json.dumps(log_data), msisdn)
     # Champs obligatoires
     required_fields = ['county_id', 'address','address_types_id','agentmsisdn','birth_date', 'birth_place', 'country_id', 'first_name', 
                     'gender_id', 'id_card_Number', 'id_card_type_id', 'last_name', 'msisdn', 'occupation_id', 'reg_date', 'workaddress']
@@ -317,7 +317,7 @@ def custorms_add():
     logging.info("**** End custorms_add ****")
     # on save fin de logs dans action logs
     response_body, status_code = response
-    ActionsLogs.action_logs_final_save(libelle, json.dumps(response_body), status)
+    ActionsLogs.action_logs_final_save(libelle, json.dumps(response_body), status, msisdn)
     return response
 
 
