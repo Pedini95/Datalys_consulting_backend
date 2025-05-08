@@ -41,6 +41,7 @@ class Registration(db.Model):
     reg_date = db.Column(db.String(255))
     reg_type = db.Column(db.String(255))
     workaddress = db.Column(db.String(255))
+    app_version = db.Column(db.String(50))
     contract_image = db.Column(db.String(255))
     agent_signature = db.Column(db.String(255))
     id_document_image = db.Column(db.String(255))
