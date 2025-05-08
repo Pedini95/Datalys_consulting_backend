@@ -266,17 +266,16 @@ def custorms_add():
     logging.info("**** Begin custorms_add ****")
     r = request.get_json() or {}
     data = r['data']
+    # on save debut des logs dans action logs
+    libelle = "custorms_add_"+datetime.now().strftime("%Y%m%d_%H%M%S")
+    ActionsLogs.action_logs_init_save(libelle, "/kyc/custorms/add", json.dumps(r), msisdn=data['msisdn'])
     # Champs obligatoires
     required_fields = ['county_id', 'address','address_types_id','agentmsisdn','birth_date', 'birth_place', 'country_id', 'first_name', 
                     'gender_id', 'id_card_Number', 'id_card_type_id', 'last_name', 'msisdn', 'occupation_id', 'reg_date', 'workaddress']
     for field in required_fields:
         if field not in data or not data[field]:
             return {"status": "error", "message": f"Field {field} is missing or empty", "code": 400, "has_error": True}, 400
-            
-    # on save debut des logs dans action logs
-    libelle = "custorms_add_"+datetime.now().strftime("%Y%m%d_%H%M%S")
-    ActionsLogs.action_logs_init_save(libelle, "/kyc/custorms/add", json.dumps(r))
-    data = r['data']
+        
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     # on fait appel a la fonction de save face_matching

@@ -15,6 +15,7 @@ class ActionsLogs(db.Model):
     request = db.Column(db.Text)
     response = db.Column(db.Text)
     statut = db.Column(db.String(255))
+    msisdn = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
     is_deleted = db.Column(db.Boolean, default=False)
@@ -39,7 +40,7 @@ class ActionsLogs(db.Model):
         actions_logs = ActionsLogs.query.filter_by(libelle=libelle, is_deleted=is_deleted).first()
         return actions_logs
 
-    def action_logs_init_save(libelle, uri, request, response=None):
+    def action_logs_init_save(libelle, uri, request, response=None, msisdn=None):
         actions_log = ActionsLogs(
             libelle=libelle,
             uri=uri,
@@ -47,16 +48,18 @@ class ActionsLogs(db.Model):
             is_deleted=False,
             response=response,
             statut="Init",
+            msisdn=msisdn,
             created_at=datetime.now(),
         )
         db.session.add(actions_log)
         db.session.commit()
 
-    def action_logs_final_save(libelle, response=None, statut=None):
+    def action_logs_final_save(libelle, response=None, statut=None, msisdn=None):
         action_log = ActionsLogs.find_by_libelle(libelle, False)
         action_log.response = response
         action_log.statut = statut
         action_log.updated_at = datetime.now()
+        action_log.msisdn = msisdn
         db.session.commit()
 
     def save(self):
