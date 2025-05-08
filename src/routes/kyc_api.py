@@ -45,8 +45,15 @@ def kyc_kya_auth(msisdn, pin):
     password = utilities.decrypt_password_lite(password)
     data_api = {"auth":{ "user":username, "pwd": password}, "param":{ "MSISDN":msisdn, "PIN":pin, "CURRENCY":"usd"}}
     resp = requests.post('{}TIMM/v1/OM/Agent/Pin/Check'.format(app.config['TIMM_URL_AUTH']), data=json.dumps(data_api), verify=False)
+    resp = resp.json()
+    status = None
+    if resp['exec_code'] == 200:
+        status = "OK"
+    else:
+        status = "ERROR"
     logging.info('***** response : {} - date_action {} ****'.format(resp, datetime.now()))
     logging.info('***** End kyc_kya_auth ****')
+    ActionsLogs.action_logs_final_save(libelle, json.dumps(resp), status)
     return resp
 
 
@@ -59,9 +66,14 @@ def kyc_agent_auth(msisdn, pin):
     data_api = {"auth":{ "user":username, "pwd": password}, "param":{ "MSISDN":msisdn, "AppVersion":"FUSION-KYA-KYC"}}
     logging.info('***** request : {} - date_action {} ****'.format(data_api, datetime.now()))
     resp = requests.post('{}TIMM/v1/SIMREG/Agent/Authenticate'.format(url), data=json.dumps(data_api), verify=False)
+    resp = resp.json()
+    status = None
+    if resp['exec_code'] == 200:
+        status = "OK"
+    else:
+        status = "ERROR"
     logging.info('***** response : {} - date_action {} ****'.format(resp, datetime.now()))
-    response_body = resp.json()
-    ActionsLogs.action_logs_final_save(libelle, json.dumps(response_body), response_body.get("exec_code"))
+    ActionsLogs.action_logs_final_save(libelle, json.dumps(resp), status)
     logging.info('***** End kyc_kya_auth ****')
     return resp
 
@@ -71,9 +83,6 @@ def kyc_agent_auth(msisdn, pin):
 def kyc_kya_login():
     logging.info("**** Begin kyc_kya_login ****")
     r = request.get_json() or {}
-    # on save debut des logs dans action logs
-    libelle = "kyc_kya_login_"+datetime.now().strftime("%Y%m%d_%H%M%S")
-    ActionsLogs.action_logs_init_save(libelle, "/kyc_kya/agent/login", json.dumps(r))
     data = r['data']
     # Champs obligatoires
     required_fields = ['msisdn', 'pin']
@@ -86,9 +95,6 @@ def kyc_kya_login():
     if resp['exec_code'] == 200:
         response = {"status": resp['exec_code'], "message": resp['exec_msg'], "items": resp.get("resultset", None), "code": 200, "has_error": False}, 200
     logging.info("**** End kyc_kya_login ****")
-    # on save fin de logs dans action logs
-    response_body, status_code = response
-    ActionsLogs.action_logs_final_save(libelle, json.dumps(response_body), response_body.get("status"))
     return response
 
 
@@ -109,6 +115,7 @@ def agent_statistics():
 
     resp = kyc_agent_auth(data['msisdn'], data['pin'])
     resp = resp.json()
+    status = "ERROR"
     if resp['exec_code'] == 200:
         agentID = resp['resultset']['AgentID']
         username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
@@ -120,6 +127,7 @@ def agent_statistics():
         res = res.json()
         week = getWeekDate()
         if res["exec_code"]>=0:
+            status = "OK"
             i=0
             if 'resultset' in res:
                 for item in res["resultset"]:
@@ -131,13 +139,13 @@ def agent_statistics():
                         week["data_type"]["statOm"]["registriesValues"][i]["value"] = int(item["GSMOMRegistrations"])
                     i+=1
             res["resultset"] = week["data_type"]
-        response = {"status":"success", "message":"Agent statistics retrieved successfully !", "items": res["resultset"], "code": 200, "has_error": False}, 200
+        response = {"status":status, "message":"Agent statistics retrieved successfully !", "items": res["resultset"], "code": 200, "has_error": False}, 200
     else:
-        response = {"status": "error","message":"Agent authentication failed !", "code": 400, "has_error": True}, 400
+        response = {"status": status, "message":"Agent authentication failed !", "code": 400, "has_error": True}, 400
     logging.info("**** End agent_statistics ****")
     # on save fin de logs dans action logs
     response_body, status_code = response
-    ActionsLogs.action_logs_final_save(libelle, json.dumps(response_body), response_body.get("status"))
+    ActionsLogs.action_logs_final_save(libelle, json.dumps(response_body), status)
     return response
 
 
@@ -268,7 +276,13 @@ def custorms_add():
     data = r['data']
     # on save debut des logs dans action logs
     libelle = "custorms_add_"+datetime.now().strftime("%Y%m%d_%H%M%S")
-    ActionsLogs.action_logs_init_save(libelle, "/kyc/custorms/add", json.dumps(r), msisdn=data['msisdn'])
+    # On copie les données pour les logs sans agent_pin
+    log_data = r.copy()
+    log_data['data'] = data.copy()
+    log_data['data']['agent_pin'] = "****"  # masquer la donnée sensible
+    msisdn = data['msisdn']
+    logging.info("MSISDN : {} ".format(msisdn))
+    ActionsLogs.action_logs_init_save(libelle, "/kyc/custorms/add", json.dumps(log_data), msisdn=msisdn)
     # Champs obligatoires
     required_fields = ['county_id', 'address','address_types_id','agentmsisdn','birth_date', 'birth_place', 'country_id', 'first_name', 
                     'gender_id', 'id_card_Number', 'id_card_type_id', 'last_name', 'msisdn', 'occupation_id', 'reg_date', 'workaddress']
@@ -298,7 +312,7 @@ def custorms_add():
         status = "OK"
         response = {"status": status, "message":"Customer added successfully !", "items": res.json(), "code": exec_code, "has_error": False}, 200
     else:
-        status = "KO"
+        status = "ERROR"
         response = {"status": status, "message":"Customer added failed !", "items": res.json(), "code": exec_code, "has_error": True}, 400
     logging.info("**** End custorms_add ****")
     # on save fin de logs dans action logs
@@ -2029,8 +2043,8 @@ def portrait_seamfix_verify():
 
 
 def portrait_seamfix_verify_lite(probe=None, candidate=None):
-    logging.info("**** Begin portrait_seamfix_verify_lite ****")
-    libelle = "portrait_seamfix_verify_lite_"+datetime.now().strftime("%Y%m%d_%H%M%S")
+    logging.info("**** Begin face matching ****")
+    libelle = "face_matching_"+datetime.now().strftime("%Y%m%d_%H%M%S")
     ActionsLogs.action_logs_init_save(libelle, "/kyc/portrait/seamfix/verify", json.dumps({"probe": probe,"candidate": candidate}))
     if probe is None:
         response = {"status": "error", "message": "Missing required fields probe", "code": 400, "has_error": True}, 400
@@ -2042,7 +2056,6 @@ def portrait_seamfix_verify_lite(probe=None, candidate=None):
         ActionsLogs.action_logs_final_save(libelle, json.dumps(response), "Face matching")
         return response
 
-    logging.info("**** End portrait_seamfix_verify_lite ****")
     # Appel de l'authentification
     auth_response = portrait_seamfix_authenticate()
     if auth_response.get("code") != 0:
@@ -2065,7 +2078,7 @@ def portrait_seamfix_verify_lite(probe=None, candidate=None):
     db.session.add(new_face_matching)
     db.session.commit()
     logging.info("**** response : {}".format(response))
-    logging.info("**** End portrait_seamfix_verify_lite ****")
+    logging.info("**** End face matching ****")
     # on save fin de logs dans action logs
     ActionsLogs.action_logs_final_save(libelle, json.dumps(response), response.get("description"))
     return response
@@ -2186,11 +2199,7 @@ def save_registration(data: dict):
         cleaned_data.setdefault("created_at", datetime.utcnow())
         cleaned_data.setdefault("updated_at", datetime.utcnow())
         cleaned_data.setdefault("is_deleted", False)
-        agent_pin = cleaned_data["agent_pin"]
-        if agent_pin:
-            cleaned_data["agent_pin"] = utilities.encrypt_password_lite(agent_pin)
-        else:
-            cleaned_data["agent_pin"] = None
+        cleaned_data["agent_pin"] = "****"
         cleaned_data["birth_date"] = datetime.strptime(cleaned_data['birth_date'], "%a %b %d %Y %H:%M:%S GMT%z").strftime("%Y-%m-%d"),
         cleaned_data["reg_date"] = datetime.strptime(cleaned_data['reg_date'], "%a %b %d %Y %H:%M:%S GMT%z").strftime("%Y-%m-%d %H:%M:%S"),
         cleaned_data["search_string"] = utilities.build_search_string(cleaned_data)
