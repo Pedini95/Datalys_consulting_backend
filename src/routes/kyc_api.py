@@ -294,15 +294,17 @@ def custorms_add():
     res = requests.post('{}TIMM/v1/SIMREG/Subscriber/Register'.format(url), data=json.dumps(data_api), verify=False)
     res_json = res.json()
     exec_code = res_json.get('exec_code')
-    exec_msg = res_json.get('exec_msg')
+    status = None
     if exec_code > 0:
-        response = {"status": exec_msg, "message":"Customer added successfully !", "items": res.json(), "code": exec_code, "has_error": False}, 200
+        status = "OK"
+        response = {"status": status, "message":"Customer added successfully !", "items": res.json(), "code": exec_code, "has_error": False}, 200
     else:
-        response = {"status": exec_msg, "message":"Customer added failed !", "items": res.json(), "code": exec_code, "has_error": True}, 400
+        status = "KO"
+        response = {"status": status, "message":"Customer added failed !", "items": res.json(), "code": exec_code, "has_error": True}, 400
     logging.info("**** End custorms_add ****")
     # on save fin de logs dans action logs
     response_body, status_code = response
-    ActionsLogs.action_logs_final_save(libelle, json.dumps(response_body), response_body.get("status"))
+    ActionsLogs.action_logs_final_save(libelle, json.dumps(response_body), status)
     return response
 
 
@@ -2185,11 +2187,14 @@ def save_registration(data: dict):
         cleaned_data.setdefault("created_at", datetime.utcnow())
         cleaned_data.setdefault("updated_at", datetime.utcnow())
         cleaned_data.setdefault("is_deleted", False)
+        agent_pin = cleaned_data["agent_pin"]
+        if agent_pin:
+            cleaned_data["agent_pin"] = utilities.encrypt_password_lite(agent_pin)
+        else:
+            cleaned_data["agent_pin"] = None
         cleaned_data["birth_date"] = datetime.strptime(cleaned_data['birth_date'], "%a %b %d %Y %H:%M:%S GMT%z").strftime("%Y-%m-%d"),
         cleaned_data["reg_date"] = datetime.strptime(cleaned_data['reg_date'], "%a %b %d %Y %H:%M:%S GMT%z").strftime("%Y-%m-%d %H:%M:%S"),
-        cleaned_data["agent_pin"] = utilities.encrypt_password_lite(cleaned_data["agent_pin"])
         cleaned_data["search_string"] = utilities.build_search_string(cleaned_data)
-
 
         # Création de l'entité SQLAlchemy
         registration = Registration(**cleaned_data)
