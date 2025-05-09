@@ -91,7 +91,6 @@ def kyc_kya_login():
             return {"status": "error", "message": f"Field {field} is missing or empty", "code": 400, "has_error": True}, 400
     resp = kyc_kya_auth(data['msisdn'], data['pin'])
     logging.info("**** response : {} ****".format(resp))
-    resp = resp.json()
     response = {"status": "error", "message": "Agent authentication failed", "code": 400, "has_error": True}, 400
     if resp['exec_code'] == 200:
         response = {"status": resp['exec_code'], "message": resp['exec_msg'], "items": resp.get("resultset", None), "code": 200, "has_error": False}, 200
