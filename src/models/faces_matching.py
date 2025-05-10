@@ -11,6 +11,7 @@ class FacesMatching(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     description = db.Column(db.String(255))
+    msisdn = db.Column(db.String(255))
     request = db.Column(db.Text)
     response = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

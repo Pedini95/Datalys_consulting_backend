@@ -44,6 +44,8 @@ class Registration(db.Model):
     app_version = db.Column(db.String(50))
     contract_image = db.Column(db.String(255))
     agent_signature = db.Column(db.String(255))
+    reg_uuid = db.Column(db.String(255))
+    statut = db.Column(db.String(255))
     id_document_image = db.Column(db.String(255))
     id_document_image_back = db.Column(db.String(255))
     customer_image = db.Column(db.String(255))
@@ -67,80 +69,12 @@ class Registration(db.Model):
         return data
 
 
-def save_registration(data: dict):
-    """
-    Enregistre une nouvelle ligne dans la table registration avec traitement d’images.
-    """
-    try:
-        # Nettoyage des données
-        cleaned_data = {k: (v if v not in ("", None) else None) for k, v in data.items()}
+    def find_by_id(id):
+        return Registration.query.get(id)
 
-        # Liste des champs images à traiter
-        image_fields = [
-            "contract_image",
-            "agent_signature",
-            "id_document_image",
-            "id_document_image_back",
-            "customer_image",
-            "customer_image_ocr"
-        ]
-
-        for field in image_fields:
-            if cleaned_data.get(field):
-                # Appel d'une fonction qui sauvegarde l'image et retourne le chemin du fichier
-                cleaned_data[field] = utilities.save_base64_image_lite(
-                    cleaned_data[field],
-                    prefix=field  # permet d’avoir un nom clair pour chaque fichier
-                )
-
-        # Valeurs par défaut
-        cleaned_data.setdefault("created_at", datetime.utcnow())
-        cleaned_data.setdefault("updated_at", datetime.utcnow())
-        cleaned_data.setdefault("is_deleted", False)
-        cleaned_data["search_string"] = utilities.build_search_string(cleaned_data)
-
-        # Création de l'entité SQLAlchemy
-        registration = Registration(**cleaned_data)
-        db.session.add(registration)
-        db.session.commit()
-
-        return registration
-
-    except Exception as e:
-        db.session.rollback()
-        raise RuntimeError(f"Erreur lors de l’enregistrement : {str(e)}")
-
-
-# def save_registration(data: dict):
-#     """
-#     Enregistre une nouvelle ligne dans la table registration avec traitement d’images.
-#     """
-#     try:
-#         # Nettoyage des données
-#         cleaned_data = {k: (v if v not in ("", None) else None) for k, v in data.items()}
-
-#         # Champs d’images à traiter
-#         image_fields = ["photo", "piece_jointe"]
-#         for field in image_fields:
-#             if cleaned_data.get(field):
-#                 cleaned_data[field] = utilities.save_base64_image_lite(cleaned_data[field], field)
-
-#         # Valeurs par défaut
-#         cleaned_data.setdefault("created_at", datetime.utcnow())
-#         cleaned_data.setdefault("is_deleted", False)
-#         cleaned_data["search_string"] = utilities.build_search_string(cleaned_data)
-
-#         # Enregistrement
-#         registration = Registration(**cleaned_data)
-#         db.session.add(registration)
-#         db.session.commit()
-
-#         return registration
-
-#     except Exception as e:
-#         db.session.rollback()
-#         raise RuntimeError(f"Erreur lors de l’enregistrement : {str(e)}")
-
+    @staticmethod
+    def find_by_reg_uuid(reg_uuid, is_deleted):
+        return Registration.query.filter_by(reg_uuid=reg_uuid, is_deleted=is_deleted).first()
 
 
     @staticmethod
@@ -196,6 +130,61 @@ def save_registration(data: dict):
         total_items = query.count()
         query = query.offset(index * size).limit(size)
         return query.all(), total_items
+
+    def update_registration(uid: str,  statut: str):
+        registration = Registration.find_by_reg_uuid(uid, False)
+        logging.info("**** registration : {}".format(registration))
+        if registration:
+            registration.statut = statut
+            registration.updated_at = datetime.utcnow()
+            db.session.commit()
+
+
+    def save_registration(data: dict, uid: str):
+        """
+        Enregistre une nouvelle ligne dans la table registration avec traitement d’images.
+        """
+        try:
+            # Nettoyage des données
+            cleaned_data = {k: (v if v not in ("", None) else None) for k, v in data.items()}
+
+            # Liste des champs images à traiter
+            image_fields = [
+                "contract_image",
+                "agent_signature",
+                "id_document_image",
+                "id_document_image_back",
+                "customer_image",
+                "customer_image_ocr"
+            ]
+
+            for field in image_fields:
+                if cleaned_data.get(field):
+                    # Appel d'une fonction qui sauvegarde l'image et retourne le chemin du fichier
+                    cleaned_data[field] = utilities.save_base64_image_lite(
+                        cleaned_data[field],
+                        prefix=field  # permet d’avoir un nom clair pour chaque fichier
+                    )
+
+            # Valeurs par défaut
+            cleaned_data.setdefault("created_at", datetime.utcnow())
+            cleaned_data.setdefault("updated_at", datetime.utcnow())
+            cleaned_data.setdefault("is_deleted", False)
+            cleaned_data["agent_pin"] = "****"
+            cleaned_data["birth_date"] = datetime.strptime(cleaned_data['birth_date'], "%a %b %d %Y %H:%M:%S GMT%z").strftime("%Y-%m-%d"),
+            cleaned_data["reg_date"] = datetime.strptime(cleaned_data['reg_date'], "%a %b %d %Y %H:%M:%S GMT%z").strftime("%Y-%m-%d %H:%M:%S"),
+            cleaned_data["reg_uuid"] = uid
+            cleaned_data["search_string"] = utilities.build_search_string(cleaned_data)
+
+            # Création de l'entité SQLAlchemy
+            registration = Registration(**cleaned_data)
+            db.session.add(registration)
+            db.session.commit()
+
+            return registration
+        except Exception as e:
+            db.session.rollback()
+            raise RuntimeError(f"Erreur lors de l’enregistrement : {str(e)}")
 
     
 

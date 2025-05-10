@@ -9,6 +9,7 @@ from flask_cors import CORS, cross_origin
 from models.faces_matching import FacesMatching
 from models.actions_logs import ActionsLogs
 from models.registration import Registration
+import uuid
 
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -293,8 +294,9 @@ def custorms_add():
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     # on fait appel a la fonction de save face_matching
-    portrait_seamfix_verify_lite(data['customer_image'], data['customer_image_ocr'])
-    save_registration(data)
+    portrait_seamfix_verify_lite(data['customer_image'], data['customer_image_ocr'], data['msisdn'])
+    uid = str(uuid.uuid4())
+    Registration.save_registration(data, uid)
     reg_type = data.get('reg_type')
     logging.info("Registration type : {} ".format(reg_type))
     if (reg_type == 'GSM'):
@@ -314,10 +316,11 @@ def custorms_add():
     else:
         status = "ERROR"
         response = {"status": status, "message":"Customer added failed !", "items": res.json(), "code": exec_code, "has_error": True}, 400
-    logging.info("**** End custorms_add ****")
+    Registration.update_registration(uid, status)
     # on save fin de logs dans action logs
     response_body, status_code = response
     ActionsLogs.action_logs_final_save(libelle, json.dumps(response_body), status, msisdn)
+    logging.info("**** End custorms_add ****")
     return response
 
 
@@ -2042,7 +2045,7 @@ def portrait_seamfix_verify():
     return response
 
 
-def portrait_seamfix_verify_lite(probe=None, candidate=None):
+def portrait_seamfix_verify_lite(probe=None, candidate=None, msisdn=None):
     logging.info("**** Begin face matching ****")
     libelle = "face_matching_"+datetime.now().strftime("%Y%m%d_%H%M%S")
     ActionsLogs.action_logs_init_save(libelle, "/kyc/portrait/seamfix/verify", json.dumps({"probe": probe,"candidate": candidate}))
@@ -2070,6 +2073,7 @@ def portrait_seamfix_verify_lite(probe=None, candidate=None):
     response = response.json()
     new_face_matching = FacesMatching(
         description="Face matching",
+        msisdn=msisdn,
         request=json.dumps(data_api),
         response=json.dumps(response),
         created_at=datetime.utcnow(),
@@ -2167,52 +2171,6 @@ def ocr_seamfix_get():
     # on save fin de logs dans action logs
     # ActionsLogs.action_logs_final_save(libelle, response, response.get("status"))
     return response
-
-
-def save_registration(data: dict):
-    """
-    Enregistre une nouvelle ligne dans la table registration avec traitement d’images.
-    """
-    try:
-        # Nettoyage des données
-        cleaned_data = {k: (v if v not in ("", None) else None) for k, v in data.items()}
-
-        # Liste des champs images à traiter
-        image_fields = [
-            "contract_image",
-            "agent_signature",
-            "id_document_image",
-            "id_document_image_back",
-            "customer_image",
-            "customer_image_ocr"
-        ]
-
-        for field in image_fields:
-            if cleaned_data.get(field):
-                # Appel d'une fonction qui sauvegarde l'image et retourne le chemin du fichier
-                cleaned_data[field] = utilities.save_base64_image_lite(
-                    cleaned_data[field],
-                    prefix=field  # permet d’avoir un nom clair pour chaque fichier
-                )
-
-        # Valeurs par défaut
-        cleaned_data.setdefault("created_at", datetime.utcnow())
-        cleaned_data.setdefault("updated_at", datetime.utcnow())
-        cleaned_data.setdefault("is_deleted", False)
-        cleaned_data["agent_pin"] = "****"
-        cleaned_data["birth_date"] = datetime.strptime(cleaned_data['birth_date'], "%a %b %d %Y %H:%M:%S GMT%z").strftime("%Y-%m-%d"),
-        cleaned_data["reg_date"] = datetime.strptime(cleaned_data['reg_date'], "%a %b %d %Y %H:%M:%S GMT%z").strftime("%Y-%m-%d %H:%M:%S"),
-        cleaned_data["search_string"] = utilities.build_search_string(cleaned_data)
-
-        # Création de l'entité SQLAlchemy
-        registration = Registration(**cleaned_data)
-        db.session.add(registration)
-        db.session.commit()
-
-        return registration
-    except Exception as e:
-        db.session.rollback()
-        raise RuntimeError(f"Erreur lors de l’enregistrement : {str(e)}")
 
 
 # @app.route("/kya/partner/create", methods=['POST'])
