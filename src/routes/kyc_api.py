@@ -294,7 +294,9 @@ def custorms_add():
     username, password, url = utilities.get_timm_user_password("Fision KYC KYA")
     password = utilities.decrypt_password_lite(password)
     # on fait appel a la fonction de save face_matching
-    portrait_seamfix_verify_lite(data['customer_image'], data['customer_image_ocr'], data['msisdn'])
+    if data['customer_image'] and data['customer_image_ocr']:
+        logging.info("-- Face matching Call --")
+        portrait_seamfix_verify_lite(data['customer_image'], data['customer_image_ocr'], data['msisdn'])
     uid = str(uuid.uuid4())
     Registration.save_registration(data, uid)
     reg_type = data.get('reg_type')
