@@ -48,4 +48,6 @@ from routes import kyc_api
 from routes import role
 from routes import user
 from routes import timm_config
+from routes import seamfix_api
+
 

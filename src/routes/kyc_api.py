@@ -10,12 +10,20 @@ from models.faces_matching import FacesMatching
 from models.actions_logs import ActionsLogs
 from models.registration import Registration
 import uuid
+from .seamfix_api import portrait_seamfix_verify_lite
 
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
+
+
+@app.route('/', methods=['GET'])
+@cross_origin()
+def index():
+    return "Hello KYC KYA App"
+
 
 
 @app.route('/kyc/header/enrichement', methods=['GET'])
@@ -152,66 +160,66 @@ def agent_statistics():
 
 def registerGSM(data, username, password):
     data_gsm = {
-            "auth":{ "user":username, "pwd": password},
-            "param":{
-                "Documents":[
-                    {
-                        "Type":"FACE",
-                        "FORMAT":"JPEG",
-                        "IMG":data['customer_image'].replace("\n", "")
-                    },
-                    {
-                        "Type":"IDCARD",
-                        "FORMAT":"JPEG",
-                        "IMG":data['id_document_image'].replace("\n", "")
-                    },
-                    {
-                        "Type":"IDCARDBACK",
-                        "FORMAT":"JPEG",
-                        "IMG": data['id_document_image_back'].replace("\n", "") if data['id_document_image_back'] else data['id_document_image'].replace("\n", "")
-                    },
-                ],
-                "Reg": {
-                    "RegType":"GSM",
-                    "MSISDN": data['msisdn'],
-                    "ICCID": data['iccid'],
-                    "FName": data['first_name'],
-                    "LName": data['last_name'],
-                    "BDay": datetime.strptime(data['birth_date'], "%a %b %d %Y %H:%M:%S GMT%z").strftime("%Y-%m-%d"),
-                    "BPlace": data['birth_place'],
-                    "GenderID": data['gender_id'],
-                    "IDCard": data['id_card_Number'],
-                    "IDCardType": data['id_card_type_id'],
-                    "OccupationID": data['occupation_id'],
-                    "ADDTypeID": data['address_types_id'],
-                    "ADDCounty": data['county_id'],
-                    "Address": data['address'],
-                    "eMail": data['email'],
-                    "CountryID": data['country_id'],
-                    "WorkAddress": data['workaddress'],
-                    "RegDate":datetime.strptime(data['reg_date'], "%a %b %d %Y %H:%M:%S GMT%z").strftime("%Y-%m-%d"),
-                    "KName":data['k_name'],
-                    "AgentMSISDN": data['agentmsisdn'],
-                    "AgentIMEI": data['agentimei'] if data['agentimei'] else data['agentdeviceId'],
-                    "AgentICCID": data['agenticcid'] if data['agenticcid'] else data['agentmsisdn'],
-                    "AppVersion":"FUSION-KYA-KYC",
-                    "LAT": data['latitude'],
-                    "LNG": data['longitude'],
-                    "CellID":data['cell_id'],
-                    "KINName": data['kin_name'],
-                    "KINPhone": data['kin_phone'],
-                    "KINEmail": data['kin_email']
-                }
+        "auth":{ "user":username, "pwd": password},
+        "param":{
+            "Documents":[
+                {
+                    "Type":"FACE",
+                    "FORMAT":"JPEG",
+                    "IMG":data['customer_image'].replace("\n", "")
+                },
+                {
+                    "Type":"IDCARD",
+                    "FORMAT":"JPEG",
+                    "IMG":data['id_document_image'].replace("\n", "")
+                },
+                {
+                    "Type":"IDCARDBACK",
+                    "FORMAT":"JPEG",
+                    "IMG": data['id_document_image_back'].replace("\n", "") if data['id_document_image_back'] else data['id_document_image'].replace("\n", "")
+                },
+            ],
+            "Reg": {
+                "RegType":"GSM",
+                "MSISDN": data['msisdn'],
+                "ICCID": data['iccid'],
+                "FName": data['first_name'],
+                "LName": data['last_name'],
+                "BDay": datetime.strptime(data['birth_date'], "%a %b %d %Y %H:%M:%S GMT%z").strftime("%Y-%m-%d"),
+                "BPlace": data['birth_place'],
+                "GenderID": data['gender_id'],
+                "IDCard": data['id_card_Number'],
+                "IDCardType": data['id_card_type_id'],
+                "OccupationID": data['occupation_id'],
+                "ADDTypeID": data['address_types_id'],
+                "ADDCounty": data['county_id'],
+                "Address": data['address'],
+                "eMail": data['email'],
+                "CountryID": data['country_id'],
+                "WorkAddress": data['workaddress'],
+                "RegDate":datetime.strptime(data['reg_date'], "%a %b %d %Y %H:%M:%S GMT%z").strftime("%Y-%m-%d"),
+                "KName":data['k_name'],
+                "AgentMSISDN": data['agentmsisdn'],
+                "AgentIMEI": data['agentimei'] if data['agentimei'] else data['agentdeviceId'],
+                "AgentICCID": data['agenticcid'] if data['agenticcid'] else data['agentmsisdn'],
+                "AppVersion":"FUSION-KYA-KYC",
+                "LAT": data['latitude'],
+                "LNG": data['longitude'],
+                "CellID":data['cell_id'],
+                "KINName": data['kin_name'],
+                "KINPhone": data['kin_phone'],
+                "KINEmail": data['kin_email']
             }
         }
+    }
     return data_gsm
 
 
 def registerOM(data, username, password):
     data_om = {
-            "auth":{"user":username, "pwd":password },
-            "param":{
-                "Documents":[
+        "auth":{"user":username, "pwd":password },
+        "param":{
+            "Documents":[
                 {
                     "Type":"Face",
                     "Format":"JPEG",
@@ -324,7 +332,6 @@ def custorms_add():
     ActionsLogs.action_logs_final_save(libelle, json.dumps(response_body), status, msisdn)
     logging.info("**** End custorms_add ****")
     return response
-
 
 
 @app.route("/kyc/custorms/check", methods=['POST'])
@@ -1978,209 +1985,3 @@ def get_address():
         }
     logging.info("**** End address ****")
     return response
-
-
-@app.route("/kyc/seamfix/authenticate", methods=['POST'])
-@cross_origin()
-def seamfix_authenticate():
-    logging.info("**** Begin seamfix_authenticate ****")
-    headers = {"Content-Type": "application/json"}
-    data_api = {"publicKey": app.config['SEAMFIX_PUBLIC_KEY'],"privateKey": app.config['SEAMFIX_PRIVATE_KEY'],"userId": app.config['SEAMFIX_USER_ID']}
-    logging.info("**** data_api : {}".format(data_api))
-    response = requests.post(app.config['SEAMFIX_URL'], data=json.dumps(data_api), headers=headers)
-    logging.info("**** response : {}".format(response))
-    response = response.json()
-    logging.info("**** response : {}".format(response))
-    logging.info("**** End seamfix_authenticate ****")
-    return response
-
-
-def portrait_seamfix_authenticate():
-    logging.info("**** Begin portrait_seamfix_authenticate ****")
-    headers = {"Content-Type": "application/json"}
-    data_api = {"publicKey": app.config['SEAMFIX_PUBLIC_KEY'],"privateKey": app.config['SEAMFIX_PRIVATE_KEY'],"userId": app.config['SEAMFIX_USER_ID']}
-    response = requests.post(app.config['SEAMFIX_URL'], data=json.dumps(data_api), headers=headers)
-    logging.info("**** response : {}".format(response))
-    response = response.json()
-    logging.info("**** response : {}".format(response))
-    logging.info("**** End portrait_seamfix_authenticate ****")
-    return response
-
-@app.route("/kyc/portrait/seamfix/verify", methods=['POST'])
-@cross_origin()
-def portrait_seamfix_verify():
-    logging.info("**** Begin portrait_seamfix_verify ****")
-    r = request.get_json() or {}
-    # on save debut des logs dans action logs
-    libelle = "portrait_seamfix_verify_"+datetime.now().strftime("%Y%m%d_%H%M%S")
-    ActionsLogs.action_logs_init_save(libelle, "/kyc/portrait/seamfix/verify", json.dumps(r))
-    data = r['data']
-    # Champs obligatoires
-    required_fields = ['probe', 'candidate']
-    for field in required_fields:
-        if field not in data or not data[field]:
-            return {"status": "error", "message": f"Field {field} is missing or empty", "code": 400, "has_error": True}, 400
-
-    # Appel de l'authentification
-    auth_response = portrait_seamfix_authenticate()
-    if auth_response.get("code") != 0:
-        return {"status": "error", "message": "Failed to authenticate with Seamfix", "code": 400, "has_error": True}, 400
-
-    headers = {"Authorization": f"Bearer {auth_response.get('accessToken')}", "Content-Type": "application/json"}
-    data_api = {"probe": data['probe'],"candidate": data['candidate']}
-    response = requests.post(app.config['SEAMFIX_URL_VERIFY'], data=json.dumps(data_api), headers=headers)
-    logging.info("**** response : {}".format(response))
-    response = response.json()
-    new_face_matching = FacesMatching(
-        description="Face matching",
-        request=json.dumps(data_api),
-        response=json.dumps(response),
-        created_at=datetime.utcnow(),
-        is_deleted=False
-    )
-    db.session.add(new_face_matching)
-    db.session.commit()
-    logging.info("**** response : {}".format(response))
-    logging.info("**** End portrait_seamfix_verify ****")
-    # on save fin de logs dans action logs
-    ActionsLogs.action_logs_final_save(libelle, json.dumps(response), response.get("description"))
-    return response
-
-
-def portrait_seamfix_verify_lite(probe=None, candidate=None, msisdn=None):
-    logging.info("**** Begin face matching ****")
-    libelle = "face_matching_"+datetime.now().strftime("%Y%m%d_%H%M%S")
-    ActionsLogs.action_logs_init_save(libelle, "/kyc/portrait/seamfix/verify", json.dumps({"probe": probe,"candidate": candidate}))
-    if probe is None:
-        response = {"status": "error", "message": "Missing required fields probe", "code": 400, "has_error": True}, 400
-        ActionsLogs.action_logs_final_save(libelle, json.dumps(response), "Face matching")
-        return response
-    
-    if candidate is None:
-        response = {"status": "error", "message": "Missing required fields candidate", "code": 400, "has_error": True}, 400
-        ActionsLogs.action_logs_final_save(libelle, json.dumps(response), "Face matching")
-        return response
-
-    # Appel de l'authentification
-    auth_response = portrait_seamfix_authenticate()
-    if auth_response.get("code") != 0:
-        response = {"status": "error", "message": "Failed to authenticate with Seamfix", "code": 400, "has_error": True}, 400
-        ActionsLogs.action_logs_final_save(libelle, json.dumps(response), "Face matching")
-        return response
-
-    headers = {"Authorization": f"Bearer {auth_response.get('accessToken')}", "Content-Type": "application/json"}
-    data_api = {"probe": probe,"candidate": candidate}
-    response = requests.post(app.config['SEAMFIX_URL_VERIFY'], data=json.dumps(data_api), headers=headers)
-    logging.info("**** response : {}".format(response))
-    response = response.json()
-    new_face_matching = FacesMatching(
-        description="Face matching",
-        msisdn=msisdn,
-        request=json.dumps(data_api),
-        response=json.dumps(response),
-        created_at=datetime.utcnow(),
-        is_deleted=False
-    )
-    db.session.add(new_face_matching)
-    db.session.commit()
-    logging.info("**** response : {}".format(response))
-    logging.info("**** End face matching ****")
-    # on save fin de logs dans action logs
-    ActionsLogs.action_logs_final_save(libelle, json.dumps(response), response.get("description"))
-    return response
-
-
-@app.route("/kyc/portrait/seamfix/validate", methods=['POST'])
-@cross_origin()
-def portrait_seamfix_validate():
-    logging.info("**** Begin portrait_seamfix_validate ****")
-    r = request.get_json() or {}
-    # on save debut des logs dans action logs
-    libelle = "portrait_seamfix_validate_"+datetime.now().strftime("%Y%m%d_%H%M%S")
-    ActionsLogs.action_logs_init_save(libelle, "/kyc/portrait/seamfix/validate", json.dumps(r))
-    data = r['data']
-    # Champs obligatoires
-    required_fields = ['image', 'transactionId']
-    for field in required_fields:
-        if field not in data or not data[field]:
-            return {"status": "error", "message": f"Field {field} is missing or empty", "code": 400, "has_error": True}, 400
-
-    # Appel de l'authentification
-    auth_response = portrait_seamfix_authenticate()
-    logging.info("**** auth_response : {}".format(auth_response))
-    logging.info("**** auth_response.accessToken : {}".format(auth_response.get("accessToken")))
-    if auth_response.get("code") != 0:
-        return {"status": "error", "message": "Failed to authenticate with Seamfix", "code": 400, "has_error": True}, 400
-
-    headers = {"Authorization": f"Bearer {auth_response.get('accessToken')}", "Content-Type": "application/json"}
-    logging.info("**** headers : {}".format(headers))
-    data_api = {"image": data['image'], "transactionId": data['transactionId'], "actions": ["PLC"]}
-    # Appel de la validation
-    response = requests.post(app.config['SEAMFIX_URL_VALIDATE'], data=json.dumps(data_api), headers=headers)
-    logging.info("**** response : {}".format(response))
-    logging.info("**** End portrait_seamfix_validate ****")
-    # on save fin de logs dans action logs
-    ActionsLogs.action_logs_final_save(libelle, json.dumps(response.json()), response.json().get("transactionStatus"))
-    return jsonify(response.json()), response.status_code
-
-
-@app.route("/kyc/ocr/seamfix", methods=['POST'])
-@cross_origin()
-def ocr_seamfix():
-    logging.info("**** Begin ocr_seamfix ****")
-    r = request.get_json() or {}
-    # on save debut des logs dans action logs
-    libelle = "ocr_seamfix_" + datetime.now().strftime("%Y%m%d_%H%M%S")
-    ActionsLogs.action_logs_init_save(libelle, "/kyc/ocr/seamfix", json.dumps(r))
-    data = r['data']
-    # Champs obligatoires
-    required_fields = ['document', 'documentType', 'documentFormat']
-    for field in required_fields:
-        if field not in data or not data[field]:
-            return {"status": "error", "message": f"Field {field} is missing or empty", "code": 400, "has_error": True}, 400
-
-    headers = {"Authorization": f"Bearer {app.config['SEAMFIX_TOKEN']}", "Content-Type": "application/json"}
-    data_api = {"document": data['document'],"documentType": data['documentType'], "documentFormat": data['documentFormat']}
-    # Appel de l'OCR
-    response = requests.post(app.config['SEAMFIX_DOC_PROCESSING_URL'], data=json.dumps(data_api), headers=headers)
-    logging.info("**** response : {}".format(response))
-    response = response.json()
-    logging.info("**** response : {}".format(response))
-    logging.info("**** End ocr_seamfix ****")
-    # on save fin de logs dans action logs
-    status = "ERROR"
-    if response.get("code") == 0:
-        status = "SUCCESS"
-    ActionsLogs.action_logs_final_save(libelle, json.dumps(response), status)
-    return response
-
-
-@app.route("/kyc/ocr/seamfix/get", methods=['GET'])
-@cross_origin()
-def ocr_seamfix_get():
-    logging.info("**** Begin ocr_seamfix_get ****")
-    # r = request.get_json() or {}
-    # # on save debut des logs dans action logs
-    # libelle = "ocr_seamfix_get_"+datetime.now()
-    # ActionsLogs.action_logs_init_save(libelle, "/kyc/ocr/seamfix/get", json.dumps(r))
-    headers = {"Content-Type": "application/json"}
-    # Appel de l'OCR
-    response = requests.get(app.config['SEAMFIX_HEALTH_CHECK_URL'], headers=headers)
-    logging.info("**** response : {}".format(response))
-    logging.info("**** response : {}".format(response.json()))
-    response = response.json()
-    logging.info("**** End ocr_seamfix_get ****")
-    # on save fin de logs dans action logs
-    # ActionsLogs.action_logs_final_save(libelle, response, response.get("status"))
-    return response
-
-
-# @app.route("/kya/partner/create", methods=['POST'])
-# @cross_origin()
-# def create_partner():
-#     logging.info("**** Begin create_partner ****")
-#     r = request.get_json() or {}
-#     data = r['data']
-    
-#     logging.info("**** End create_partner ****")
-#     return response
