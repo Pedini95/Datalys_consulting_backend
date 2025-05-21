@@ -114,6 +114,7 @@ def portrait_seamfix_verify_lite(probe=None, candidate=None, msisdn=None):
     logging.info("**** response : {}".format(response))
     response = response.json()
     logging.info("**** response : {}".format(response))
+    logging.info("**** msisdn face matching : {}".format(msisdn))
     save_face_matching(json.dumps(data_api), response, msisdn)
     logging.info("**** response : {}".format(response))
     logging.info("**** End face matching ****")
@@ -201,7 +202,7 @@ def save_face_matching(request, response, msisdn):
     
     new_face_matching = FacesMatching(
         description=description,
-        msisdn=None,
+        msisdn=msisdn,
         code=code,
         matchId=matchId,
         score=score,
@@ -243,7 +244,7 @@ def ocr_seamfix():
     if response.get("code") == 0:
         retour_normalize = simplify_scanner_data(response)
         logging.info("**** retour_normalize : {}".format(retour_normalize))
-        ocr_seamfix = save_ocr_seamfix(retour_normalize, data.get('msisdn'))
+        ocr_seamfix = save_ocr_seamfix(retour_normalize)
         logging.info("**** ocr_seamfix : {}".format(ocr_seamfix.as_dict()))
     logging.info("**** End ocr_seamfix ****")
     # on save fin de logs dans action logs
@@ -298,10 +299,10 @@ def simplify_scanner_data(data: dict) -> dict:
     }
 
 
-def save_ocr_seamfix(response, msisdn):
+def save_ocr_seamfix(response, msisdn=None):
     data_ocr = {
         "cardId": response.get("cardId"),
-        "msisdn": msisdn,
+        # "msisdn": msisdn,
         "nin": response.get("nin"),
         "firstName": response.get("firstName"),
         "middleName": response.get("middleName"),
