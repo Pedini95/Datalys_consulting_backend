@@ -173,10 +173,10 @@ def ocr_seamfix_get():
 def save_face_matching(request, response, msisdn):
     code = None
     description = None
-    matchId = None
+    match_id = None
     score = 0.0
     status = None
-    transactionRef = None
+    transaction_ref = None
     errors = None
     search_string = None
     logging.info("**** response code : {} *****".format(response.get("code")))
@@ -184,11 +184,11 @@ def save_face_matching(request, response, msisdn):
         logging.info("**** response code 0 or -1 *****")
         code = response.get("code")
         description = response.get("description")
-        matchId = response.get("matchId")
+        match_id = response.get("matchId")
         logging.info("**** response score : {} *****".format(response.get("score")))
         score = response.get("score")
         status = response.get("status")
-        transactionRef = response.get("transactionRef")
+        transaction_ref = response.get("transactionRef")
     elif response.get("code") == 400:
         logging.info("**** response code 400 *****")
         code = response.get("code")
@@ -204,10 +204,10 @@ def save_face_matching(request, response, msisdn):
         description=description,
         msisdn=msisdn,
         code=code,
-        matchId=matchId,
+        match_id=match_id,
         score=score,
         status=status,
-        transactionRef=transactionRef,
+        transaction_ref=transaction_ref,
         errors=errors,
         created_at=datetime.utcnow(),
         is_deleted=False,
@@ -301,23 +301,23 @@ def simplify_scanner_data(data: dict) -> dict:
 
 def save_ocr_seamfix(response, msisdn=None):
     data_ocr = {
-        "cardId": response.get("cardId"),
+        "card_id": response.get("cardId"),
         # "msisdn": msisdn,
         "nin": response.get("nin"),
-        "firstName": response.get("firstName"),
-        "middleName": response.get("middleName"),
-        "lastName": response.get("lastName"),
-        "documentType": response.get("documentType"),
-        "documentYear": response.get("documentYear"),
-        "birdDate": response.get("birdDate"),
+        "first_name": response.get("firstName"),
+        "middle_name": response.get("middleName"),
+        "last_name": response.get("lastName"),
+        "document_type": response.get("documentType"),
+        "document_year": response.get("documentYear"),
+        "bird_date": response.get("birdDate"),
         "gender": response.get("gender"),
         "expiry": response.get("expiry"),
         "status": response.get("status"),
-        "placeOfBirth": response.get("placeOfBirth"),
+        "place_of_birth": response.get("placeOfBirth"),
         "description": response.get("description"),
-        "documentCountryName": response.get("documentCountryName"),
-        "documentDescription": response.get("documentDescription"),
-        "documentName": response.get("documentName"),
+        "document_country_name": response.get("documentCountryName"),
+        "document_description": response.get("documentDescription"),
+        "document_name": response.get("documentName"),
         "photo": response.get("photo"),
         "created_at":datetime.utcnow(),
         "updated_at":datetime.utcnow(),
