@@ -37,10 +37,10 @@ import pyodbc
 # on fait la connection a la base de données sql server
 conn = pyodbc.connect(
     'DRIVER={ODBC Driver 17 for SQL Server};'
-    'SERVER=localhost;'
-    'DATABASE=KYA;'
-    'UID=sa;'
-    'PWD=Merisevbphp#5'
+    'SERVER=192.168.19.50\ERIS;'
+    'DATABASE=SIMRegistration;'
+    'UID=MISreader;'
+    'PWD=M!SReader'
 )
 cursor = conn.cursor()
 
