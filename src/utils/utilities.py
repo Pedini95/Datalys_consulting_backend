@@ -408,7 +408,7 @@ def decrypt_password_lite(encrypted_password):
 
 def save_base64_image_lite(base64_str, prefix="image"):
     try:
-        filename = f"{prefix}_{datetime.now().strftime('%Y%m%d%H%M%S')}.jpg"
+        filename = f"{prefix}.jpg"
         folder = "static/files"
         os.makedirs(folder, exist_ok=True)
         filepath = os.path.join(folder, filename)
