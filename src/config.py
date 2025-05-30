@@ -19,10 +19,10 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Configuration de la seconde base de données SQL Server
-    SQLALCHEMY_BINDS = {
-        # 'sqlserver': 'mssql+pyodbc://sa:Merisevbphp#5@localhost/KYA?driver=ODBC+Driver+17+for+SQL+Server'
-        'sqlserver': 'mssql+pyodbc://MISreader:M!SReader@192.168.19.50\ERIS/SIMRegistration?driver=ODBC+Driver+17+for+SQL+Server'
-    }
+    # SQLALCHEMY_BINDS = {
+    #     # 'sqlserver': 'mssql+pyodbc://sa:Merisevbphp#5@localhost/KYA?driver=ODBC+Driver+17+for+SQL+Server'
+    #     'sqlserver': 'mssql+pyodbc://MISreader:M!SReader@192.168.19.50\ERIS/SIMRegistration?driver=ODBC+Driver+17+for+SQL+Server'
+    # }
 
     # Configuration Redis
     REDIS_HOST = os.getenv('REDIS_HOST')
