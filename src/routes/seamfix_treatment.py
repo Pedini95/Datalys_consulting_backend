@@ -6,20 +6,11 @@ import logging
 import utils.functional_error as functional_error
 from datetime import datetime, date, timedelta
 import utils.utilities as utilities
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-import random
-import string
-import hashlib
-from utils.session_utils import get_user_session
 from flask_cors import CORS, cross_origin
-
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import os
-# import pdfkit
-from utils.notification import send_mail_login
+import base64
 
 
 logger = logging.getLogger(__name__)
