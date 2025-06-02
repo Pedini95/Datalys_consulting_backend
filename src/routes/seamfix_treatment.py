@@ -168,11 +168,11 @@ def create_seamfix_treatment():
 
         def safe_image_save(binary_data, prefix):
             if binary_data:
-                try:
-                    base64_str = base64.b64encode(binary_data).decode("utf-8")
-                    return utilities.save_base64_image_lite(base64_str, f"{prefix}_{msisdn}")
-                except Exception as e:
-                    logging.error(f"Erreur lors de la sauvegarde de l'image {prefix}: {e}")
+                # try:
+                base64_str = base64.b64encode(binary_data).decode("utf-8")
+                return utilities.save_base64_image_lite(base64_str, f"{prefix}_{msisdn}")
+                # except Exception as e:
+                #     logging.error(f"Erreur lors de la sauvegarde de l'image {prefix}: {e}")
             return None
 
         id_card_f_picture_path = safe_image_save(row[5], "id_card_f_picture_path")
