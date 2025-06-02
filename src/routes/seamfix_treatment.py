@@ -94,7 +94,7 @@ def create_seamfix_treatment():
      """)
     rows = cursor.fetchall()
     for row in rows:
-        logging.info("row :::> ", row)
+        logging.info("row :::> %s", row)
         msisdn=row[1]
         id_card_f_picture = base64.b64encode(row[5]).decode('utf-8')
         id_card_f_picture_path = utilities.save_base64_image_lite(id_card_f_picture, "id_card_f_picture_path_"+msisdn)
@@ -143,7 +143,7 @@ def create_seamfix_treatment_job():
      """)
     rows = cursor.fetchall()
     for row in rows:
-        logging.info("row :::> ", row)
+        logging.info("row :::> %s", row)
         msisdn=row[1]
         id_card_f_picture = base64.b64encode(row[5]).decode('utf-8')
         id_card_f_picture_path = utilities.save_base64_image_lite(id_card_f_picture, "id_card_f_picture_path_"+msisdn)
