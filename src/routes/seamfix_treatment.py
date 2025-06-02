@@ -162,7 +162,7 @@ def create_seamfix_treatment():
         logging.info(f"id_card_f_picture: {row[5]}")
         logging.info(f"id_contract_picture: {row[6]}")
         logging.info(f"id_front_picture: {row[7]}")
-        
+
         msisdn = str(row[1])  # Assurez-vous que ce soit une string
 
         def safe_image_save(binary_data, prefix):
@@ -185,7 +185,7 @@ def create_seamfix_treatment():
             id_front_picture_path=id_front_picture_path,
             created_by=1,
             created_at=datetime.now(),
-            search_string=utilities.build_search_string(row),
+            # search_string=utilities.build_search_string(row),
             is_deleted=False,
         )
 
