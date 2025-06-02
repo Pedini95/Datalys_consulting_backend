@@ -31,28 +31,6 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-# Configure logging handlers based on environment
-# handlers = [logging.StreamHandler()]  # Always include StreamHandler for console output
-
-# if is_dev:
-#     # Use TimedRotatingFileHandler in development
-#     handlers.append(
-#         TimedRotatingFileHandler(
-#             app.config['LOG_FILE_PATH'],
-#             when='midnight',
-#             interval=1,
-#             backupCount=7,
-#             encoding='utf-8'
-#         )
-#     )
-
-# Set up logging configuration
-# logging.basicConfig(
-#     level=logging.INFO,
-#     format='%(asctime)s - %(levelname)s - %(message)s',
-#     handlers=handlers
-# )
-
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 CORS(app)
