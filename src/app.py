@@ -22,17 +22,17 @@ print("is_dev:", is_dev)
 # Configure logging handlers based on environment
 handlers = [logging.StreamHandler()]  # Always include StreamHandler for console output
 
-if is_dev:
-    # Use TimedRotatingFileHandler in development
-    handlers.append(
-        TimedRotatingFileHandler(
-            app.config['LOG_FILE_PATH'],
-            when='midnight',
-            interval=1,
-            backupCount=7,
-            encoding='utf-8'
-        )
-    )
+# if is_dev:
+#     # Use TimedRotatingFileHandler in development
+#     handlers.append(
+#         TimedRotatingFileHandler(
+#             app.config['LOG_FILE_PATH'],
+#             when='midnight',
+#             interval=1,
+#             backupCount=7,
+#             encoding='utf-8'
+#         )
+#     )
 
 # Set up logging configuration
 logging.basicConfig(
