@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 import os
 import logging
-from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
+from logging.handlers import TimedRotatingFileHandler
 from flasgger import Swagger
 from flask_cors import CORS
 
@@ -21,15 +21,33 @@ logging.info("is_dev:", is_dev)
 
 log_dir = "/app/logs"
 log_file = os.path.join(log_dir, "com.fusion_kyc_kya.log")
-
 # Création automatique du dossier si manquant
 os.makedirs(log_dir, exist_ok=True)
-
 logging.basicConfig(
     filename=log_file,
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
+
+# Configure logging handlers based on environment
+# handlers = [logging.StreamHandler()]
+
+# handlers.append(
+#     TimedRotatingFileHandler(
+#         app.config['LOG_FILE_PATH'],
+#         when='midnight',
+#         interval=1,
+#         backupCount=7,
+#         encoding='utf-8'
+#     )
+# )
+
+# # Set up logging configuration
+# logging.basicConfig(
+#     level=logging.INFO,
+#     format='%(asctime)s - %(levelname)s - %(message)s',
+#     handlers=handlers
+# )
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -42,7 +60,7 @@ from routes import role
 from routes import user
 from routes import timm_config
 from routes import seamfix_api
-from routes import seamfix_treatment
+# from routes import seamfix_treatment
 
 scheduler = BackgroundScheduler()
 # scheduler.add_job(seamfix_treatment.create_seamfix_treatment_job, 'interval', minutes=5, max_instances=1)

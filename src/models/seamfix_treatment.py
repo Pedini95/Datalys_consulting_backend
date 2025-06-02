@@ -35,7 +35,7 @@ class SeamfixTreatment(db.Model):
 
 
     @staticmethod
-    def get_by_criteria(criteria, index, size):
+    def get_by_criteria(criteria, index=None, size=None):
         query = SeamfixTreatment.query
 
         # Définir une liste de conditions
@@ -44,6 +44,9 @@ class SeamfixTreatment(db.Model):
             conditions.append(SeamfixTreatment.id == criteria['id'])
         if 'search_string' in criteria:
             conditions.append(SeamfixTreatment.search_string.like(f"%{criteria['search_string']}%"))
+
+        if 'msisdn' in criteria:
+            conditions.append(SeamfixTreatment.msisdn.like(f"%{criteria['msisdn']}%"))
 
         # **Gestion du filtre par date**
         if 'date_param' in criteria:
@@ -84,5 +87,6 @@ class SeamfixTreatment(db.Model):
         query = query.order_by(SeamfixTreatment.id.desc())
         # Ajouter la pagination
         total_items = query.count()
-        query = query.offset(index * size).limit(size)
+        if index is not None and size is not None:
+            query = query.offset(index * size).limit(size)
         return query.all(), total_items
