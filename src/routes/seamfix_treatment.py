@@ -98,6 +98,10 @@ def create_seamfix_treatment():
     for row in rows:
         logging.info("row :::>")
         logging.info(row)
+        logging.info(f"msisdn: {row[1]}")
+        logging.info(f"id_card_f_picture: {row[5]}")
+        logging.info(f"id_contract_picture: {row[6]}")
+        logging.info(f"id_front_picture: {row[7]}")
         msisdn=row[1]
         id_card_f_picture = base64.b64encode(row[5]).decode('utf-8')
         id_card_f_picture_path = utilities.save_base64_image_lite(id_card_f_picture, "id_card_f_picture_path_"+msisdn)
