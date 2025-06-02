@@ -407,17 +407,17 @@ def decrypt_password_lite(encrypted_password):
     return decrypted_password
 
 def save_base64_image_lite(base64_str, prefix="image"):
-    try:
-        filename = f"{prefix}.jpg"
-        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    # try:
+    filename = f"{prefix}.jpg"
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
-        with open(filepath, "wb") as f:
-            f.write(base64.b64decode(base64_str))
-        logging.info("***** End save_base64_image_lite %s****", filepath)
-        return filepath
-    except Exception as e:
-        raise RuntimeError(f"Erreur lors de la sauvegarde de l’image : {e}")
+    with open(filepath, "wb") as f:
+        f.write(base64.b64decode(base64_str))
+    logging.info("***** End save_base64_image_lite %s****", filepath)
+    return filepath
+    # except Exception as e:
+    #     raise RuntimeError(f"Erreur lors de la sauvegarde de l’image : {e}")
 
 
 def check_service_connection(url: str, timeout: int = None) -> dict:
