@@ -7,7 +7,6 @@ import logging
 import utils.utilities as utilities
 
 
-
 class SeamfixTreatment(db.Model):
     __tablename__ = 'seamfix_treatment'
 
@@ -52,7 +51,6 @@ class SeamfixTreatment(db.Model):
             operator = date_param.get('operator', '')
             start_date = date_param.get('start_date', '')
             end_date = date_param.get('end_date', '')
-            
             # Convertir les dates au format YYYY-MM-DD HH:MM:SS
             def convert_date(date_str):
                 try:
