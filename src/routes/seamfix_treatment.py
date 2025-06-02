@@ -64,15 +64,78 @@ def get_seamfix_treatment():
     return response
 
 
+# @app.route('/seamfix_treatment/create', methods=['POST'])
+# @cross_origin()
+# def create_seamfix_treatment():
+#     logging.info("**** Begin create_seamfix_treatment ****")
+#     logging.info("/seamfix_treatment/create")
+#     r = request.get_json() or {}
+#     logging.info("**** request input ****")
+#     logging.info(r)
+#     # on va aller dans la bd sql serveur pour recuperer les informations
+#     cursor.execute(""" 
+#         SELECT TOP (1) 
+#             b.[ID],
+#             b.[MSISDN],
+#             b.[APP],
+#             b.[ExecState],
+#             b.[ReturnID],
+#             p1.Picture AS IDCardFPicturePath,
+#             p2.Picture AS IDContractPicturePath,
+#             p3.Picture AS IDFrontPicturePath
+#         FROM [SIMRegistration].[dbo].[SIMRegistrationQueue] b WITH (NOLOCK)
+#         LEFT JOIN [SIMRegistration].[dbo].[SIMRegistrationPictures] p1 WITH (NOLOCK)
+#             ON p1.ID = b.IDCardFPicture
+#         LEFT JOIN [SIMRegistration].[dbo].[SIMRegistrationPictures] p2 WITH (NOLOCK)
+#             ON p2.ID = b.IDContractPicture
+#         LEFT JOIN [SIMRegistration].[dbo].[SIMRegistrationPictures] p3 WITH (NOLOCK)
+#             ON p3.ID = b.IDFrontPicture
+#         ORDER BY b.ID DESC;
+#      """)
+#     rows = cursor.fetchall()
+#     logging.info("rows :::>")
+#     logging.info(rows)
+#     for row in rows:
+#         logging.info("row :::>")
+#         logging.info(row)
+#         logging.info(f"msisdn: {row[1]}")
+#         logging.info(f"id_card_f_picture: {row[5]}")
+#         logging.info(f"id_contract_picture: {row[6]}")
+#         logging.info(f"id_front_picture: {row[7]}")
+#         msisdn=row[1]
+#         id_card_f_picture = base64.b64encode(row[5]).decode('utf-8')
+#         id_card_f_picture_path = utilities.save_base64_image_lite(id_card_f_picture, "id_card_f_picture_path_"+msisdn)
+#         id_contract_picture = base64.b64encode(row[6]).decode('utf-8')
+#         id_contract_picture_path = utilities.save_base64_image_lite(id_contract_picture, "id_contract_picture_path_"+msisdn)
+#         id_front_picture = base64.b64encode(row[7]).decode('utf-8')
+#         id_front_picture_path = utilities.save_base64_image_lite(id_front_picture, "id_front_picture_path_"+msisdn)
+#         # on va creer un nouveau seamfix treatment
+#         seamfix_treatment = SeamfixTreatment(
+#             msisdn=msisdn,
+#             id_card_f_picture_path=id_card_f_picture_path,
+#             id_contract_picture_path=id_contract_picture_path,
+#             id_front_picture_path=id_front_picture_path,
+#             created_by=1,
+#             created_at=datetime.now(),
+#             search_string=utilities.build_search_string(row),
+#             is_deleted=False,
+#         )
+#         db.session.add(seamfix_treatment)
+#         db.session.commit()
+#     logging.info("**** End create_seamfix_treatment ****")
+#     return functional_error.MESSAGE_SUCCESS()
+
+
+# import base64
+# import logging
+# from datetime import datetime
+
 @app.route('/seamfix_treatment/create', methods=['POST'])
 @cross_origin()
 def create_seamfix_treatment():
     logging.info("**** Begin create_seamfix_treatment ****")
     logging.info("/seamfix_treatment/create")
-    r = request.get_json() or {}
-    logging.info("**** request input ****")
-    logging.info(r)
-    # on va aller dans la bd sql serveur pour recuperer les informations
+
     cursor.execute(""" 
         SELECT TOP (1) 
             b.[ID],
@@ -92,24 +155,29 @@ def create_seamfix_treatment():
             ON p3.ID = b.IDFrontPicture
         ORDER BY b.ID DESC;
      """)
+    
     rows = cursor.fetchall()
-    logging.info("rows :::>")
-    logging.info(rows)
     for row in rows:
-        logging.info("row :::>")
-        logging.info(row)
         logging.info(f"msisdn: {row[1]}")
         logging.info(f"id_card_f_picture: {row[5]}")
         logging.info(f"id_contract_picture: {row[6]}")
         logging.info(f"id_front_picture: {row[7]}")
-        msisdn=row[1]
-        id_card_f_picture = base64.b64encode(row[5]).decode('utf-8')
-        id_card_f_picture_path = utilities.save_base64_image_lite(id_card_f_picture, "id_card_f_picture_path_"+msisdn)
-        id_contract_picture = base64.b64encode(row[6]).decode('utf-8')
-        id_contract_picture_path = utilities.save_base64_image_lite(id_contract_picture, "id_contract_picture_path_"+msisdn)
-        id_front_picture = base64.b64encode(row[7]).decode('utf-8')
-        id_front_picture_path = utilities.save_base64_image_lite(id_front_picture, "id_front_picture_path_"+msisdn)
-        # on va creer un nouveau seamfix treatment
+        
+        msisdn = str(row[1])  # Assurez-vous que ce soit une string
+
+        def safe_image_save(binary_data, prefix):
+            if binary_data:
+                try:
+                    base64_str = base64.b64encode(binary_data).decode("utf-8")
+                    return utilities.save_base64_image_lite(base64_str, f"{prefix}_{msisdn}")
+                except Exception as e:
+                    logging.error(f"Erreur lors de la sauvegarde de l'image {prefix}: {e}")
+            return None
+
+        id_card_f_picture_path = safe_image_save(row[5], "id_card_f_picture_path")
+        id_contract_picture_path = safe_image_save(row[6], "id_contract_picture_path")
+        id_front_picture_path = safe_image_save(row[7], "id_front_picture_path")
+
         seamfix_treatment = SeamfixTreatment(
             msisdn=msisdn,
             id_card_f_picture_path=id_card_f_picture_path,
@@ -120,8 +188,10 @@ def create_seamfix_treatment():
             search_string=utilities.build_search_string(row),
             is_deleted=False,
         )
+
         db.session.add(seamfix_treatment)
         db.session.commit()
+
     logging.info("**** End create_seamfix_treatment ****")
     return functional_error.MESSAGE_SUCCESS()
 
