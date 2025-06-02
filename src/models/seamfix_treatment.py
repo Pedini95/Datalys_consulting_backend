@@ -12,7 +12,8 @@ class SeamfixTreatment(db.Model):
     __tablename__ = 'seamfix_treatment'
 
     id = db.Column(db.Integer, primary_key=True)
-    msidn = db.Column(db.String(255), nullable=True)
+    # msidn = db.Column(db.String(255), nullable=True)
+    msisdn = db.Column(db.String(255))
     id_card_picture_path = db.Column(db.String(255), nullable=True)
     id_contrat_picture_path = db.Column(db.String(255), nullable=True)
     id_front_picture_path = db.Column(db.String(255), nullable=True)

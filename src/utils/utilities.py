@@ -408,6 +408,7 @@ def decrypt_password_lite(encrypted_password):
 
 def save_base64_image_lite(base64_str, prefix="image"):
     # try:
+    logging.info("***** app.config['UPLOAD_FOLDER'] %s****", app.config['UPLOAD_FOLDER'])
     filename = f"{prefix}.jpg"
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
