@@ -158,6 +158,7 @@ def create_seamfix_treatment():
     
     rows = cursor.fetchall()
     for row in rows:
+        logging.info(f"id: {row[0]}")
         logging.info(f"msisdn: {row[1]}")
         logging.info(f"id_card_f_picture: {row[5]}")
         logging.info(f"id_contract_picture: {row[6]}")
