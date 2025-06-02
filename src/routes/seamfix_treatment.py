@@ -180,8 +180,8 @@ def create_seamfix_treatment():
 
         seamfix_treatment = SeamfixTreatment(
             msisdn=msisdn,
-            id_card_f_picture_path=id_card_f_picture_path,
-            id_contract_picture_path=id_contract_picture_path,
+            id_card_picture_path=id_card_f_picture_path,
+            id_contrat_picture_path=id_contract_picture_path,
             id_front_picture_path=id_front_picture_path,
             created_by=1,
             created_at=datetime.now(),
