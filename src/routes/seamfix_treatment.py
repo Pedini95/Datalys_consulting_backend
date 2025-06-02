@@ -158,11 +158,11 @@ def create_seamfix_treatment():
     
     rows = cursor.fetchall()
     for row in rows:
-        logging.info(f"id: {row[0]}")
-        logging.info(f"msisdn: {row[1]}")
-        logging.info(f"id_card_f_picture: {row[5]}")
-        logging.info(f"id_contract_picture: {row[6]}")
-        logging.info(f"id_front_picture: {row[7]}")
+        logging.info(f"row[0]: {row[0]}")
+        logging.info(f"row[1]: {row[1]}")
+        logging.info(f"row[5]: {row[5]}")
+        logging.info(f"row[6]: {row[6]}")
+        logging.info(f"row[7]: {row[7]}")
 
         msisdn = str(row[1])  # Assurez-vous que ce soit une string
 
@@ -175,14 +175,14 @@ def create_seamfix_treatment():
                 #     logging.error(f"Erreur lors de la sauvegarde de l'image {prefix}: {e}")
             return None
 
-        id_card_f_picture_path = safe_image_save(row[5], "id_card_f_picture_path")
-        id_contract_picture_path = safe_image_save(row[6], "id_contract_picture_path")
+        id_card_picture_path = safe_image_save(row[5], "id_card_picture_path")
+        id_contrat_picture_path = safe_image_save(row[6], "id_contrat_picture_path")
         id_front_picture_path = safe_image_save(row[7], "id_front_picture_path")
 
         seamfix_treatment = SeamfixTreatment(
             msisdn=msisdn,
-            id_card_picture_path=id_card_f_picture_path,
-            id_contrat_picture_path=id_contract_picture_path,
+            id_card_picture_path=id_card_picture_path,
+            id_contrat_picture_path=id_contrat_picture_path,
             id_front_picture_path=id_front_picture_path,
             created_at=datetime.now(),
             # search_string=utilities.build_search_string(row),
@@ -223,17 +223,17 @@ def create_seamfix_treatment_job():
     for row in rows:
         logging.info("row :::> %s", row)
         msisdn=row[1]
-        id_card_f_picture = base64.b64encode(row[5]).decode('utf-8')
-        id_card_f_picture_path = utilities.save_base64_image_lite(id_card_f_picture, "id_card_f_picture_path_"+msisdn)
-        id_contract_picture = base64.b64encode(row[6]).decode('utf-8')
-        id_contract_picture_path = utilities.save_base64_image_lite(id_contract_picture, "id_contract_picture_path_"+msisdn)
+        id_card_picture = base64.b64encode(row[5]).decode('utf-8')
+        id_card_picture_path = utilities.save_base64_image_lite(id_card_picture, "id_card_picture_path_"+msisdn)
+        id_contrat_picture = base64.b64encode(row[6]).decode('utf-8')
+        id_contrat_picture_path = utilities.save_base64_image_lite(id_contrat_picture, "id_contrat_picture_path_"+msisdn)
         id_front_picture = base64.b64encode(row[7]).decode('utf-8')
         id_front_picture_path = utilities.save_base64_image_lite(id_front_picture, "id_front_picture_path_"+msisdn)
         # on va creer un nouveau seamfix treatment
         seamfix_treatment = SeamfixTreatment(
             msisdn=msisdn,
-            id_card_f_picture_path=id_card_f_picture_path,
-            id_contract_picture_path=id_contract_picture_path,
+            id_card_picture_path=id_card_picture_path,
+            id_contrat_picture_path=id_contrat_picture_path,
             id_front_picture_path=id_front_picture_path,
             created_by=1,
             created_at=datetime.now(),
