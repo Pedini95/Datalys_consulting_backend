@@ -409,9 +409,8 @@ def decrypt_password_lite(encrypted_password):
 def save_base64_image_lite(base64_str, prefix="image"):
     try:
         filename = f"{prefix}.jpg"
-        folder = "static/files"
-        os.makedirs(folder, exist_ok=True)
-        filepath = os.path.join(folder, filename)
+        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
         with open(filepath, "wb") as f:
             f.write(base64.b64decode(base64_str))
