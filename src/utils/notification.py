@@ -31,6 +31,8 @@ def send_email(to_email, subject, body):
     except Exception as e:
         return jsonify({'message': 'ERROR', 'details': str(e)}), 500
 
+
+
 def send_mail_registration(datas, emails):
     logo_url = url_for('static', filename='image/logo.png', _external=True)
     msg = Message("REGISTRATION FIBER",
@@ -65,7 +67,6 @@ def send_sms(to_phone, body):
     print("******** data %s *******", data)
     print("******** Url %s *******", url)
     try:
-        # response = requests.post(url, data=json.dumps(data), verify=False)
         response = requests.post(url, json=data, headers=headers, verify=False)
         if response.status_code == 200:
             print("******** SMS envoyé *******")
