@@ -5,7 +5,7 @@ import re
 from datetime import datetime, date
 import logging
 import utils.utilities as utilities
-
+import os
 
 class SeamfixTreatment(db.Model):
     __tablename__ = 'seamfix_treatment'
@@ -21,16 +21,30 @@ class SeamfixTreatment(db.Model):
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
     is_deleted = db.Column(db.Boolean, default=False)
 
-
     def as_dict(self):
         data = {}
         for c in self.__table__.columns:
             value = getattr(self, c.name)
             if c.name in ('created_at', 'updated_at') and value:
                 data[c.name] = value.strftime("%d/%m/%Y %H:%M:%S")
-            elif value is not None:  
-                data[c.name] = value
+            elif value is not None:
+                if c.name in ['id_card_picture_path', 'id_contrat_picture_path', 'id_front_picture_path']:
+                    # On remplace le chemin système par une URL publique
+                    file_name = os.path.basename(value)
+                    data[c.name] = f"{app.config['BASE_STATIC_URL']}{file_name}"
+                else:
+                    data[c.name] = value
         return data
+
+    # def as_dict(self):
+    #     data = {}
+    #     for c in self.__table__.columns:
+    #         value = getattr(self, c.name)
+    #         if c.name in ('created_at', 'updated_at') and value:
+    #             data[c.name] = value.strftime("%d/%m/%Y %H:%M:%S")
+    #         elif value is not None:  
+    #             data[c.name] = value
+    #     return data
 
 
 

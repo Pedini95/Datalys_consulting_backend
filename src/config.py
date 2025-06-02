@@ -57,3 +57,5 @@ class Config:
 
     # Configuration KYC Kya
     KYC_KYA_URL = os.getenv('KYC_KYA_URL')
+
+    BASE_STATIC_URL = os.getenv('BASE_STATIC_URL')
