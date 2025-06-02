@@ -17,10 +17,22 @@ swagger = Swagger(app)
 
 # Determine if in development environment
 is_dev = app.config.get('ENV', 'local') == 'local'
-print("is_dev:", is_dev)
+logging.info("is_dev:", is_dev)
+
+log_dir = "/app/logs"
+log_file = os.path.join(log_dir, "com.fusion_kyc_kya.log")
+
+# Création automatique du dossier si manquant
+os.makedirs(log_dir, exist_ok=True)
+
+logging.basicConfig(
+    filename=log_file,
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 # Configure logging handlers based on environment
-handlers = [logging.StreamHandler()]  # Always include StreamHandler for console output
+# handlers = [logging.StreamHandler()]  # Always include StreamHandler for console output
 
 # if is_dev:
 #     # Use TimedRotatingFileHandler in development
@@ -35,11 +47,11 @@ handlers = [logging.StreamHandler()]  # Always include StreamHandler for console
 #     )
 
 # Set up logging configuration
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=handlers
-)
+# logging.basicConfig(
+#     level=logging.INFO,
+#     format='%(asctime)s - %(levelname)s - %(message)s',
+#     handlers=handlers
+# )
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
