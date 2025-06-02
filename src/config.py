@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 # Utiliser un chemin relatif pour charger .env
 current_dir = os.path.dirname(os.path.abspath(__file__))
-env_path = os.path.join(current_dir, '.env')
+env_path = os.path.join(current_dir, '.env.local')
 # Chargez le fichier .env
 load_dotenv(env_path, override=True)
 
