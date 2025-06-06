@@ -62,7 +62,14 @@ from routes import seamfix_api
 from routes import seamfix_treatment
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(seamfix_treatment.create_seamfix_treatment_job, 'interval', minutes=1, max_instances=1)
+# scheduler.add_job(seamfix_treatment.create_seamfix_treatment_job, 'interval', minutes=1, max_instances=1)
+scheduler.add_job(
+    func=seamfix_treatment.create_seamfix_treatment_job,
+    trigger="interval",
+    seconds=60,
+    id="create_seamfix_treatment_job",  # <-- UNIQUE ID
+    replace_existing=True  # <-- important pour éviter les doublons
+)
 if not scheduler.running:
     scheduler.start()
 
