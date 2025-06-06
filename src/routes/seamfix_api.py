@@ -353,7 +353,10 @@ def ocr_seamfix_lite(document, documentType, documentFormat):
     # Appel de l'OCR
     response = requests.post(app.config['SEAMFIX_DOC_PROCESSING_URL'], data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
-    response = response.json()
+    if response.status_code == 200:
+        response = response.json()
+    else:
+        response = {"code": response.status_code, "message": response.text}
     if response.get("code") == 0:
         retour_normalize = simplify_scanner_data(response)
         print("**** retour_normalize : {}".format(retour_normalize))
