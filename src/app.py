@@ -29,7 +29,7 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-# Configure logging handlers based on environment
+# # Configure logging handlers based on environment
 # handlers = [logging.StreamHandler()]
 
 # handlers.append(
@@ -49,6 +49,38 @@ logging.basicConfig(
 #     handlers=handlers
 # )
 
+# # Récupération du chemin du fichier log depuis .env
+# log_file_path = app.config['LOG_FILE_PATH']
+# log_dir = os.path.dirname(log_file_path)
+
+# # Assurer l'existence du dossier
+# os.makedirs(log_dir, exist_ok=True)
+
+# # Handler fichier (rotation quotidienne)
+# file_handler = TimedRotatingFileHandler(
+#     log_file_path,
+#     when='midnight',
+#     interval=1,
+#     backupCount=7,
+#     encoding='utf-8'
+# )
+# file_handler.setLevel(logging.INFO)
+
+# # Handler console
+# console_handler = logging.StreamHandler()
+# console_handler.setLevel(logging.INFO)
+
+# # Format des logs
+# formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+# file_handler.setFormatter(formatter)
+# console_handler.setFormatter(formatter)
+
+# # Configuration globale du logging
+# logging.basicConfig(
+#     level=logging.INFO,
+#     handlers=[file_handler, console_handler]
+# )
+
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 CORS(app)
@@ -60,7 +92,7 @@ from routes import role
 from routes import user
 from routes import timm_config
 from routes import seamfix_api
-from routes import seamfix_treatment
+# from routes import seamfix_treatment
 
 scheduler = BackgroundScheduler()
 # scheduler.add_job(seamfix_treatment.create_seamfix_treatment_job, 'interval', minutes=5, max_instances=1)

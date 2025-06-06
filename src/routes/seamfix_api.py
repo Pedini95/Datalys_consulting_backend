@@ -8,6 +8,7 @@ from flask_cors import CORS, cross_origin
 from models.faces_matching import FacesMatching
 from models.actions_logs import ActionsLogs
 from models.ocr_seamfix import OCRSeamfix
+from models.liveness import Liveness
 import uuid
 import utils.utilities as utilities
 import re
@@ -89,6 +90,7 @@ def portrait_seamfix_verify():
 
 def portrait_seamfix_verify_lite(probe=None, candidate=None, msisdn=None):
     logging.info("**** Begin face matching ****")
+    print("**** Begin face matching ****")
     libelle = "face_matching_"+datetime.now().strftime("%Y%m%d_%H%M%S")
     ActionsLogs.action_logs_init_save(libelle, "/kyc/portrait/seamfix/verify", json.dumps({"probe": probe,"candidate": candidate}))
     if probe is None:
@@ -118,6 +120,7 @@ def portrait_seamfix_verify_lite(probe=None, candidate=None, msisdn=None):
     save_face_matching(json.dumps(data_api), response, msisdn)
     logging.info("**** response : {}".format(response))
     logging.info("**** End face matching ****")
+    print("**** End face matching ****")
     # on save fin de logs dans action logs
     ActionsLogs.action_logs_final_save(libelle, json.dumps(response), response.get("description"))
     return response
@@ -127,6 +130,7 @@ def portrait_seamfix_verify_lite(probe=None, candidate=None, msisdn=None):
 @cross_origin()
 def portrait_seamfix_validate():
     logging.info("**** Begin portrait_seamfix_validate ****")
+    print("**** Begin portrait_seamfix_validate ****")
     r = request.get_json() or {}
     # on save debut des logs dans action logs
     libelle = "portrait_seamfix_validate_"+datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -151,7 +155,38 @@ def portrait_seamfix_validate():
     # Appel de la validation
     response = requests.post(app.config['SEAMFIX_URL_VALIDATE'], data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
+    # on save la reponse
+    save_liveness(json.dumps(data_api), response.json())
     logging.info("**** End portrait_seamfix_validate ****")
+    print("**** End portrait_seamfix_validate ****")
+    # on save fin de logs dans action logs
+    ActionsLogs.action_logs_final_save(libelle, json.dumps(response.json()), response.json().get("transactionStatus"))
+    return jsonify(response.json()), response.status_code
+
+
+
+def portrait_seamfix_validate_lite(image):
+    logging.info("**** Begin portrait_seamfix_validate ****")
+    print("**** Begin portrait_seamfix_validate ****")
+    transactionId = "txr-ABCD-EEFFDDE"
+
+    # Appel de l'authentification
+    auth_response = portrait_seamfix_authenticate()
+    logging.info("**** auth_response : {}".format(auth_response))
+    logging.info("**** auth_response.accessToken : {}".format(auth_response.get("accessToken")))
+    if auth_response.get("code") != 0:
+        return {"status": "error", "message": "Failed to authenticate with Seamfix", "code": 400, "has_error": True}, 400
+
+    headers = {"Authorization": f"Bearer {auth_response.get('accessToken')}", "Content-Type": "application/json"}
+    logging.info("**** headers : {}".format(headers))
+    data_api = {"image": image, "transactionId": transactionId, "actions": ["PLC"]}
+    # Appel de la validation
+    response = requests.post(app.config['SEAMFIX_URL_VALIDATE'], data=json.dumps(data_api), headers=headers)
+    logging.info("**** response : {}".format(response))
+    # on save la reponse
+    save_liveness(json.dumps(data_api), response.json())
+    logging.info("**** End portrait_seamfix_validate ****")
+    print("**** End portrait_seamfix_validate ****")
     # on save fin de logs dans action logs
     ActionsLogs.action_logs_final_save(libelle, json.dumps(response.json()), response.json().get("transactionStatus"))
     return jsonify(response.json()), response.status_code
@@ -169,6 +204,56 @@ def ocr_seamfix_get():
     response = response.json()
     logging.info("**** End ocr_seamfix_get ****")
     return response
+
+def save_liveness(request, response):
+    print("**** Begin save_liveness ****")
+    action_type = None
+    clipped_image = None
+    code = None
+    description = None
+    icao_token_image = None
+    metrics = None
+    score = None
+    transaction_id = None
+    transaction_status = None
+    transaction_status_code = None
+    search_string = None
+    logging.info("**** response responses : {} *****".format(response.get("responses")))
+    if response.get("responses"):
+        rep = response.get("responses")[0]
+        action_type = rep.get("actionType")
+        clipped_image = rep.get("clippedImage")
+        code = rep.get("code")
+        description = rep.get("description")
+        icao_token_image = rep.get("icaoTokenImage")
+        metrics = rep.get("metrics")
+        score = rep.get("score")
+        transaction_id = response.get("transactionId")
+        transaction_status = response.get("transactionStatus")
+        transaction_status_code = response.get("transactionStatusCode")
+        # search_string = utilities.build_search_string(rep)
+        new_liveness = Liveness(
+            action_type=action_type,
+            clipped_image=clipped_image,
+            code=code,
+            description=description,
+            icao_token_image=icao_token_image,
+            metrics=metrics,
+            score=score,
+            transaction_id=transaction_id,
+            transaction_status=transaction_status,
+            transaction_status_code=transaction_status_code,
+            search_string=search_string,
+            created_at=datetime.utcnow(),
+            is_deleted=False,
+            request=request
+        )
+        db.session.add(new_liveness)
+        db.session.commit() 
+    print("**** End save_liveness ****")
+    return new_liveness
+    
+
 
 def save_face_matching(request, response, msisdn):
     code = None
@@ -252,6 +337,35 @@ def ocr_seamfix():
     if response.get("code") == 0:
         status = "SUCCESS"
     ActionsLogs.action_logs_final_save(libelle, json.dumps(response), status)
+    return response
+
+
+def ocr_seamfix_lite(document, documentType, documentFormat):
+    logging.info("**** Begin ocr_seamfix_lite ****")
+    print("**** Begin ocr_seamfix_lite ****")
+    # on save debut des logs dans action logs
+    libelle = "ocr_seamfix_lite_" + datetime.now().strftime("%Y%m%d_%H%M%S")
+    ActionsLogs.action_logs_init_save(libelle, "/kyc/ocr/seamfix_lite", json.dumps({"document": document,"documentType": documentType, "documentFormat": documentFormat}))
+
+    headers = {"Authorization": f"Bearer {app.config['SEAMFIX_TOKEN']}", "Content-Type": "application/json"}
+    data_api = {"document": document,"documentType": documentType, "documentFormat": documentFormat}
+    # Appel de l'OCR
+    response = requests.post(app.config['SEAMFIX_DOC_PROCESSING_URL'], data=json.dumps(data_api), headers=headers)
+    logging.info("**** response : {}".format(response))
+    response = response.json()
+    if response.get("code") == 0:
+        retour_normalize = simplify_scanner_data(response)
+        logging.info("**** retour_normalize : {}".format(retour_normalize))
+        ocr_seamfix = save_ocr_seamfix(retour_normalize)
+        logging.info("**** ocr_seamfix : {}".format(ocr_seamfix.as_dict()))
+    # on save fin de logs dans action logs
+    status = "ERROR"
+    if response.get("code") == 0:
+        status = "SUCCESS"
+    ActionsLogs.action_logs_final_save(libelle, json.dumps(response), status)
+    logging.info("**** response : {}".format(response))
+    logging.info("**** End ocr_seamfix_lite ****")
+    print("**** End ocr_seamfix_lite ****")
     return response
 
 

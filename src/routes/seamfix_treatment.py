@@ -1,6 +1,8 @@
 from flask import request, jsonify, render_template
 from app import app, db
 from models.seamfix_treatment import SeamfixTreatment
+from routes.seamfix_api import ocr_seamfix_lite, portrait_seamfix_verify_lite, portrait_seamfix_validate_lite
+
 from redis_template import RedisTemplate
 import logging
 import utils.functional_error as functional_error
@@ -68,8 +70,8 @@ def get_seamfix_treatment():
 @cross_origin()
 def create_seamfix_treatment():
     logging.info("**** Begin create_seamfix_treatment ****")
+    print("**** Begin create_seamfix_treatment ****")
     logging.info("/seamfix_treatment/create")
-
     cursor.execute(""" 
         SELECT TOP (1) 
             b.[ID],
@@ -89,30 +91,21 @@ def create_seamfix_treatment():
             ON p3.ID = b.IDFrontPicture
         ORDER BY b.ID DESC;
      """)
-    
     rows = cursor.fetchall()
     for row in rows:
-        logging.info(f"row[0]: {row[0]}")
-        logging.info(f"row[1]: {row[1]}")
-        logging.info(f"row[5]: {row[5]}")
-        logging.info(f"row[6]: {row[6]}")
-        logging.info(f"row[7]: {row[7]}")
-
         msisdn = str(row[1])  # Assurez-vous que ce soit une string
-
         def safe_image_save(binary_data, prefix):
             if binary_data:
-                # try:
-                base64_str = base64.b64encode(binary_data).decode("utf-8")
-                return utilities.save_base64_image_lite(base64_str, f"{prefix}_{msisdn}")
-                # except Exception as e:
-                #     logging.error(f"Erreur lors de la sauvegarde de l'image {prefix}: {e}")
+                try:
+                    base64_str = base64.b64encode(binary_data).decode("utf-8")
+                    return utilities.save_base64_image_lite(base64_str, f"{prefix}_{msisdn}")
+                except Exception as e:
+                    logging.error(f"Erreur lors de la sauvegarde de l'image {prefix}: {e}")
             return None
-
+            
         id_card_picture_path = safe_image_save(row[5], "id_card_picture_path")
         id_contrat_picture_path = safe_image_save(row[6], "id_contrat_picture_path")
         id_front_picture_path = safe_image_save(row[7], "id_front_picture_path")
-
         seamfix_treatment = SeamfixTreatment(
             msisdn=msisdn,
             id_card_picture_path=id_card_picture_path,
@@ -122,18 +115,53 @@ def create_seamfix_treatment():
             # search_string=utilities.build_search_string(row),
             is_deleted=False,
         )
-
         db.session.add(seamfix_treatment)
         db.session.commit()
 
+        card_picture = binary_to_base64(row[5])
+        front_picture = binary_to_base64(row[7])
+        # on declanche le l'orchestration seamfix treatment
+        orchestration_seamfix_treatment(front_picture, card_picture, "passport", "png")    
     logging.info("**** End create_seamfix_treatment ****")
+    print("**** End create_seamfix_treatment ****")
+    return functional_error.MESSAGE_SUCCESS()
+
+
+def binary_to_base64(binary_data):
+    if binary_data:
+        try:
+            base64_str = base64.b64encode(binary_data).decode("utf-8")
+            return base64_str
+        except Exception as e:
+            logging.error(f"Erreur lors de la conversion en base64: {e}")
+    return None
+
+
+def orchestration_seamfix_treatment(front_picture, document, documentType, documentFormat):
+    logging.info("**** Begin orchestration_seamfix_treatment ****")
+    print("**** Begin orchestration_seamfix_treatment ****")
+    # on call le ocr seamfix
+    ocr = ocr_seamfix_lite(document, documentType, documentFormat)
+    if ocr:
+        data = ocr.get("data", {})
+        if data:
+            extractedDataList = data.get("extractedDataList", [])
+            item = extractedDataList[11]
+            image = item.get("value")
+            # on call le face matching
+            portrait_seamfix_verify_lite(front_picture, image)
+            # on call le liveness
+            portrait_seamfix_validate_lite(front_picture)
+    logging.info("**** End orchestration_seamfix_treatment ****")
+    print("**** End orchestration_seamfix_treatment ****")
     return functional_error.MESSAGE_SUCCESS()
 
 
 def create_seamfix_treatment_job():
     logging.info("**** Begin create_seamfix_treatment_job ****")
-    # on va aller dans la bd sql serveur pour recuperer les informations
-    cursor.execute("""
+    print("**** Begin create_seamfix_treatment_job ****")
+    logging.info("/seamfix_treatment/create")
+    cursor.execute(""" 
         SELECT TOP (1) 
             b.[ID],
             b.[MSISDN],
@@ -153,30 +181,38 @@ def create_seamfix_treatment_job():
         ORDER BY b.ID DESC;
      """)
     rows = cursor.fetchall()
-    logging.info("rows :::> %s", rows)
     for row in rows:
-        logging.info("row :::> %s", row)
-        msisdn=row[1]
-        id_card_picture = base64.b64encode(row[5]).decode('utf-8')
-        id_card_picture_path = utilities.save_base64_image_lite(id_card_picture, "id_card_picture_path_"+msisdn)
-        id_contrat_picture = base64.b64encode(row[6]).decode('utf-8')
-        id_contrat_picture_path = utilities.save_base64_image_lite(id_contrat_picture, "id_contrat_picture_path_"+msisdn)
-        id_front_picture = base64.b64encode(row[7]).decode('utf-8')
-        id_front_picture_path = utilities.save_base64_image_lite(id_front_picture, "id_front_picture_path_"+msisdn)
-        # on va creer un nouveau seamfix treatment
+        msisdn = str(row[1])  # Assurez-vous que ce soit une string
+        def safe_image_save(binary_data, prefix):
+            if binary_data:
+                try:
+                    base64_str = base64.b64encode(binary_data).decode("utf-8")
+                    return utilities.save_base64_image_lite(base64_str, f"{prefix}_{msisdn}")
+                except Exception as e:
+                    logging.error(f"Erreur lors de la sauvegarde de l'image {prefix}: {e}")
+            return None
+            
+        id_card_picture_path = safe_image_save(row[5], "id_card_picture_path")
+        id_contrat_picture_path = safe_image_save(row[6], "id_contrat_picture_path")
+        id_front_picture_path = safe_image_save(row[7], "id_front_picture_path")
         seamfix_treatment = SeamfixTreatment(
             msisdn=msisdn,
             id_card_picture_path=id_card_picture_path,
             id_contrat_picture_path=id_contrat_picture_path,
             id_front_picture_path=id_front_picture_path,
-            created_by=1,
             created_at=datetime.now(),
-            search_string=utilities.build_search_string(row),
+            # search_string=utilities.build_search_string(row),
             is_deleted=False,
         )
         db.session.add(seamfix_treatment)
         db.session.commit()
+
+        card_picture = binary_to_base64(row[5])
+        front_picture = binary_to_base64(row[7])
+        # on declanche le l'orchestration seamfix treatment
+        orchestration_seamfix_treatment(front_picture, card_picture, "passport", "png")    
     logging.info("**** End create_seamfix_treatment_job ****")
+    print("**** End create_seamfix_treatment_job ****")
     return functional_error.MESSAGE_SUCCESS()
 
     
