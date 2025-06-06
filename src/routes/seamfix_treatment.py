@@ -231,8 +231,8 @@ def treatment_seamfix():
     # Champs obligatoires
     required_fields = ['id', 'is_valid']
     for field in required_fields:
-        if field not in data or not data[field]:
-            return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
+        if field not in data:
+            return {"status": "error", "message": f"Field {field} is missing"}, 400
     
     seamfix_treatment = SeamfixTreatment.find_one(data['id'], "Untreated", False)
     if seamfix_treatment:

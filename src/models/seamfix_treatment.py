@@ -62,7 +62,7 @@ class SeamfixTreatment(db.Model):
             conditions.append(SeamfixTreatment.id == criteria['id'])
         if 'search_string' in criteria:
             conditions.append(SeamfixTreatment.search_string.like(f"%{criteria['search_string']}%"))
-        if 'status' in criteria:
+        if 'status' in criteria and criteria['status']:
             conditions.append(SeamfixTreatment.status == criteria['status'])
         if 'msisdn' in criteria:
             conditions.append(SeamfixTreatment.msisdn.like(f"%{criteria['msisdn']}%"))
