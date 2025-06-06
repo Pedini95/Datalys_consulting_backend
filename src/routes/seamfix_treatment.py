@@ -13,6 +13,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import os
 import base64
+import threading
 
 
 logger = logging.getLogger(__name__)
