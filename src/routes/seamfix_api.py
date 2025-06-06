@@ -169,7 +169,8 @@ def portrait_seamfix_validate_lite(image):
     logging.info("**** Begin portrait_seamfix_validate ****")
     print("**** Begin portrait_seamfix_validate ****")
     transactionId = "txr-ABCD-EEFFDDE"
-
+    libelle = "portrait_seamfix_validate_"+datetime.now().strftime("%Y%m%d_%H%M%S")
+    ActionsLogs.action_logs_init_save(libelle, "/kyc/portrait/seamfix/validate", json.dumps({"image": image, "transactionId": transactionId, "actions": ["PLC"]}))
     # Appel de l'authentification
     auth_response = portrait_seamfix_authenticate()
     logging.info("**** auth_response : {}".format(auth_response))
