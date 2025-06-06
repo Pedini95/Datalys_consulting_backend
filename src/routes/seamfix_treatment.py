@@ -147,7 +147,8 @@ def orchestration_seamfix_treatment(front_picture, document, documentType, docum
         data = ocr.get("data", {})
         if data:
             extractedDataList = data.get("extractedDataList", [])
-            item = extractedDataList[11]
+            item = extractedDataList[-1]
+            logging.info(f"Dernier élément extrait : {item}")
             image = item.get("value")
             # on call le face matching
             portrait_seamfix_verify_lite(front_picture, image)
