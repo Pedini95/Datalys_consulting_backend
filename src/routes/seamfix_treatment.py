@@ -1,4 +1,4 @@
-from flask import request, jsonify, render_template
+from flask import request, jsonify, render_template, has_request_context
 from app import app, db
 from models.seamfix_treatment import SeamfixTreatment
 from routes.seamfix_api import ocr_seamfix_lite, portrait_seamfix_verify_lite, portrait_seamfix_validate_lite
@@ -68,25 +68,63 @@ def get_seamfix_treatment():
     return response
 
 
-def get_seamfix_treatment_lite():
+def get_seamfix_treatment_lite(criteria=None, index=0, size=10):
     logging.info("**** Begin get_seamfix_treatment_lite ****")
     logging.info("/seamfix_treatment/getByCriteria")
-    r = request.get_json() or {}
-    logging.info("**** request input ****")
-    logging.info(r)
-    index = r.get('index')
-    size = r.get('size')
-    r['data']['status'] = "Untreated"
-    seamfix_treatments, total_items = SeamfixTreatment.get_by_criteria(r['data'], index, size)
+
+    if has_request_context():
+        r = request.get_json() or {}
+        logging.info("**** request input (from request context) ****")
+        logging.info(r)
+        index = r.get('index', 0)
+        size = r.get('size', 10)
+        criteria = r.get('data', {})
+    
+    # Assurer que status est toujours forcé à "Untreated"
+    if not criteria:
+        criteria = {}
+    criteria["status"] = "Untreated"
+
+    seamfix_treatments, total_items = SeamfixTreatment.get_by_criteria(criteria, index, size)
+
     if seamfix_treatments:
         message = functional_error.MESSAGE_SUCCESS()
     else:
         message = functional_error.MESSAGE_DATA_EMPTY()
-    response = {"items": [seamfix_treatment.as_dict() for seamfix_treatment in seamfix_treatments], "count": total_items, "message": message, "code": 200, "has_error": False}
+
+    response = {
+        "items": [treatment.as_dict() for treatment in seamfix_treatments],
+        "count": total_items,
+        "message": message,
+        "code": 200,
+        "has_error": False
+    }
+
     logging.info("**** response output ****")
     logging.info(response)
-    logging.info("**** End get_user ****")
+    logging.info("**** End get_seamfix_treatment_lite ****")
     return response
+
+
+# def get_seamfix_treatment_lite():
+#     logging.info("**** Begin get_seamfix_treatment_lite ****")
+#     logging.info("/seamfix_treatment/getByCriteria")
+#     r = request.get_json() or {}
+#     logging.info("**** request input ****")
+#     logging.info(r)
+#     index = r.get('index')
+#     size = r.get('size')
+#     r['data']['status'] = "Untreated"
+#     seamfix_treatments, total_items = SeamfixTreatment.get_by_criteria(r['data'], index, size)
+#     if seamfix_treatments:
+#         message = functional_error.MESSAGE_SUCCESS()
+#     else:
+#         message = functional_error.MESSAGE_DATA_EMPTY()
+#     response = {"items": [seamfix_treatment.as_dict() for seamfix_treatment in seamfix_treatments], "count": total_items, "message": message, "code": 200, "has_error": False}
+#     logging.info("**** response output ****")
+#     logging.info(response)
+#     logging.info("**** End get_user ****")
+#     return response
     
 
 @app.route('/seamfix_treatment/create', methods=['POST'])
