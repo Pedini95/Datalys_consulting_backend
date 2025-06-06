@@ -227,7 +227,7 @@ def treatment_seamfix():
     r = request.get_json() or {}
     logging.info("**** request input ****")
     logging.info(r)
-    data = r.get('data', {})
+    data = r['data']
     # Champs obligatoires
     required_fields = ['id', 'is_valid']
     for field in required_fields:
