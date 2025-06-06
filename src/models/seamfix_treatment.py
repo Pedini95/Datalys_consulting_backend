@@ -16,6 +16,7 @@ class SeamfixTreatment(db.Model):
     id_card_picture_path = db.Column(db.String(255), nullable=True)
     id_contrat_picture_path = db.Column(db.String(255), nullable=True)
     id_front_picture_path = db.Column(db.String(255), nullable=True)
+    status = db.Column(db.String(255), nullable=True)
     search_string = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
@@ -54,6 +55,7 @@ class SeamfixTreatment(db.Model):
 
         # Définir une liste de conditions
         conditions = [SeamfixTreatment.is_deleted == False]
+        conditions.append(SeamfixTreatment.status == "Untreated")
         if 'id' in criteria:
             conditions.append(SeamfixTreatment.id == criteria['id'])
         if 'search_string' in criteria:
