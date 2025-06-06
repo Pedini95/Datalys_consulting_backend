@@ -65,6 +65,27 @@ def get_seamfix_treatment():
     logging.info(response)
     logging.info("**** End get_user ****")
     return response
+
+
+def get_seamfix_treatment_lite():
+    logging.info("**** Begin get_seamfix_treatment_lite ****")
+    logging.info("/seamfix_treatment/getByCriteria")
+    r = request.get_json() or {}
+    logging.info("**** request input ****")
+    logging.info(r)
+    index = r.get('index')
+    size = r.get('size')
+    r['data']['status'] = "Untreated"
+    seamfix_treatments, total_items = SeamfixTreatment.get_by_criteria(r['data'], index, size)
+    if seamfix_treatments:
+        message = functional_error.MESSAGE_SUCCESS()
+    else:
+        message = functional_error.MESSAGE_DATA_EMPTY()
+    response = {"items": [seamfix_treatment.as_dict() for seamfix_treatment in seamfix_treatments], "count": total_items, "message": message, "code": 200, "has_error": False}
+    logging.info("**** response output ****")
+    logging.info(response)
+    logging.info("**** End get_user ****")
+    return response
     
 
 @app.route('/seamfix_treatment/create', methods=['POST'])
@@ -122,11 +143,25 @@ def create_seamfix_treatment():
 
         card_picture = binary_to_base64(row[5])
         front_picture = binary_to_base64(row[7])
+        # on call le getByCriteria
+        get_response = get_seamfix_treatment_lite()
         # on declanche le l'orchestration seamfix treatment
-        orchestration_seamfix_treatment(front_picture, card_picture, "passport", "png")    
+        # orchestration_seamfix_treatment(front_picture, card_picture, "passport", "png")
+        # Lancement asynchrone de l’orchestration
+        def run_async_orchestration(front_picture, card_picture, doc_type, doc_format):
+            try:
+                orchestration_seamfix_treatment(front_picture, card_picture, doc_type, doc_format)
+            except Exception as e:
+                logging.error(f"Erreur dans orchestration_seamfix_treatment async : {e}")
+
+        threading.Thread(
+            target=run_async_orchestration,
+            args=(front_picture, card_picture, "passport", "png"),
+            daemon=True
+        ).start()   
     logging.info("**** End create_seamfix_treatment ****")
     print("**** End create_seamfix_treatment ****")
-    return functional_error.MESSAGE_SUCCESS()
+    return get_response
 
 
 def binary_to_base64(binary_data):
