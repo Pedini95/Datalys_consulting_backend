@@ -219,3 +219,31 @@ def create_seamfix_treatment_job():
 
     
     
+@app.route('/seamfix_treatment/treatment', methods=['POST'])
+@cross_origin()
+def treatment_seamfix():
+    logging.info("**** Begin treatment_seamfix ****")
+    logging.info("/seamfix_treatment/treatment")
+    r = request.get_json() or {}
+    logging.info("**** request input ****")
+    logging.info(r)
+    data = r.get('data', {})
+    # Champs obligatoires
+    required_fields = ['id', 'is_valid']
+    for field in required_fields:
+        if field not in data or not data[field]:
+            return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
+    
+    seamfix_treatment = SeamfixTreatment.find_one(data['id'], "Untreated", False)
+    if seamfix_treatment:
+        if data['is_valid']:
+            seamfix_treatment.status = "Validated"
+        else:
+            seamfix_treatment.status = "Invalidated"
+        seamfix_treatment.updated_at = datetime.now()
+        db.session.commit()
+        return {"status": "success", "message": "Seamfix treatment processed successfully"}, 200
+    else:
+        return {"status": "error", "message": "Seamfix treatment not found"}, 404
+    
+    

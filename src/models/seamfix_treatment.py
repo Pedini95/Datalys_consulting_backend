@@ -47,7 +47,9 @@ class SeamfixTreatment(db.Model):
     #             data[c.name] = value
     #     return data
 
-
+    def find_one(id, status, is_deleted):
+        seamfix_treatment = SeamfixTreatment.query.filter_by(id=id, status=status, is_deleted=is_deleted).first()
+        return seamfix_treatment
 
     @staticmethod
     def get_by_criteria(criteria, index=None, size=None):
