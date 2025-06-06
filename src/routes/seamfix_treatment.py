@@ -280,93 +280,175 @@ seamfix_job_lock = Lock()
 #         return get_response
 
 
-def create_seamfix_treatment_job():
-    if not seamfix_job_lock.acquire(blocking=False):
-        logging.warning("Job already running, skipping this execution.")
-        return
+# def create_seamfix_treatment_job():
+#     if not seamfix_job_lock.acquire(blocking=False):
+#         logging.warning("Job already running, skipping this execution.")
+#         return
 
+#     with app.app_context():
+#         try:
+#             logging.info("**** Begin create_seamfix_treatment_job ****")
+#             print("**** Begin create_seamfix_treatment_job ****")
+#             logging.info("/seamfix_treatment/create")
+
+#             cursor.execute(""" 
+#                 SELECT TOP (1) 
+#                     b.[ID],
+#                     b.[MSISDN],
+#                     b.[APP],
+#                     b.[ExecState],
+#                     b.[ReturnID],
+#                     p1.Picture AS IDCardFPicturePath,
+#                     p2.Picture AS IDContractPicturePath,
+#                     p3.Picture AS IDFrontPicturePath
+#                 FROM [SIMRegistration].[dbo].[SIMRegistrationQueue] b WITH (NOLOCK)
+#                 LEFT JOIN [SIMRegistration].[dbo].[SIMRegistrationPictures] p1 WITH (NOLOCK)
+#                     ON p1.ID = b.IDCardFPicture
+#                 LEFT JOIN [SIMRegistration].[dbo].[SIMRegistrationPictures] p2 WITH (NOLOCK)
+#                     ON p2.ID = b.IDContractPicture
+#                 LEFT JOIN [SIMRegistration].[dbo].[SIMRegistrationPictures] p3 WITH (NOLOCK)
+#                     ON p3.ID = b.IDFrontPicture
+#                 ORDER BY b.ID DESC;
+#             """)
+#             rows = cursor.fetchall()
+
+#             for row in rows:
+#                 msisdn = str(row[1]).strip()
+
+#                 # Éviter les doublons : si une ligne avec le même MSISDN existe déjà et non supprimée
+#                 existing = SeamfixTreatment.query.filter_by(msisdn=msisdn, is_deleted=False, status="Untreated").first()
+#                 if existing:
+#                     logging.info(f"Traitement déjà existant pour MSISDN {msisdn}, on saute.")
+#                     continue
+
+#                 def safe_image_save(binary_data, prefix):
+#                     if binary_data:
+#                         try:
+#                             base64_str = base64.b64encode(binary_data).decode("utf-8")
+#                             return utilities.save_base64_image_lite(base64_str, f"{prefix}_{msisdn}")
+#                         except Exception as e:
+#                             logging.error(f"Erreur lors de la sauvegarde de l'image {prefix}: {e}")
+#                     return None
+
+#                 id_card_picture_path = safe_image_save(row[5], "id_card_picture_path")
+#                 id_contrat_picture_path = safe_image_save(row[6], "id_contrat_picture_path")
+#                 id_front_picture_path = safe_image_save(row[7], "id_front_picture_path")
+
+#                 seamfix_treatment = SeamfixTreatment(
+#                     msisdn=msisdn,
+#                     id_card_picture_path=id_card_picture_path,
+#                     id_contrat_picture_path=id_contrat_picture_path,
+#                     id_front_picture_path=id_front_picture_path,
+#                     status="Untreated",
+#                     created_at=datetime.now(),
+#                     is_deleted=False,
+#                 )
+#                 db.session.add(seamfix_treatment)
+#                 db.session.commit()
+#                 # on call le getByCriteria
+#                 get_response = get_seamfix_treatment_lite()
+#                 logging.info("**** get_response : {}".format(get_response))
+#                 try:
+#                     card_picture = binary_to_base64(row[5])
+#                     front_picture = binary_to_base64(row[7])
+#                     # appel en tâche de fond
+#                     threading.Thread(
+#                         target=orchestration_seamfix_treatment,
+#                         args=(front_picture, card_picture, "passport", "png")
+#                     ).start()
+#                 except Exception as e:
+#                     logging.error(f"Erreur lors de l'appel à l'orchestration : {e}")
+
+#             logging.info("**** End create_seamfix_treatment_job ****")
+#             print("**** End create_seamfix_treatment_job ****")
+
+#         except Exception as e:
+#             logging.error(f"Erreur dans create_seamfix_treatment_job: {e}")
+
+#         finally:
+#             seamfix_job_lock.release()
+
+
+
+def run_orchestration_with_context(front_picture, card_picture, documentType, documentFormat):
     with app.app_context():
         try:
-            logging.info("**** Begin create_seamfix_treatment_job ****")
-            print("**** Begin create_seamfix_treatment_job ****")
-            logging.info("/seamfix_treatment/create")
-
-            cursor.execute(""" 
-                SELECT TOP (1) 
-                    b.[ID],
-                    b.[MSISDN],
-                    b.[APP],
-                    b.[ExecState],
-                    b.[ReturnID],
-                    p1.Picture AS IDCardFPicturePath,
-                    p2.Picture AS IDContractPicturePath,
-                    p3.Picture AS IDFrontPicturePath
-                FROM [SIMRegistration].[dbo].[SIMRegistrationQueue] b WITH (NOLOCK)
-                LEFT JOIN [SIMRegistration].[dbo].[SIMRegistrationPictures] p1 WITH (NOLOCK)
-                    ON p1.ID = b.IDCardFPicture
-                LEFT JOIN [SIMRegistration].[dbo].[SIMRegistrationPictures] p2 WITH (NOLOCK)
-                    ON p2.ID = b.IDContractPicture
-                LEFT JOIN [SIMRegistration].[dbo].[SIMRegistrationPictures] p3 WITH (NOLOCK)
-                    ON p3.ID = b.IDFrontPicture
-                ORDER BY b.ID DESC;
-            """)
-            rows = cursor.fetchall()
-
-            for row in rows:
-                msisdn = str(row[1]).strip()
-
-                # Éviter les doublons : si une ligne avec le même MSISDN existe déjà et non supprimée
-                existing = SeamfixTreatment.query.filter_by(msisdn=msisdn, is_deleted=False, status="Untreated").first()
-                if existing:
-                    logging.info(f"Traitement déjà existant pour MSISDN {msisdn}, on saute.")
-                    continue
-
-                def safe_image_save(binary_data, prefix):
-                    if binary_data:
-                        try:
-                            base64_str = base64.b64encode(binary_data).decode("utf-8")
-                            return utilities.save_base64_image_lite(base64_str, f"{prefix}_{msisdn}")
-                        except Exception as e:
-                            logging.error(f"Erreur lors de la sauvegarde de l'image {prefix}: {e}")
-                    return None
-
-                id_card_picture_path = safe_image_save(row[5], "id_card_picture_path")
-                id_contrat_picture_path = safe_image_save(row[6], "id_contrat_picture_path")
-                id_front_picture_path = safe_image_save(row[7], "id_front_picture_path")
-
-                seamfix_treatment = SeamfixTreatment(
-                    msisdn=msisdn,
-                    id_card_picture_path=id_card_picture_path,
-                    id_contrat_picture_path=id_contrat_picture_path,
-                    id_front_picture_path=id_front_picture_path,
-                    status="Untreated",
-                    created_at=datetime.now(),
-                    is_deleted=False,
-                )
-                db.session.add(seamfix_treatment)
-                db.session.commit()
-                # on call le getByCriteria
-                get_response = get_seamfix_treatment_lite()
-                logging.info("**** get_response : {}".format(get_response))
-                try:
-                    card_picture = binary_to_base64(row[5])
-                    front_picture = binary_to_base64(row[7])
-                    # appel en tâche de fond
-                    threading.Thread(
-                        target=orchestration_seamfix_treatment,
-                        args=(front_picture, card_picture, "passport", "png")
-                    ).start()
-                except Exception as e:
-                    logging.error(f"Erreur lors de l'appel à l'orchestration : {e}")
-
-            logging.info("**** End create_seamfix_treatment_job ****")
-            print("**** End create_seamfix_treatment_job ****")
-
+            orchestration_seamfix_treatment(front_picture, card_picture, documentType, documentFormat)
         except Exception as e:
-            logging.error(f"Erreur dans create_seamfix_treatment_job: {e}")
+            logging.error(f"Erreur lors de l’orchestration : {e}")
 
-        finally:
-            seamfix_job_lock.release()
+def create_seamfix_treatment_job():
+    with app.app_context():
+        logging.info("**** Begin create_seamfix_treatment_job ****")
+        print("**** Begin create_seamfix_treatment_job ****")
+        logging.info("/seamfix_treatment/create")
+
+        cursor.execute(""" 
+            SELECT TOP (1) 
+                b.[ID],
+                b.[MSISDN],
+                b.[APP],
+                b.[ExecState],
+                b.[ReturnID],
+                p1.Picture AS IDCardFPicturePath,
+                p2.Picture AS IDContractPicturePath,
+                p3.Picture AS IDFrontPicturePath
+            FROM [SIMRegistration].[dbo].[SIMRegistrationQueue] b WITH (NOLOCK)
+            LEFT JOIN [SIMRegistration].[dbo].[SIMRegistrationPictures] p1 WITH (NOLOCK)
+                ON p1.ID = b.IDCardFPicture
+            LEFT JOIN [SIMRegistration].[dbo].[SIMRegistrationPictures] p2 WITH (NOLOCK)
+                ON p2.ID = b.IDContractPicture
+            LEFT JOIN [SIMRegistration].[dbo].[SIMRegistrationPictures] p3 WITH (NOLOCK)
+                ON p3.ID = b.IDFrontPicture
+            ORDER BY b.ID DESC;
+        """)
+        rows = cursor.fetchall()
+
+        for row in rows:
+            msisdn = str(row[1]).strip()
+
+            # Vérifie si le msisdn a déjà été traité
+            existing = SeamfixTreatment.query.filter_by(msisdn=msisdn, is_deleted=False).first()
+            if existing:
+                logging.info(f"Traitement déjà existant pour le MSISDN : {msisdn}")
+                continue
+
+            def safe_image_save(binary_data, prefix):
+                if binary_data:
+                    try:
+                        base64_str = base64.b64encode(binary_data).decode("utf-8")
+                        return utilities.save_base64_image_lite(base64_str, f"{prefix}_{msisdn}")
+                    except Exception as e:
+                        logging.error(f"Erreur lors de la sauvegarde de l'image {prefix}: {e}")
+                return None
+
+            id_card_picture_path = safe_image_save(row[5], "id_card_picture_path")
+            id_contrat_picture_path = safe_image_save(row[6], "id_contrat_picture_path")
+            id_front_picture_path = safe_image_save(row[7], "id_front_picture_path")
+
+            seamfix_treatment = SeamfixTreatment(
+                msisdn=msisdn,
+                id_card_picture_path=id_card_picture_path,
+                id_contrat_picture_path=id_contrat_picture_path,
+                id_front_picture_path=id_front_picture_path,
+                status="Untreated",
+                created_at=datetime.now(),
+                is_deleted=False,
+            )
+            db.session.add(seamfix_treatment)
+            db.session.commit()
+
+            # Lancer orchestration en asynchrone
+            front_picture = base64.b64encode(row[7]).decode("utf-8") if row[7] else None
+            card_picture = base64.b64encode(row[5]).decode("utf-8") if row[5] else None
+
+            Thread(
+                target=run_orchestration_with_context,
+                args=(front_picture, card_picture, "passport", "png")
+            ).start()
+
+        logging.info("**** End create_seamfix_treatment_job ****")
+        print("**** End create_seamfix_treatment_job ****")
 
 
 
