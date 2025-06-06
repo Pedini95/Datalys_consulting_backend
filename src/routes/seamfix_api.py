@@ -356,8 +356,10 @@ def ocr_seamfix_lite(document, documentType, documentFormat):
     response = response.json()
     if response.get("code") == 0:
         retour_normalize = simplify_scanner_data(response)
+        print("**** retour_normalize : {}".format(retour_normalize))
         logging.info("**** retour_normalize : {}".format(retour_normalize))
         ocr_seamfix = save_ocr_seamfix(retour_normalize)
+        print("**** ocr_seamfix : {}".format(ocr_seamfix.as_dict()))
         logging.info("**** ocr_seamfix : {}".format(ocr_seamfix.as_dict()))
     # on save fin de logs dans action logs
     status = "ERROR"

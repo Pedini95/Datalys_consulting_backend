@@ -19,15 +19,15 @@ swagger = Swagger(app)
 is_dev = app.config.get('ENV', 'local') == 'local'
 logging.info("is_dev:", is_dev)
 
-log_dir = "/app/logs"
-log_file = os.path.join(log_dir, "com.fusion_kyc_kya.log")
-# Création automatique du dossier si manquant
-os.makedirs(log_dir, exist_ok=True)
-logging.basicConfig(
-    filename=log_file,
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
+# log_dir = "/app/logs"
+# log_file = os.path.join(log_dir, "com.fusion_kyc_kya.log")
+# # Création automatique du dossier si manquant
+# os.makedirs(log_dir, exist_ok=True)
+# logging.basicConfig(
+#     filename=log_file,
+#     level=logging.INFO,
+#     format="%(asctime)s - %(levelname)s - %(message)s"
+# )
 
 # # Configure logging handlers based on environment
 # handlers = [logging.StreamHandler()]
@@ -49,37 +49,37 @@ logging.basicConfig(
 #     handlers=handlers
 # )
 
-# # Récupération du chemin du fichier log depuis .env
-# log_file_path = app.config['LOG_FILE_PATH']
-# log_dir = os.path.dirname(log_file_path)
+# Récupération du chemin du fichier log depuis .env
+log_file_path = app.config['LOG_FILE_PATH']
+log_dir = os.path.dirname(log_file_path)
 
-# # Assurer l'existence du dossier
-# os.makedirs(log_dir, exist_ok=True)
+# Assurer l'existence du dossier
+os.makedirs(log_dir, exist_ok=True)
 
-# # Handler fichier (rotation quotidienne)
-# file_handler = TimedRotatingFileHandler(
-#     log_file_path,
-#     when='midnight',
-#     interval=1,
-#     backupCount=7,
-#     encoding='utf-8'
-# )
-# file_handler.setLevel(logging.INFO)
+# Handler fichier (rotation quotidienne)
+file_handler = TimedRotatingFileHandler(
+    log_file_path,
+    when='midnight',
+    interval=1,
+    backupCount=7,
+    encoding='utf-8'
+)
+file_handler.setLevel(logging.INFO)
 
-# # Handler console
-# console_handler = logging.StreamHandler()
-# console_handler.setLevel(logging.INFO)
+# Handler console
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
 
-# # Format des logs
-# formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-# file_handler.setFormatter(formatter)
-# console_handler.setFormatter(formatter)
+# Format des logs
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(formatter)
+console_handler.setFormatter(formatter)
 
-# # Configuration globale du logging
-# logging.basicConfig(
-#     level=logging.INFO,
-#     handlers=[file_handler, console_handler]
-# )
+# Configuration globale du logging
+logging.basicConfig(
+    level=logging.INFO,
+    handlers=[file_handler, console_handler]
+)
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
