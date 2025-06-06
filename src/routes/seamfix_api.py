@@ -90,7 +90,6 @@ def portrait_seamfix_verify():
 
 def portrait_seamfix_verify_lite(probe=None, candidate=None, msisdn=None):
     logging.info("**** Begin face matching ****")
-    print("**** Begin face matching ****")
     libelle = "face_matching_"+datetime.now().strftime("%Y%m%d_%H%M%S")
     ActionsLogs.action_logs_init_save(libelle, "/kyc/portrait/seamfix/verify", json.dumps({"probe": probe,"candidate": candidate}))
     if probe is None:
@@ -120,7 +119,6 @@ def portrait_seamfix_verify_lite(probe=None, candidate=None, msisdn=None):
     save_face_matching(json.dumps(data_api), response, msisdn)
     logging.info("**** response : {}".format(response))
     logging.info("**** End face matching ****")
-    print("**** End face matching ****")
     # on save fin de logs dans action logs
     ActionsLogs.action_logs_final_save(libelle, json.dumps(response), response.get("description"))
     return response
@@ -130,7 +128,6 @@ def portrait_seamfix_verify_lite(probe=None, candidate=None, msisdn=None):
 @cross_origin()
 def portrait_seamfix_validate():
     logging.info("**** Begin portrait_seamfix_validate ****")
-    print("**** Begin portrait_seamfix_validate ****")
     r = request.get_json() or {}
     # on save debut des logs dans action logs
     libelle = "portrait_seamfix_validate_"+datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -158,7 +155,6 @@ def portrait_seamfix_validate():
     # on save la reponse
     save_liveness(json.dumps(data_api), response.json())
     logging.info("**** End portrait_seamfix_validate ****")
-    print("**** End portrait_seamfix_validate ****")
     # on save fin de logs dans action logs
     ActionsLogs.action_logs_final_save(libelle, json.dumps(response.json()), response.json().get("transactionStatus"))
     return jsonify(response.json()), response.status_code
@@ -167,7 +163,6 @@ def portrait_seamfix_validate():
 
 def portrait_seamfix_validate_lite(image):
     logging.info("**** Begin portrait_seamfix_validate ****")
-    print("**** Begin portrait_seamfix_validate ****")
     transactionId = "txr-ABCD-EEFFDDE"
     libelle = "portrait_seamfix_validate_"+datetime.now().strftime("%Y%m%d_%H%M%S")
     ActionsLogs.action_logs_init_save(libelle, "/kyc/portrait/seamfix/validate", json.dumps({"image": image, "transactionId": transactionId, "actions": ["PLC"]}))
@@ -187,7 +182,6 @@ def portrait_seamfix_validate_lite(image):
     # on save la reponse
     save_liveness(json.dumps(data_api), response.json())
     logging.info("**** End portrait_seamfix_validate ****")
-    print("**** End portrait_seamfix_validate ****")
     # on save fin de logs dans action logs
     ActionsLogs.action_logs_final_save(libelle, json.dumps(response.json()), response.json().get("transactionStatus"))
     return jsonify(response.json()), response.status_code
@@ -207,7 +201,7 @@ def ocr_seamfix_get():
     return response
 
 def save_liveness(request, response):
-    print("**** Begin save_liveness ****")
+    logging.info("**** Begin save_liveness ****")
     action_type = None
     clipped_image = None
     code = None
@@ -251,7 +245,7 @@ def save_liveness(request, response):
         )
         db.session.add(new_liveness)
         db.session.commit() 
-    print("**** End save_liveness ****")
+    logging.info("**** End save_liveness ****")
     return new_liveness
     
 
@@ -343,7 +337,6 @@ def ocr_seamfix():
 
 def ocr_seamfix_lite(document, documentType, documentFormat):
     logging.info("**** Begin ocr_seamfix_lite ****")
-    print("**** Begin ocr_seamfix_lite ****")
     # on save debut des logs dans action logs
     libelle = "ocr_seamfix_lite_" + datetime.now().strftime("%Y%m%d_%H%M%S")
     ActionsLogs.action_logs_init_save(libelle, "/kyc/ocr/seamfix_lite", json.dumps({"document": document,"documentType": documentType, "documentFormat": documentFormat}))
@@ -359,10 +352,8 @@ def ocr_seamfix_lite(document, documentType, documentFormat):
         response = {"code": response.status_code, "message": response.text}
     if response.get("code") == 0:
         retour_normalize = simplify_scanner_data(response)
-        print("**** retour_normalize : {}".format(retour_normalize))
         logging.info("**** retour_normalize : {}".format(retour_normalize))
         ocr_seamfix = save_ocr_seamfix(retour_normalize)
-        print("**** ocr_seamfix : {}".format(ocr_seamfix.as_dict()))
         logging.info("**** ocr_seamfix : {}".format(ocr_seamfix.as_dict()))
     # on save fin de logs dans action logs
     status = "ERROR"
@@ -371,7 +362,6 @@ def ocr_seamfix_lite(document, documentType, documentFormat):
     ActionsLogs.action_logs_final_save(libelle, json.dumps(response), status)
     logging.info("**** response : {}".format(response))
     logging.info("**** End ocr_seamfix_lite ****")
-    print("**** End ocr_seamfix_lite ****")
     return response
 
 
