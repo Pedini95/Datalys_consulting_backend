@@ -239,6 +239,7 @@ def create_seamfix_treatment_job():
             id_card_picture_path=id_card_picture_path,
             id_contrat_picture_path=id_contrat_picture_path,
             id_front_picture_path=id_front_picture_path,
+            status="Untreated",
             created_at=datetime.now(),
             # search_string=utilities.build_search_string(row),
             is_deleted=False,
@@ -248,11 +249,13 @@ def create_seamfix_treatment_job():
 
         card_picture = binary_to_base64(row[5])
         front_picture = binary_to_base64(row[7])
+        # on call le getByCriteria
+        get_response = get_seamfix_treatment_lite()
         # on declanche le l'orchestration seamfix treatment
-        orchestration_seamfix_treatment(front_picture, card_picture, "passport", "png")    
+        orchestration_seamfix_treatment(front_picture, card_picture, "passport", "png")  
     logging.info("**** End create_seamfix_treatment_job ****")
     print("**** End create_seamfix_treatment_job ****")
-    return functional_error.MESSAGE_SUCCESS()
+    return get_response
 
 
 @app.route('/seamfix_treatment/treatment', methods=['POST'])
