@@ -40,9 +40,9 @@ def portrait_seamfix_authenticate():
     headers = {"Content-Type": "application/json"}
     data_api = {"publicKey": app.config['SEAMFIX_PUBLIC_KEY'],"privateKey": app.config['SEAMFIX_PRIVATE_KEY'],"userId": app.config['SEAMFIX_USER_ID']}
     response = requests.post(app.config['SEAMFIX_URL'], data=json.dumps(data_api), headers=headers)
-    logging.info("**** response : {}".format(response))
+    # logging.info("**** response : {}".format(response))
     response = response.json()
-    logging.info("**** response : {}".format(response))
+    # logging.info("**** response : {}".format(response))
     logging.info("**** End portrait_seamfix_authenticate ****")
     return response
 
@@ -141,8 +141,8 @@ def portrait_seamfix_validate():
 
     # Appel de l'authentification
     auth_response = portrait_seamfix_authenticate()
-    logging.info("**** auth_response : {}".format(auth_response))
-    logging.info("**** auth_response.accessToken : {}".format(auth_response.get("accessToken")))
+    # logging.info("**** auth_response : {}".format(auth_response))
+    # logging.info("**** auth_response.accessToken : {}".format(auth_response.get("accessToken")))
     if auth_response.get("code") != 0:
         return {"status": "error", "message": "Failed to authenticate with Seamfix", "code": 400, "has_error": True}, 400
 
@@ -168,8 +168,8 @@ def portrait_seamfix_validate_lite(image):
     ActionsLogs.action_logs_init_save(libelle, "/kyc/portrait/seamfix/validate", json.dumps({"image": image, "transactionId": transactionId, "actions": ["PLC"]}))
     # Appel de l'authentification
     auth_response = portrait_seamfix_authenticate()
-    logging.info("**** auth_response : {}".format(auth_response))
-    logging.info("**** auth_response.accessToken : {}".format(auth_response.get("accessToken")))
+    # logging.info("**** auth_response : {}".format(auth_response))
+    # logging.info("**** auth_response.accessToken : {}".format(auth_response.get("accessToken")))
     if auth_response.get("code") != 0:
         return {"status": "error", "message": "Failed to authenticate with Seamfix", "code": 400, "has_error": True}, 400
 
