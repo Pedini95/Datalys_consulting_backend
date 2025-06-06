@@ -57,12 +57,13 @@ class SeamfixTreatment(db.Model):
 
         # Définir une liste de conditions
         conditions = [SeamfixTreatment.is_deleted == False]
-        conditions.append(SeamfixTreatment.status == "Untreated")
+        
         if 'id' in criteria:
             conditions.append(SeamfixTreatment.id == criteria['id'])
         if 'search_string' in criteria:
             conditions.append(SeamfixTreatment.search_string.like(f"%{criteria['search_string']}%"))
-
+        if 'status' in criteria:
+            conditions.append(SeamfixTreatment.status == criteria['status'])
         if 'msisdn' in criteria:
             conditions.append(SeamfixTreatment.msisdn.like(f"%{criteria['msisdn']}%"))
 

@@ -54,6 +54,7 @@ def get_seamfix_treatment():
     logging.info(r)
     index = r.get('index')
     size = r.get('size')
+    r['data']['status'] = "Untreated"
     seamfix_treatments, total_items = SeamfixTreatment.get_by_criteria(r['data'], index, size)
     if seamfix_treatments:
         message = functional_error.MESSAGE_SUCCESS()
@@ -217,8 +218,7 @@ def create_seamfix_treatment_job():
     print("**** End create_seamfix_treatment_job ****")
     return functional_error.MESSAGE_SUCCESS()
 
-    
-    
+
 @app.route('/seamfix_treatment/treatment', methods=['POST'])
 @cross_origin()
 def treatment_seamfix():
@@ -245,5 +245,27 @@ def treatment_seamfix():
         return {"status": "success", "message": "Seamfix treatment processed successfully"}, 200
     else:
         return {"status": "error", "message": "Seamfix treatment not found"}, 404
+
+
+@app.route('/seamfix_treatment/seamfix_treatment', methods=['POST'])
+@cross_origin()
+def seamfix_treatment():
+    logging.info("**** Begin seamfix_treatment ****")
+    logging.info("/seamfix_treatment/seamfix_treatment")
+    r = request.get_json() or {}
+    logging.info("**** request input ****")
+    logging.info(r)
+    index = r.get('index')
+    size = r.get('size')
+    seamfix_treatments, total_items = SeamfixTreatment.get_by_criteria(r['data'], index, size)
+    if seamfix_treatments:
+        message = functional_error.MESSAGE_SUCCESS()
+    else:
+        message = functional_error.MESSAGE_DATA_EMPTY()
+    response = {"items": [seamfix_treatment.as_dict() for seamfix_treatment in seamfix_treatments], "count": total_items, "message": message, "code": 200, "has_error": False}
+    logging.info("**** response output ****")
+    logging.info(response)
+    logging.info("**** End seamfix_treatment ****")
+    return response
     
     
