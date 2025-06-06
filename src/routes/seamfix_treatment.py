@@ -147,19 +147,19 @@ def create_seamfix_treatment():
         # on call le getByCriteria
         get_response = get_seamfix_treatment_lite()
         # on declanche le l'orchestration seamfix treatment
-        # orchestration_seamfix_treatment(front_picture, card_picture, "passport", "png")
+        orchestration_seamfix_treatment(front_picture, card_picture, "passport", "png")
         # Lancement asynchrone de l’orchestration
-        def run_async_orchestration(front_picture, card_picture, doc_type, doc_format):
-            try:
-                orchestration_seamfix_treatment(front_picture, card_picture, doc_type, doc_format)
-            except Exception as e:
-                logging.error(f"Erreur dans orchestration_seamfix_treatment async : {e}")
+        # def run_async_orchestration(front_picture, card_picture, doc_type, doc_format):
+        #     try:
+        #         orchestration_seamfix_treatment(front_picture, card_picture, doc_type, doc_format)
+        #     except Exception as e:
+        #         logging.error(f"Erreur dans orchestration_seamfix_treatment async : {e}")
 
-        threading.Thread(
-            target=run_async_orchestration,
-            args=(front_picture, card_picture, "passport", "png"),
-            daemon=True
-        ).start()   
+        # threading.Thread(
+        #     target=run_async_orchestration,
+        #     args=(front_picture, card_picture, "passport", "png"),
+        #     daemon=True
+        # ).start()   
     logging.info("**** End create_seamfix_treatment ****")
     print("**** End create_seamfix_treatment ****")
     return get_response
