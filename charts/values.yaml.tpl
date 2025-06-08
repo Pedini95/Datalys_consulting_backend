@@ -13,7 +13,7 @@ persistence:
   storageClass: longhorn
   mountPVC: true
   mountPath: /app/static
-  storageSize: 1Gi
+  storageSize: 5Gi
 
 
 deployment:
