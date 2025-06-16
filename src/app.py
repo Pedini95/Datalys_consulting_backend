@@ -56,7 +56,7 @@ CORS(app)
 from routes import fonctionalite, kyc_api, role, user, timm_config, seamfix_api, seamfix_treatment
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(func=seamfix_treatment.create_seamfix_treatment_job, trigger="interval", seconds=60, id="create_seamfix_treatment_job", replace_existing=True)
+scheduler.add_job(func=seamfix_treatment.create_seamfix_treatment_job, trigger="interval", seconds=120, id="create_seamfix_treatment_job", replace_existing=True)
 if not scheduler.running:
     scheduler.start()
 

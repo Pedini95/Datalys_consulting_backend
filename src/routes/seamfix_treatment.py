@@ -124,6 +124,7 @@ def orchestration_seamfix_treatment(front_picture, document, documentType, docum
     logging.info("**** Begin orchestration_seamfix_treatment ****")
     print("**** Begin orchestration_seamfix_treatment ****")
     # on call le ocr seamfix
+    logging.info("**** MSISDN ==: {} ****", msisdn)
     ocr = ocr_seamfix_lite(document, documentType, documentFormat, msisdn)
     if ocr:
         data = ocr.get("data", {})
@@ -194,28 +195,29 @@ def create_seamfix_treatment_job():
             #         except Exception as e:
             #             logging.error(f"Erreur lors de la sauvegarde de l'image {prefix}: {e}")
             #     return None
-            def safe_image_save(binary_data, prefix, max_width=800, quality=85):
+            def safe_image_save(binary_data, prefix, max_width=300, quality=85):
                 if binary_data:
                     try:
-                        # Lire l'image depuis les données binaires
                         image = Image.open(io.BytesIO(binary_data))
-                        # Redimensionner si largeur > max_width
+
+                        # Redimensionnement avec LANCZOS (remplace ANTIALIAS)
                         if image.width > max_width:
                             ratio = max_width / float(image.width)
                             new_height = int(float(image.height) * ratio)
-                            image = image.resize((max_width, new_height), Image.ANTIALIAS)
-                        # Convertir en JPEG compressé dans un buffer
+                            image = image.resize((max_width, new_height), Image.Resampling.LANCZOS)
+
+                        # Conversion JPEG
                         buffer = io.BytesIO()
-                        image = image.convert("RGB")  # s'assurer que le format est compatible JPEG
+                        image = image.convert("RGB")
                         image.save(buffer, format="JPEG", quality=quality)
                         buffer.seek(0)
-                        # Encodage base64 pour sauvegarde
+
                         base64_str = base64.b64encode(buffer.read()).decode("utf-8")
-                        # Sauvegarde avec la méthode utilitaire existante
                         return utilities.save_base64_image_lite(base64_str, f"{prefix}_{msisdn}")
                     except Exception as e:
                         logging.error(f"Erreur lors de la sauvegarde de l'image {prefix}: {e}")
                 return None
+
 
             id_card_picture_path = safe_image_save(row[5], "id_card_picture_path")
             id_contrat_picture_path = safe_image_save(row[6], "id_contrat_picture_path")
@@ -236,11 +238,11 @@ def create_seamfix_treatment_job():
             # Lancer orchestration en asynchrone
             front_picture = base64.b64encode(row[7]).decode("utf-8") if row[7] else None
             card_picture = base64.b64encode(row[5]).decode("utf-8") if row[5] else None
-
-            Thread(
-                target=run_orchestration_with_context,
-                args=(front_picture, card_picture, "passport", "png", msisdn)
-            ).start()
+            orchestration_seamfix_treatment(front_picture, card_picture, "passport", "png", msisdn)
+            # Thread(
+            #     target=run_orchestration_with_context,
+            #     args=(front_picture, card_picture, "passport", "png", msisdn)
+            # ).start()
 
         logging.info("**** End create_seamfix_treatment_job ****")
         print("**** End create_seamfix_treatment_job ****")
