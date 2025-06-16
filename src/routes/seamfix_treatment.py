@@ -124,7 +124,7 @@ def orchestration_seamfix_treatment(front_picture, document, documentType, docum
     logging.info("**** Begin orchestration_seamfix_treatment ****")
     print("**** Begin orchestration_seamfix_treatment ****")
     # on call le ocr seamfix
-    logging.info("**** MSISDN ==: {} ****", msisdn)
+    logging.info(f"**** MSISDN ==: {msisdn}")
     ocr = ocr_seamfix_lite(document, documentType, documentFormat, msisdn)
     if ocr:
         data = ocr.get("data", {})
@@ -180,13 +180,11 @@ def create_seamfix_treatment_job():
 
         for row in rows:
             msisdn = str(row[1]).strip()
-
             # Vérifie si le msisdn a déjà été traité
             existing = SeamfixTreatment.query.filter_by(msisdn=msisdn, is_deleted=False).first()
             if existing:
                 logging.info(f"Traitement déjà existant pour le MSISDN : {msisdn}")
                 continue
-
             # def safe_image_save(binary_data, prefix):
             #     if binary_data:
             #         try:
@@ -199,19 +197,16 @@ def create_seamfix_treatment_job():
                 if binary_data:
                     try:
                         image = Image.open(io.BytesIO(binary_data))
-
                         # Redimensionnement avec LANCZOS (remplace ANTIALIAS)
                         if image.width > max_width:
                             ratio = max_width / float(image.width)
                             new_height = int(float(image.height) * ratio)
                             image = image.resize((max_width, new_height), Image.Resampling.LANCZOS)
-
                         # Conversion JPEG
                         buffer = io.BytesIO()
                         image = image.convert("RGB")
                         image.save(buffer, format="JPEG", quality=quality)
                         buffer.seek(0)
-
                         base64_str = base64.b64encode(buffer.read()).decode("utf-8")
                         return utilities.save_base64_image_lite(base64_str, f"{prefix}_{msisdn}")
                     except Exception as e:
