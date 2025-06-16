@@ -42,7 +42,7 @@ def portrait_seamfix_authenticate():
     response = requests.post(app.config['SEAMFIX_URL'], data=json.dumps(data_api), headers=headers)
     # logging.info("**** response : {}".format(response))
     response = response.json()
-    # logging.info("**** response : {}".format(response))
+    logging.info("**** response : {}".format(response))
     logging.info("**** End portrait_seamfix_authenticate ****")
     return response
 
@@ -120,6 +120,7 @@ def portrait_seamfix_verify_lite(probe=None, candidate=None, msisdn=None):
     logging.info("**** End face matching ****")
     # on save fin de logs dans action logs
     ActionsLogs.action_logs_final_save(libelle, json.dumps(response), response.get("description"))
+    logging.info("**** End face matching ****")
     return response
 
 
@@ -156,6 +157,7 @@ def portrait_seamfix_validate():
     logging.info("**** End portrait_seamfix_validate ****")
     # on save fin de logs dans action logs
     ActionsLogs.action_logs_final_save(libelle, json.dumps(response.json()), response.json().get("transactionStatus"))
+    logging.info("**** End portrait_seamfix_validate ****")
     return jsonify(response.json()), response.status_code
 
 
