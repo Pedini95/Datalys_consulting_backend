@@ -17,6 +17,7 @@ class Liveness(db.Model):
     description = db.Column(db.String(255))
     icao_token_image = db.Column(db.String(255))
     metrics = db.Column(db.String(255))
+    msisdn = db.Column(db.String(255))
     score = db.Column(db.String(255))
     transaction_id = db.Column(db.String(255))
     transaction_status = db.Column(db.String(255))

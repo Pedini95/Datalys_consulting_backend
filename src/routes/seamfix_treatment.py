@@ -16,6 +16,8 @@ import base64
 import threading
 from threading import Lock
 from threading import Thread
+from PIL import Image
+import io
 
 
 logger = logging.getLogger(__name__)
@@ -118,11 +120,11 @@ def binary_to_base64(binary_data):
     return None
 
 
-def orchestration_seamfix_treatment(front_picture, document, documentType, documentFormat):
+def orchestration_seamfix_treatment(front_picture, document, documentType, documentFormat, msisdn):
     logging.info("**** Begin orchestration_seamfix_treatment ****")
     print("**** Begin orchestration_seamfix_treatment ****")
     # on call le ocr seamfix
-    ocr = ocr_seamfix_lite(document, documentType, documentFormat)
+    ocr = ocr_seamfix_lite(document, documentType, documentFormat, msisdn)
     if ocr:
         data = ocr.get("data", {})
         if data:
@@ -131,9 +133,9 @@ def orchestration_seamfix_treatment(front_picture, document, documentType, docum
             # logging.info(f"Dernier élément extrait : {item}")
             image = item.get("value")
             # on call le face matching
-            portrait_seamfix_verify_lite(front_picture, image)
+            portrait_seamfix_verify_lite(front_picture, image, msisdn)
             # on call le liveness
-            portrait_seamfix_validate_lite(front_picture)
+            portrait_seamfix_validate_lite(front_picture, msisdn)
     logging.info("**** End orchestration_seamfix_treatment ****")
     print("**** End orchestration_seamfix_treatment ****")
     return functional_error.MESSAGE_SUCCESS()
@@ -141,10 +143,10 @@ def orchestration_seamfix_treatment(front_picture, document, documentType, docum
 # Verrou global
 seamfix_job_lock = Lock()
 
-def run_orchestration_with_context(front_picture, card_picture, documentType, documentFormat):
+def run_orchestration_with_context(front_picture, card_picture, documentType, documentFormat, msisdn):
     with app.app_context():
         try:
-            orchestration_seamfix_treatment(front_picture, card_picture, documentType, documentFormat)
+            orchestration_seamfix_treatment(front_picture, card_picture, documentType, documentFormat, msisdn)
         except Exception as e:
             logging.error(f"Erreur lors de l’orchestration : {e}")
 
@@ -184,10 +186,32 @@ def create_seamfix_treatment_job():
                 logging.info(f"Traitement déjà existant pour le MSISDN : {msisdn}")
                 continue
 
-            def safe_image_save(binary_data, prefix):
+            # def safe_image_save(binary_data, prefix):
+            #     if binary_data:
+            #         try:
+            #             base64_str = base64.b64encode(binary_data).decode("utf-8")
+            #             return utilities.save_base64_image_lite(base64_str, f"{prefix}_{msisdn}")
+            #         except Exception as e:
+            #             logging.error(f"Erreur lors de la sauvegarde de l'image {prefix}: {e}")
+            #     return None
+            def safe_image_save(binary_data, prefix, max_width=800, quality=85):
                 if binary_data:
                     try:
-                        base64_str = base64.b64encode(binary_data).decode("utf-8")
+                        # Lire l'image depuis les données binaires
+                        image = Image.open(io.BytesIO(binary_data))
+                        # Redimensionner si largeur > max_width
+                        if image.width > max_width:
+                            ratio = max_width / float(image.width)
+                            new_height = int(float(image.height) * ratio)
+                            image = image.resize((max_width, new_height), Image.ANTIALIAS)
+                        # Convertir en JPEG compressé dans un buffer
+                        buffer = io.BytesIO()
+                        image = image.convert("RGB")  # s'assurer que le format est compatible JPEG
+                        image.save(buffer, format="JPEG", quality=quality)
+                        buffer.seek(0)
+                        # Encodage base64 pour sauvegarde
+                        base64_str = base64.b64encode(buffer.read()).decode("utf-8")
+                        # Sauvegarde avec la méthode utilitaire existante
                         return utilities.save_base64_image_lite(base64_str, f"{prefix}_{msisdn}")
                     except Exception as e:
                         logging.error(f"Erreur lors de la sauvegarde de l'image {prefix}: {e}")
@@ -215,7 +239,7 @@ def create_seamfix_treatment_job():
 
             Thread(
                 target=run_orchestration_with_context,
-                args=(front_picture, card_picture, "passport", "png")
+                args=(front_picture, card_picture, "passport", "png", msisdn)
             ).start()
 
         logging.info("**** End create_seamfix_treatment_job ****")

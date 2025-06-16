@@ -53,23 +53,10 @@ migrate = Migrate(app, db)
 CORS(app)
 
 # Importer les routes ici pour éviter les imports circulaires
-from routes import fonctionalite
-from routes import kyc_api
-from routes import role
-from routes import user
-from routes import timm_config
-from routes import seamfix_api
-from routes import seamfix_treatment
+from routes import fonctionalite, kyc_api, role, user, timm_config, seamfix_api, seamfix_treatment
 
 scheduler = BackgroundScheduler()
-# scheduler.add_job(seamfix_treatment.create_seamfix_treatment_job, 'interval', minutes=1, max_instances=1)
-scheduler.add_job(
-    func=seamfix_treatment.create_seamfix_treatment_job,
-    trigger="interval",
-    seconds=60,
-    id="create_seamfix_treatment_job",  # <-- UNIQUE ID
-    replace_existing=True  # <-- important pour éviter les doublons
-)
+scheduler.add_job(func=seamfix_treatment.create_seamfix_treatment_job, trigger="interval", seconds=60, id="create_seamfix_treatment_job", replace_existing=True)
 if not scheduler.running:
     scheduler.start()
 

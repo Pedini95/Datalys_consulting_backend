@@ -161,7 +161,7 @@ def portrait_seamfix_validate():
 
 
 
-def portrait_seamfix_validate_lite(image):
+def portrait_seamfix_validate_lite(image, msisdn):
     logging.info("**** Begin portrait_seamfix_validate ****")
     transactionId = "txr-ABCD-EEFFDDE"
     libelle = "portrait_seamfix_validate_"+datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -180,7 +180,7 @@ def portrait_seamfix_validate_lite(image):
     response = requests.post(app.config['SEAMFIX_URL_VALIDATE'], data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
     # on save la reponse
-    save_liveness(json.dumps(data_api), response.json())
+    save_liveness(json.dumps(data_api), response.json(), msisdn)
     logging.info("**** End portrait_seamfix_validate ****")
     # on save fin de logs dans action logs
     ActionsLogs.action_logs_final_save(libelle, json.dumps(response.json()), response.json().get("transactionStatus"))
@@ -200,7 +200,7 @@ def ocr_seamfix_get():
     logging.info("**** End ocr_seamfix_get ****")
     return response
 
-def save_liveness(request, response):
+def save_liveness(request, response, msisdn):
     logging.info("**** Begin save_liveness ****")
     action_type = None
     clipped_image = None
@@ -234,6 +234,7 @@ def save_liveness(request, response):
             description=description,
             icao_token_image=icao_token_image,
             metrics=metrics,
+            msisdn=msisdn,
             score=score,
             transaction_id=transaction_id,
             transaction_status=transaction_status,
@@ -335,11 +336,11 @@ def ocr_seamfix():
     return response
 
 
-def ocr_seamfix_lite(document, documentType, documentFormat):
+def ocr_seamfix_lite(document, documentType, documentFormat, msisdn):
     logging.info("**** Begin ocr_seamfix_lite ****")
     # on save debut des logs dans action logs
     libelle = "ocr_seamfix_lite_" + datetime.now().strftime("%Y%m%d_%H%M%S")
-    ActionsLogs.action_logs_init_save(libelle, "/kyc/ocr/seamfix_lite", json.dumps({"document": document,"documentType": documentType, "documentFormat": documentFormat}))
+    ActionsLogs.action_logs_init_save(libelle, "/kyc/ocr/seamfix_lite", json.dumps({"document": document,"documentType": documentType, "documentFormat": documentFormat, "msisdn": msisdn}))
 
     headers = {"Authorization": f"Bearer {app.config['SEAMFIX_TOKEN']}", "Content-Type": "application/json"}
     data_api = {"document": document,"documentType": documentType, "documentFormat": documentFormat}
@@ -353,7 +354,7 @@ def ocr_seamfix_lite(document, documentType, documentFormat):
     if response.get("code") == 0:
         retour_normalize = simplify_scanner_data(response)
         logging.info("**** retour_normalize : {}".format(retour_normalize))
-        ocr_seamfix = save_ocr_seamfix(retour_normalize)
+        ocr_seamfix = save_ocr_seamfix(retour_normalize, msisdn)
         logging.info("**** ocr_seamfix : {}".format(ocr_seamfix.as_dict()))
     # on save fin de logs dans action logs
     status = "ERROR"
@@ -412,7 +413,7 @@ def simplify_scanner_data(data: dict) -> dict:
 def save_ocr_seamfix(response, msisdn=None):
     data_ocr = {
         "card_id": response.get("cardId"),
-        # "msisdn": msisdn,
+        "msisdn": msisdn,
         "nin": response.get("nin"),
         "first_name": response.get("firstName"),
         "middle_name": response.get("middleName"),
