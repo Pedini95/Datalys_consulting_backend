@@ -114,10 +114,9 @@ def portrait_seamfix_verify_lite(probe=None, candidate=None, msisdn=None):
     response = requests.post(app.config['SEAMFIX_URL_VERIFY'], data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
     response = response.json()
-    logging.info("**** response : {}".format(response))
-    logging.info("**** msisdn face matching : {}".format(msisdn))
+    logging.info(f"**** response ==: {response}")
+    logging.info(f"**** MSISDN ==: {msisdn}")
     save_face_matching(json.dumps(data_api), response, msisdn)
-    logging.info("**** response : {}".format(response))
     logging.info("**** End face matching ****")
     # on save fin de logs dans action logs
     ActionsLogs.action_logs_final_save(libelle, json.dumps(response), response.get("description"))
@@ -180,6 +179,7 @@ def portrait_seamfix_validate_lite(image, msisdn):
     response = requests.post(app.config['SEAMFIX_URL_VALIDATE'], data=json.dumps(data_api), headers=headers)
     logging.info("**** response : {}".format(response))
     # on save la reponse
+    logging.info(f"**** MSISDN Liveness==: {msisdn}")
     save_liveness(json.dumps(data_api), response.json(), msisdn)
     logging.info("**** End portrait_seamfix_validate ****")
     # on save fin de logs dans action logs
@@ -227,6 +227,7 @@ def save_liveness(request, response, msisdn):
         transaction_status = response.get("transactionStatus")
         transaction_status_code = response.get("transactionStatusCode")
         # search_string = utilities.build_search_string(rep)
+        logging.info(f"**** MSISDN Liveness==: {msisdn}")
         new_liveness = Liveness(
             action_type=action_type,
             clipped_image=clipped_image,
@@ -280,7 +281,7 @@ def save_face_matching(request, response, msisdn):
         else:
             errors_joined = ", ".join(response.get("errors"))
         errors = errors_joined
-    
+    logging.info(f"**** MSISDN Face matching==: {msisdn}")
     new_face_matching = FacesMatching(
         description=description,
         msisdn=msisdn,
