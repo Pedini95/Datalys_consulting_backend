@@ -193,26 +193,38 @@ def create_seamfix_treatment_job():
             #         except Exception as e:
             #             logging.error(f"Erreur lors de la sauvegarde de l'image {prefix}: {e}")
             #     return None
-            def safe_image_save(binary_data, prefix, max_width=300, quality=85):
+            def safe_image_save(binary_data, prefix, max_width=800, quality=85):
                 if binary_data:
                     try:
+                        # Taille brute en octets (avant traitement)
+                        size_bytes = len(binary_data)
+                        size_kb = size_bytes / 1024
+                        logging.info(f"Taille initiale de l'image {prefix} : {size_kb:.2f} KB")
+                        # Ouvrir et éventuellement redimensionner
                         image = Image.open(io.BytesIO(binary_data))
-                        # Redimensionnement avec LANCZOS (remplace ANTIALIAS)
+                        # Log dimensions originales
+                        logging.info(f"Dimensions initiales de l'image {prefix} : {image.width}x{image.height}")
+                        # Redimensionnement
                         if image.width > max_width:
                             ratio = max_width / float(image.width)
                             new_height = int(float(image.height) * ratio)
                             image = image.resize((max_width, new_height), Image.Resampling.LANCZOS)
-                        # Conversion JPEG
+                            logging.info(f"Dimensions redimensionnées de l'image {prefix} : {image.width}x{image.height}")
+                        # Compression
                         buffer = io.BytesIO()
                         image = image.convert("RGB")
                         image.save(buffer, format="JPEG", quality=quality)
                         buffer.seek(0)
+                        # Taille après traitement
+                        compressed_bytes = buffer.getbuffer().nbytes
+                        compressed_kb = compressed_bytes / 1024
+                        logging.info(f"Taille compressée de l'image {prefix} : {compressed_kb:.2f} KB")
+                        # Encodage base64 et sauvegarde
                         base64_str = base64.b64encode(buffer.read()).decode("utf-8")
                         return utilities.save_base64_image_lite(base64_str, f"{prefix}_{msisdn}")
                     except Exception as e:
                         logging.error(f"Erreur lors de la sauvegarde de l'image {prefix}: {e}")
                 return None
-
 
             id_card_picture_path = safe_image_save(row[5], "id_card_picture_path")
             id_contrat_picture_path = safe_image_save(row[6], "id_contrat_picture_path")

@@ -38,7 +38,7 @@ def seamfix_authenticate():
 def portrait_seamfix_authenticate():
     logging.info("**** Begin portrait_seamfix_authenticate ****")
     headers = {"Content-Type": "application/json"}
-    data_api = {"publicKey": app.config['SEAMFIX_PUBLIC_KEY'],"privateKey": app.config['SEAMFIX_PRIVATE_KEY'],"userId": app.config['SEAMFIX_USER_ID']}
+    data_api = {"publicKey": app.config['SEAMFIX_PUBLIC_KEY'], "privateKey": app.config['SEAMFIX_PRIVATE_KEY'],"userId": app.config['SEAMFIX_USER_ID']}
     response = requests.post(app.config['SEAMFIX_URL'], data=json.dumps(data_api), headers=headers)
     # logging.info("**** response : {}".format(response))
     response = response.json()
