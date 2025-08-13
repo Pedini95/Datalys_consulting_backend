@@ -18,8 +18,8 @@ spec:
     spec:
       containers:
       - name: datalys-api
-        image: datalys/api:latest
-        imagePullPolicy: Never
+        image: localhost:8081/datalys/api:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8081
           name: http
