@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        .email-container {
+            margin: auto;
+        }
+        .footer {
+            width: 100%;
+            text-align: left;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            color: #666;
+        }
+        .footer img {
+            float: right;
+            width: 100px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                width: 100% !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container" style="border: 1px solid #ddd; padding: 20px; font-family: Arial, sans-serif;">
+        <h1 style="color: #333; text-align: center;">Bienvenue sur {{ sender_name }}</h1>
+        
+        <p>Bonjour {{ user_name }},</p>
+        
+        <p>Nous sommes ravis de vous accueillir sur {{ sender_name }} !</p>
+        
+        <p>Votre compte a été créé avec succès. Vous pouvez maintenant vous connecter à votre espace personnel.</p>
+        
+        <div style="text-align: center;">
+            <a href="{{ login_url }}" class="button">Se connecter</a>
+        </div>
+        
+        <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
+        
+        <div class="footer">
+            <p>Envoyé par {{ sender_name }} <img src="{{ logo_url }}" alt="Logo" style="width: 50px;"></p>
+        </div>
+    </div>
+</body>
+</html> 

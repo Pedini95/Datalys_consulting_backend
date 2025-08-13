@@ -1,0 +1,174 @@
+{
+	"info": {
+		"_postman_id": "e0c93349-bdb3-4173-a469-1b7fd69b7ac3",
+		"name": "TSA Recruiters CRUD",
+		"description": "Collection complète pour la gestion des TSA Recruiters (Create, Read, Update, Delete)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "32698065"
+	},
+	"item": [
+		{
+			"name": "READ - Get All TSA Recruiters",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"index\": 0,\n  \"size\": 10\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/TSARecruiters/getByCriteria",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"TSARecruiters",
+						"getByCriteria"
+					]
+				},
+				"description": "Récupère la liste paginée de tous les TSA Recruiters actifs"
+			},
+			"response": []
+		},
+		{
+			"name": "CREATE - Create TSA Recruiter",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"user\": {\n    \"id\": 1\n  },\n  \"datas\": [\n    {\n      \"msisdn\": \"0771234567\",\n      \"first_name\": \"John\",\n      \"last_name\": \"Doe\",\n      \"agent_type\": \"Field Agent\",\n      \"level\": \"Senior\",\n      \"domain\": \"Monrovia\"\n    }\n  ]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/TSARecruiters/create",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"TSARecruiters",
+						"create"
+					]
+				},
+				"description": "Crée un nouveau TSA Recruiter avec génération automatique d'un code d'accès de 5 chiffres. Un SMS sera envoyé avec les informations de connexion."
+			},
+			"response": []
+		},
+		{
+			"name": "UPDATE - Update TSA Recruiter",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"user\": {\n    \"id\": 1\n  },\n  \"datas\": [\n    {\n      \"ID\": 1,\n      \"first_name\": \"John Updated\",\n      \"last_name\": \"Doe Updated\",\n      \"agent_type\": \"Senior Field Agent\",\n      \"level\": \"Expert\",\n      \"domain\": \"Greater Monrovia\"\n    }\n  ]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/TSARecruiters/update",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"TSARecruiters",
+						"update"
+					]
+				},
+				"description": "Met à jour les informations d'un TSA Recruiter"
+			},
+			"response": []
+		},
+		{
+			"name": "DELETE - Delete TSA Recruiter",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"datas\": [\n    {\n      \"ID\": 1\n    }\n  ]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/TSARecruiters/delete",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"TSARecruiters",
+						"delete"
+					]
+				},
+				"description": "Désactive un TSA Recruiter (suppression logique - is_active = false)"
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8081",
+			"type": "string"
+		}
+	]
+}

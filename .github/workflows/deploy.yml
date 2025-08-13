@@ -15,9 +15,12 @@ jobs:
     deploy:
         needs: vars
         uses: OrangeLiberia/pipelines/.github/workflows/deploy.yml@main
-    postgresql:
-        needs: vars
-        uses: OrangeLiberia/pipelines/.github/workflows/postgresql.yml@main
+    # postgresql:
+    #     needs: vars
+    #     uses: OrangeLiberia/pipelines/.github/workflows/postgresql.yml@main
     redis:
         needs: vars
         uses: OrangeLiberia/pipelines/.github/workflows/redis.yml@main
+    pyodbc:
+        needs: vars
+        uses: OrangeLiberia/pipelines/.github/workflows/pyodbc.yml@main

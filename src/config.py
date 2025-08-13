@@ -1,21 +1,31 @@
 import os
-import secrets
 from dotenv import load_dotenv
 
-
-# Utiliser un chemin relatif pour charger .env
+# Charger le fichier .env.local depuis le répertoire src
 current_dir = os.path.dirname(os.path.abspath(__file__))
-env_path = os.path.join(current_dir, '.env')
-# Chargez le fichier .env
-load_dotenv(env_path, override=True)
+env_path = os.path.join(current_dir, '.env.local')
+
+# Vérifier si le fichier existe
+if os.path.exists(env_path):
+    load_dotenv(env_path, override=True)
+    print(f"✅ Variables d'environnement chargées depuis: {env_path}")
+else:
+    print(f"⚠️  Fichier .env.local non trouvé: {env_path}")
+    # Essayer de charger depuis le répertoire parent
+    parent_env_path = os.path.join(os.path.dirname(current_dir), '.env.local')
+    if os.path.exists(parent_env_path):
+        load_dotenv(parent_env_path, override=True)
+        print(f"✅ Variables d'environnement chargées depuis: {parent_env_path}")
+    else:
+        print(f"❌ Aucun fichier .env.local trouvé")
 
 class Config:
     SECRET_KEY=os.getenv('SECRET_KEY')
     SESSION_EXPIRE_MINUTES = 30
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
-    # PostgreSQL
-    SQLALCHEMY_DATABASE_URI = (f"postgresql+psycopg2://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"f"@{os.getenv('DB_HOST')}/{os.getenv('DB_NAME')}")
+    # MySQL
+    SQLALCHEMY_DATABASE_URI = (f"mysql+pymysql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}/{os.getenv('DB_NAME')}")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Configuration Redis
@@ -29,33 +39,28 @@ class Config:
     UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER')
 
     # LOG_FILE_PATH=os.getenv('LOG_FILE_PATH')
-    LOG_FILE_PATH = os.getenv("LOG_FILE_PATH", "logs/app.log")
+    LOG_FILE_PATH = os.getenv("LOG_FILE_PATH", "logs/datalys_consulting.log")
     
-    # Configuration des emails 
-    MAIL_SERVER = os.getenv('MAIL_SERVER')
-    MAIL_PORT = os.getenv('MAIL_PORT')
-    MAIL_USE_TLS = os.getenv('MAIL_USE_TLS')
-    MAIL_USERNAME = os.getenv('MAIL_USERNAME')
-    MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
-    MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER')
+    # Configuration des emails (SMTP Hostinger)
+    MAIL_SERVER = os.getenv('MAIL_SERVER', 'smtp.hostinger.com')
+    MAIL_PORT = int(os.getenv('MAIL_PORT', '587'))
+    MAIL_USE_TLS = os.getenv('MAIL_USE_TLS', 'True').lower() == 'true'
+    MAIL_USERNAME = os.getenv('MAIL_USERNAME', '')
+    MAIL_PASSWORD = os.getenv('MAIL_PASSWORD', '')
+    MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER', 'noreply@votredomaine.com')
+    
+    # Configuration Flask-Mail pour UTF-8
+    MAIL_ASCII_ATTACHMENTS = False
+    MAIL_SUPPRESS_SEND = False
+    
+    # Configuration email supplémentaire
+    SENDER_NAME = os.getenv('SENDER_NAME', 'Datalys Consulting')
+    APP_URL = os.getenv('APP_URL', 'http://localhost:5000')
+    
+    # Configuration Flask pour url_for
+    SERVER_NAME = os.getenv('SERVER_NAME', 'localhost:5000')
+    APPLICATION_ROOT = os.getenv('APPLICATION_ROOT', '/')
+    PREFERRED_URL_SCHEME = os.getenv('PREFERRED_URL_SCHEME', 'http')
 
 
-    # Configuration Seamfix
-    SEAMFIX_PUBLIC_KEY = os.getenv('SEAMFIX_PUBLIC_KEY')
-    SEAMFIX_PRIVATE_KEY = os.getenv('SEAMFIX_PRIVATE_KEY')
-    SEAMFIX_USER_ID = os.getenv('SEAMFIX_USER_ID')
-    SEAMFIX_URL = os.getenv('SEAMFIX_URL')
-    SEAMFIX_URL_VERIFY = os.getenv('SEAMFIX_URL_VERIFY')
-    SEAMFIX_URL_VALIDATE = os.getenv('SEAMFIX_URL_VALIDATE')
-    SEAMFIX_OCR_URL = os.getenv('SEAMFIX_OCR_URL')
-    SEAMFIX_HEALTH_CHECK_URL = os.getenv('SEAMFIX_HEALTH_CHECK_URL')
-    SEAMFIX_DOC_PROCESSING_URL = os.getenv('SEAMFIX_DOC_PROCESSING_URL')
-    SEAMFIX_TOKEN = os.getenv('SEAMFIX_TOKEN')
-
-    # Configuration TIMM
-    TIMM_URL_AUTH = os.getenv('TIMM_URL_AUTH')
-
-    # Configuration KYC Kya
-    KYC_KYA_URL = os.getenv('KYC_KYA_URL')
-
-    BASE_STATIC_URL = os.getenv('BASE_STATIC_URL')
+  

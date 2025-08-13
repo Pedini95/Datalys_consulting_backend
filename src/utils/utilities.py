@@ -1,5 +1,5 @@
-from typing import Dict
-from app import app, db
+from typing import Dict, Optional
+from app import app
 import random
 import re
 import hashlib
@@ -13,12 +13,10 @@ import shutil
 import string
 import json
 from werkzeug.utils import secure_filename
-from flask import request, jsonify
-import utils.functional_error as functional_error
-from models.timm_config import TimmConfig
+
 
 from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth
-from models.user import User
+# from models.user import User
 from Crypto.Cipher import AES
 from Cryptodome.Cipher import AES
 
@@ -169,14 +167,7 @@ def save_video(base64_string, nom_complet_video):
         print(f"Error saving video: {e}")
         return False
     
-def decode_to_image(image_string):
-    try:
-        image_bytes = base64.b64decode(image_string)
-        image = Image.open(BytesIO(image_bytes))
-        return image
-    except Exception as e:
-        print(f"Error decoding image: {e}")
-        return None
+
 
 def encode_to_string(image, image_type):
     try:
@@ -274,11 +265,11 @@ def parse_datetime_string(datetime_str):
     return datetime.strptime(datetime_str, datetime_format)
 
 # method to verify pasword throught api request
-@basic_auth.verify_password
-def verify_password(email, password):
-    user = User.query.filter_by(email=email).first()
-    if user and user.check_password(password):
-        return user
+# @basic_auth.verify_password
+# def verify_password(email, password):
+#     user = User.query.filter_by(email=email).first()
+#     if user and user.check_password(password):
+#         return user
 
 def save_base64_image(base64_str, file_name, extension):
     logging.info("***** Begin save_base64_image ****")
@@ -299,20 +290,20 @@ def save_base64_image(base64_str, file_name, extension):
         print(f"Error saving image: {e}")
         return None
 
-@token_auth.verify_token
-def check_token_and_get_user(auth_header):
-    # auth_header = request.headers.get('token')
-    message = True
-    logging.debug('***** message %s****', message)
-    if not auth_header:
-        message = False
-        return jsonify({'message': 'ERROR', 'details': functional_error.MESSAGE_ACCESS_DENIED()}), 401
-    logging.debug('***** header **** %s', auth_header)
-    user = User.find_by_token(auth_header, False)
-    logging.debug('***** user **** %s', user)
-    if not user or user == None:
-        message = message = False
-        return jsonify({'message': 'ERROR', 'details': functional_error.MESSAGE_ACCESS_DENIED()}), 401
+# @token_auth.verify_token
+# def check_token_and_get_user(auth_header):
+#     # auth_header = request.headers.get('token')
+#     message = True
+#     logging.debug('***** message %s****', message)
+#     if not auth_header:
+#         message = False
+#         return jsonify({'message': 'ERROR', 'details': functional_error.MESSAGE_ACCESS_DENIED()}), 401
+#     logging.debug('***** header **** %s', auth_header)
+#     user = User.find_by_token(auth_header, False)
+#     logging.debug('***** user **** %s', user)
+#     if not user or user == None:
+#         message = message = False
+#         return jsonify({'message': 'ERROR', 'details': functional_error.MESSAGE_ACCESS_DENIED()}), 401
 
 def generate_numeric_code(nbre_caractere):
     formatted = ''.join(random.choices('0123456789', k=nbre_caractere))
@@ -378,11 +369,7 @@ def build_search_string(data):
                     if field not in image_fields and data.get(field))
     return search_string
 
-def get_timm_user_password(projet_name):
-    timm_config = TimmConfig.find_by_projet_name(projet_name, False)
-    if not timm_config:
-        return None
-    return timm_config.timm_user, timm_config.timm_password, timm_config.timm_url
+
 
 
 def encrypt_password_lite(password):
@@ -421,7 +408,7 @@ def save_base64_image_lite(base64_str, prefix="image"):
     #     raise RuntimeError(f"Erreur lors de la sauvegarde de l’image : {e}")
 
 
-def check_service_connection(url: str, timeout: int = None) -> dict:
+def check_service_connection(url: str, timeout: Optional[int] = None) -> dict:
     """
     Teste la connectivité vers un service donné et retourne un résultat détaillé.
 
@@ -443,7 +430,7 @@ def check_service_connection(url: str, timeout: int = None) -> dict:
         result["ip"] = ip
 
         # Requête test
-        response = requests.get(url, timeout=timeout, verify=False)
+        response = requests.get(url, timeout=timeout or 30, verify=False)
         logging.info("**** response : {}".format(response))
         result["status_code"] = response.status_code
         result["success"] = response.status_code < 500
@@ -456,8 +443,8 @@ def check_service_connection(url: str, timeout: int = None) -> dict:
         logging.error("Erreur SSL : certificat invalide ou refusé")
         result["message"] = "SSL error: invalid or untrusted certificate"
     except Timeout:
-        logging.error(f"Timeout après {timeout} secondes")
-        result["message"] = f"Connection timed out after {int(timeout)} seconds"
+        logging.error(f"Timeout après {timeout or 'unknown'} secondes")
+        result["message"] = f"Connection timed out after {timeout or 'unknown'} seconds"
     except ConnectionError:
         logging.error("Connexion échouée : hôte injoignable")
         result["message"] = "Connection failed: host unreachable"

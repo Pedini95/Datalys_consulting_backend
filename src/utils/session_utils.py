@@ -1,81 +1,269 @@
-from flask import request, jsonify
-from datetime import datetime, timedelta
-from models.user import User
-# from app import app
-from app import app, db
-from redis_template import RedisTemplate
-# from utils.session_utils import utilities
-import utils.functional_error as functional_error
-
+import redis
+import json
 import logging
+from datetime import datetime
+from typing import Optional, Dict, Any
+from flask import request
+from config import Config
+
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
 
-# Initialiser RedisTemplate
-redis_template = RedisTemplate(
-    host=app.config['REDIS_HOST'],
-    port=app.config['REDIS_PORT']
-)
-
-def calculate_minutes_between_dates(date1_str, date2_str, date_format="%Y-%m-%d %H:%M:%S"):
+class SessionManager:
     """
-    Calcule le nombre de minutes entre deux dates.
+    Gestionnaire de sessions avec Redis
+    """
     
-    :param date1_str: La première date sous forme de chaîne de caractères.
-    :param date2_str: La deuxième date sous forme de chaîne de caractères.
-    :param date_format: Le format des dates fournies (par défaut : "%Y-%m-%d %H:%M:%S").
-    :return: Le nombre de minutes entre les deux dates.
+    def __init__(self):
+        """Initialiser la connexion Redis"""
+        try:
+            # Vérifier que les configurations Redis existent
+            redis_host = getattr(Config, 'REDIS_HOST', 'localhost')
+            redis_port = int(getattr(Config, 'REDIS_PORT', 6379))
+            redis_db = int(getattr(Config, 'REDIS_DB', 0))
+            redis_password = getattr(Config, 'REDIS_PASSWORD', None)
+            
+            self.redis_client = redis.Redis(
+                host=redis_host,
+                port=redis_port,
+                db=redis_db,
+                password=redis_password,
+                decode_responses=True,
+                socket_connect_timeout=5,
+                socket_timeout=5
+            )
+            # Test de connexion
+            self.redis_client.ping()
+            logger.info(" Connexion Redis établie avec succès")
+        except Exception as e:
+            logger.error(f" Erreur de connexion Redis: {str(e)}")
+            self.redis_client = None
+    
+    def create_session(self, user_id: int, user_data: Dict[str, Any], token: str, 
+                      expires_in: int = 7200) -> bool:
+        """
+        Créer une nouvelle session utilisateur
+        
+        Args:
+            user_id: ID de l'utilisateur
+            user_data: Données de l'utilisateur
+            token: Token JWT
+            expires_in: Durée de validité en secondes (2h par défaut)
+            
+        Returns:
+            bool: True si la session a été créée avec succès
+        """
+        try:
+            if not self.redis_client:
+                return False
+            
+            session_data = {
+                'user_id': user_id,
+                'user_data': user_data,
+                'token': token,
+                'created_at': datetime.utcnow().isoformat(),
+                'last_activity': datetime.utcnow().isoformat(),
+                'ip_address': request.remote_addr,
+                'user_agent': request.headers.get('User-Agent', '')
+            }
+            
+            # Stocker la session avec le token comme clé
+            session_key = f"session:{token}"
+            self.redis_client.setex(
+                session_key, 
+                expires_in, 
+                json.dumps(session_data)
+            )
+            
+            logger.info(f" Session créée pour l'utilisateur {user_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f" Erreur lors de la création de session: {str(e)}")
+            return False
+    
+    def get_session(self, token: str) -> Optional[Dict[str, Any]]:
+        """
+        Récupérer une session par token
+        
+        Args:
+            token: Token JWT
+            
+        Returns:
+            Dict ou None: Données de la session
+        """
+        try:
+            if not self.redis_client:
+                return None
+            
+            session_key = f"session:{token}"
+            session_data = self.redis_client.get(session_key)
+            
+            if session_data and isinstance(session_data, str):
+                session = json.loads(session_data)
+                # Mettre à jour la dernière activité
+                session['last_activity'] = datetime.utcnow().isoformat()
+                # Remettre la session avec le même TTL
+                self.redis_client.setex(
+                    session_key,
+                    7200,  # 2 heures
+                    json.dumps(session)
+                )
+                return session
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f" Erreur lors de la récupération de session: {str(e)}")
+            return None
+    
+    def delete_session(self, token: str) -> bool:
+        """
+        Supprimer une session
+        
+        Args:
+            token: Token JWT
+            
+        Returns:
+            bool: True si la session a été supprimée
+        """
+        try:
+            if not self.redis_client:
+                return False
+            
+            # Supprimer la session
+            session_key = f"session:{token}"
+            self.redis_client.delete(session_key)
+            
+            logger.info(f" Session supprimée pour le token {token[:20]}...")
+            return True
+            
+        except Exception as e:
+            logger.error(f" Erreur lors de la suppression de session: {str(e)}")
+            return False
+    
+    def is_session_valid(self, token: str) -> bool:
+        """
+        Vérifier si une session est valide
+        
+        Args:
+            token: Token JWT
+            
+        Returns:
+            bool: True si la session est valide
+        """
+        try:
+            if not self.redis_client:
+                return False
+            
+            session_key = f"session:{token}"
+            result = self.redis_client.exists(session_key)
+            return bool(result)
+            
+        except Exception as e:
+            logger.error(f" Erreur lors de la vérification de session: {str(e)}")
+            return False
+
+# Instance globale du gestionnaire de sessions
+session_manager = SessionManager()
+
+# Fonctions utilitaires pour compatibilité
+def create_user_session(user_id: int, user_data: Dict[str, Any], token: str) -> bool:
+    """Créer une session utilisateur (fonction utilitaire)"""
+    return session_manager.create_session(user_id, user_data, token)
+
+def get_user_session(token: str) -> Optional[Dict[str, Any]]:
+    """Récupérer une session utilisateur (fonction utilitaire)"""
+    return session_manager.get_session(token)
+
+def delete_user_session(token: str) -> bool:
+    """Supprimer une session utilisateur (fonction utilitaire)"""
+    return session_manager.delete_session(token)
+
+def is_user_session_valid(token: str) -> bool:
+    """Vérifier si une session utilisateur est valide (fonction utilitaire)"""
+    return session_manager.is_session_valid(token)
+
+def create_reset_token_session(reset_token: str, user_id: int, expires_in: int = 3600) -> bool:
+    """
+    Créer une session pour un token de reset de mot de passe
+    
+    Args:
+        reset_token: Token de reset
+        user_id: ID de l'utilisateur
+        expires_in: Durée de validité en secondes (1h par défaut)
+        
+    Returns:
+        bool: True si la session a été créée avec succès
     """
     try:
-        date1 = datetime.strptime(date1_str, date_format)
-        # date1 = date1.strftime("%Y-%m-%d %H:%M:%S")
-        date2 = datetime.strptime(date2_str, date_format)
-        # date2 = date2.strftime("%Y-%m-%d %H:%M:%S")
-        delta = date1 - date2
-        minutes = delta.total_seconds() / 60
-        return minutes
-    except ValueError as e:
-        print(f"Error parsing dates: {e}")
-        return None
+        if not session_manager.redis_client:
+            return False
+        
+        reset_data = {
+            'user_id': user_id,
+            'token': reset_token,
+            'created_at': datetime.utcnow().isoformat(),
+            'type': 'password_reset'
+        }
+        
+        # Stocker le token de reset avec le token comme clé
+        reset_key = f"reset_token:{reset_token}"
+        session_manager.redis_client.setex(
+            reset_key, 
+            expires_in, 
+            json.dumps(reset_data)
+        )
+        
+        logger.info(f" Token de reset créé pour l'utilisateur {user_id}")
+        return True
+        
+    except Exception as e:
+        logger.error(f" Erreur lors de la création du token de reset: {str(e)}")
+        return False
 
-def get_item_user(user):
-    item = {
-        "id": user.id,
-        "login": user.login,
-        "email": user.email,
-        "first_name": user.first_name,
-        "last_name": user.last_name
-    }
-    return item
+def delete_reset_token_session(reset_token: str) -> bool:
+    """
+    Supprimer une session de token de reset
+    
+    Args:
+        reset_token: Token de reset
+        
+    Returns:
+        bool: True si la session a été supprimée
+    """
+    try:
+        if not session_manager.redis_client:
+            return False
+        
+        # Supprimer le token de reset
+        reset_key = f"reset_token:{reset_token}"
+        session_manager.redis_client.delete(reset_key)
+        
+        logger.info(f" Token de reset supprimé: {reset_token[:20]}...")
+        return True
+        
+    except Exception as e:
+        logger.error(f" Erreur lors de la suppression du token de reset: {str(e)}")
+        return False
 
-def get_user_session():
-    print("**** Begin get_user_session ****")
-    print("/user/get_user_session")
-    token = request.headers.get('Authorization')
-    print("**** token ****")
-    print(token)
-    token = token.split(" ")[1]
-    print(token)
-    if token is None:
-        return {'message': 'Missing token', 'code': 400}
-    user = User.find_by_token(token, False)
-    print("**** User ****")
-    if user:
-        print(user.login)
-        if user.login != 'SUPERADMIN':
-            user_token = redis_template.get(token)
-            if user_token:
-                # on delete token
-                redis_template.delete(token)
-                # on sette la new valeur de token
-                redis_template.set(token, user.email, ex=1800) # OTP expire après 30 minutes
-                user.token = token
-                db.session.commit()  
-            else:
-                return {'message': 'Token not found', 'code': 400}
-    else:
-        response = {'message': 'User not found in system', "code": 400, "has_error": True}
-        print("**** End get_user_session ****")
-        print("**** response received ****")
-        print(response)
-        return response
+def is_reset_token_valid(reset_token: str) -> bool:
+    """
+    Vérifier si un token de reset est valide
+    
+    Args:
+        reset_token: Token de reset
+        
+    Returns:
+        bool: True si le token est valide
+    """
+    try:
+        if not session_manager.redis_client:
+            return False
+        
+        reset_key = f"reset_token:{reset_token}"
+        result = session_manager.redis_client.exists(reset_key)
+        return bool(result)
+        
+    except Exception as e:
+        logger.error(f" Erreur lors de la vérification du token de reset: {str(e)}")
+        return False

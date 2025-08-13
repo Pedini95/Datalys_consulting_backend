@@ -1,0 +1,1224 @@
+{
+  "info": {
+    "name": "Datalys Consulting API",
+    "description": "Collection complète pour tester l'API Datalys Consulting",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8081",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@datalys.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@datalys.com\",\n  \"password\": \"password123\",\n  \"role_name\": \"admin\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "refresh"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "logout"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@datalys.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/reset-password-request",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "reset-password-request"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"reset_token_here\",\n  \"new_password\": \"newpassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/reset-password",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "reset-password"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "👥 Users",
+      "item": [
+        {
+          "name": "Get Users",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"index\": 0,\n  \"size\": 10,\n  \"data\": {\n    \"name\": \"\",\n    \"email\": \"\",\n    \"is_active\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/getByCriteria",
+              "host": ["{{base_url}}"],
+              "path": ["users", "getByCriteria"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": {\n    \"id\": 1\n  },\n  \"datas\": [\n    {\n      \"name\": \"Jane Smith\",\n      \"email\": \"jane@datalys.com\",\n      \"password\": \"password123\",\n      \"role_name\": \"user\",\n      \"is_active\": true\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/create",
+              "host": ["{{base_url}}"],
+              "path": ["users", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": {\n    \"id\": 1\n  },\n  \"datas\": [\n    {\n      \"id\": 1,\n      \"name\": \"Jane Smith Updated\",\n      \"is_active\": true\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/update",
+              "host": ["{{base_url}}"],
+              "path": ["users", "update"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"datas\": [\n    {\n      \"id\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/delete",
+              "host": ["{{base_url}}"],
+              "path": ["users", "delete"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🎭 Roles",
+      "item": [
+        {
+          "name": "Get Roles",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"index\": 0,\n  \"size\": 10,\n  \"data\": {\n    \"name\": \"\",\n    \"is_active\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/roles/getByCriteria",
+              "host": ["{{base_url}}"],
+              "path": ["roles", "getByCriteria"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": {\n    \"id\": 1\n  },\n  \"datas\": [\n    {\n      \"name\": \"manager\",\n      \"is_active\": true\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/roles/create",
+              "host": ["{{base_url}}"],
+              "path": ["roles", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": {\n    \"id\": 1\n  },\n  \"datas\": [\n    {\n      \"id\": 1,\n      \"name\": \"senior_manager\",\n      \"is_active\": true\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/roles/update",
+              "host": ["{{base_url}}"],
+              "path": ["roles", "update"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"datas\": [\n    {\n      \"id\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/roles/delete",
+              "host": ["{{base_url}}"],
+              "path": ["roles", "delete"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🤝 Partners",
+      "item": [
+        {
+          "name": "Get Partners",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"index\": 0,\n  \"size\": 10,\n  \"data\": {\n    \"name\": \"\",\n    \"is_active\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/partners/getByCriteria",
+              "host": ["{{base_url}}"],
+              "path": ["partners", "getByCriteria"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Partner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": {\n    \"id\": 1\n  },\n  \"datas\": [\n    {\n      \"name\": \"TechCorp\",\n      \"email\": \"contact@techcorp.com\",\n      \"phone\": \"+1234567890\",\n      \"address\": \"123 Tech Street, City\",\n      \"is_active\": true\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/partners/create",
+              "host": ["{{base_url}}"],
+              "path": ["partners", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Partner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": {\n    \"id\": 1\n  },\n  \"datas\": [\n    {\n      \"id\": 1,\n      \"name\": \"TechCorp Updated\",\n      \"email\": \"info@techcorp.com\",\n      \"phone\": \"+1234567891\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/partners/update",
+              "host": ["{{base_url}}"],
+              "path": ["partners", "update"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Partner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"datas\": [\n    {\n      \"id\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/partners/delete",
+              "host": ["{{base_url}}"],
+              "path": ["partners", "delete"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📋 Projects",
+      "item": [
+        {
+          "name": "Get Projects",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"index\": 0,\n  \"size\": 10,\n  \"data\": {\n    \"name\": \"\",\n    \"status\": \"\",\n    \"is_active\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/projects/getByCriteria",
+              "host": ["{{base_url}}"],
+              "path": ["projects", "getByCriteria"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Project",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": {\n    \"id\": 1\n  },\n  \"datas\": [\n    {\n      \"name\": \"E-commerce Platform\",\n      \"description\": \"Development of a modern e-commerce platform\",\n      \"start_date\": \"2024-01-01\",\n      \"end_date\": \"2024-06-30\",\n      \"status\": \"in_progress\",\n      \"budget\": 50000.00,\n      \"partner_id\": 1,\n      \"is_active\": true\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/projects/create",
+              "host": ["{{base_url}}"],
+              "path": ["projects", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Project",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": {\n    \"id\": 1\n  },\n  \"datas\": [\n    {\n      \"id\": 1,\n      \"name\": \"E-commerce Platform v2\",\n      \"status\": \"completed\",\n      \"budget\": 55000.00\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/projects/update",
+              "host": ["{{base_url}}"],
+              "path": ["projects", "update"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Project",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"datas\": [\n    {\n      \"id\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/partners/delete",
+              "host": ["{{base_url}}"],
+              "path": ["partners", "delete"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🚨 Incidents",
+      "item": [
+        {
+          "name": "Get Incidents",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"index\": 0,\n  \"size\": 10,\n  \"data\": {\n    \"title\": \"\",\n    \"priority\": \"\",\n    \"status\": \"\",\n    \"is_active\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/incidents/getByCriteria",
+              "host": ["{{base_url}}"],
+              "path": ["incidents", "getByCriteria"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Incident",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": {\n    \"id\": 1\n  },\n  \"datas\": [\n    {\n      \"title\": \"Server Down\",\n      \"description\": \"Production server is not responding\",\n      \"priority\": \"high\",\n      \"status\": \"open\",\n      \"project_id\": 1,\n      \"assigned_to\": 1,\n      \"is_active\": true\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/incidents/create",
+              "host": ["{{base_url}}"],
+              "path": ["incidents", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Incident",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": {\n    \"id\": 1\n  },\n  \"datas\": [\n    {\n      \"id\": 1,\n      \"title\": \"Server Down - Resolved\",\n      \"status\": \"resolved\",\n      \"resolution\": \"Server restarted successfully\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/incidents/update",
+              "host": ["{{base_url}}"],
+              "path": ["incidents", "update"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Incident",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"datas\": [\n    {\n      \"id\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/incidents/delete",
+              "host": ["{{base_url}}"],
+              "path": ["incidents", "delete"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📁 Folders",
+      "item": [
+        {
+          "name": "Get Folders",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"index\": 0,\n  \"size\": 10,\n  \"data\": {\n    \"name\": \"\",\n    \"project_id\": 1,\n    \"is_active\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/folders/getByCriteria",
+              "host": ["{{base_url}}"],
+              "path": ["folders", "getByCriteria"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Folder",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": {\n    \"id\": 1\n  },\n  \"datas\": [\n    {\n      \"name\": \"Documents\",\n      \"description\": \"Project documents folder\",\n      \"project_id\": 1,\n      \"parent_folder_id\": null,\n      \"is_active\": true\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/folders/create",
+              "host": ["{{base_url}}"],
+              "path": ["folders", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Folder",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": {\n    \"id\": 1\n  },\n  \"datas\": [\n    {\n      \"id\": 1,\n      \"name\": \"Project Documents\",\n      \"description\": \"Updated project documents folder\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/folders/update",
+              "host": ["{{base_url}}"],
+              "path": ["folders", "update"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Folder",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"datas\": [\n    {\n      \"id\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/folders/delete",
+              "host": ["{{base_url}}"],
+              "path": ["folders", "delete"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📄 Files",
+      "item": [
+        {
+          "name": "Get Files",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"index\": 0,\n  \"size\": 10,\n  \"data\": {\n    \"name\": \"\",\n    \"folder_id\": 1,\n    \"is_active\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/files/getByCriteria",
+              "host": ["{{base_url}}"],
+              "path": ["files", "getByCriteria"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create File",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": {\n    \"id\": 1\n  },\n  \"datas\": [\n    {\n      \"name\": \"requirements.txt\",\n      \"description\": \"Project dependencies\",\n      \"file_path\": \"/uploads/requirements.txt\",\n      \"file_size\": 1024,\n      \"file_type\": \"text/plain\",\n      \"folder_id\": 1,\n      \"is_active\": true\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/files/create",
+              "host": ["{{base_url}}"],
+              "path": ["files", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update File",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": {\n    \"id\": 1\n  },\n  \"datas\": [\n    {\n      \"id\": 1,\n      \"name\": \"requirements_v2.txt\",\n      \"description\": \"Updated project dependencies\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/files/update",
+              "host": ["{{base_url}}"],
+              "path": ["files", "update"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete File",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"datas\": [\n    {\n      \"id\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/files/delete",
+              "host": ["{{base_url}}"],
+              "path": ["files", "delete"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Logo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/files/upload/logo",
+              "host": ["{{base_url}}"],
+              "path": ["files", "upload", "logo"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Upload File",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "subfolder",
+                  "value": "files",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/files/upload",
+              "host": ["{{base_url}}"],
+              "path": ["files", "upload"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Uploaded File",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"file_path\": \"uploads/logos/20241201_123456_uuid.jpg\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/files/upload/delete",
+              "host": ["{{base_url}}"],
+              "path": ["files", "upload", "delete"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Serve File",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/files/serve/logos/20241201_123456_uuid.jpg",
+              "host": ["{{base_url}}"],
+              "path": ["files", "serve", "logos", "20241201_123456_uuid.jpg"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🔐 User Project Permissions",
+      "item": [
+        {
+          "name": "Get User Project Permissions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"index\": 0,\n  \"size\": 10,\n  \"data\": {\n    \"user_id\": 1,\n    \"project_id\": 1,\n    \"is_active\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user_project_permissions/getByCriteria",
+              "host": ["{{base_url}}"],
+              "path": ["user_project_permissions", "getByCriteria"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create User Project Permission",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": {\n    \"id\": 1\n  },\n  \"datas\": [\n    {\n      \"user_id\": 1,\n      \"project_id\": 1,\n      \"permission_type\": \"read_write\",\n      \"is_active\": true\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user_project_permissions/create",
+              "host": ["{{base_url}}"],
+              "path": ["user_project_permissions", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Project Permission",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": {\n    \"id\": 1\n  },\n  \"datas\": [\n    {\n      \"id\": 1,\n      \"permission_type\": \"admin\",\n      \"is_active\": true\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user_project_permissions/update",
+              "host": ["{{base_url}}"],
+              "path": ["user_project_permissions", "update"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User Project Permission",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"datas\": [\n    {\n      \"id\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/user_project_permissions/delete",
+              "host": ["{{base_url}}"],
+              "path": ["user_project_permissions", "delete"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📊 Action History",
+      "item": [
+        {
+          "name": "Get Action History",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"index\": 0,\n  \"size\": 10,\n  \"data\": {\n    \"user_id\": 1,\n    \"action_type\": \"\",\n    \"table_name\": \"\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/action_history/getByCriteria",
+              "host": ["{{base_url}}"],
+              "path": ["action_history", "getByCriteria"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Action History",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": {\n    \"id\": 1\n  },\n  \"datas\": [\n    {\n      \"user_id\": 1,\n      \"action_type\": \"create\",\n      \"table_name\": \"users\",\n      \"record_id\": 1,\n      \"old_values\": null,\n      \"new_values\": \"{\\\"name\\\": \\\"John Doe\\\", \\\"email\\\": \\\"john@example.com\\\"}\",\n      \"ip_address\": \"192.168.1.1\",\n      \"user_agent\": \"PostmanRuntime/7.32.3\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/action_history/create",
+              "host": ["{{base_url}}"],
+              "path": ["action_history", "create"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🏥 Health Check",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Database Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health/db",
+              "host": ["{{base_url}}"],
+              "path": ["health", "db"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+} 
