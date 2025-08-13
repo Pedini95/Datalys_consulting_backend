@@ -30,6 +30,9 @@ RUN apt-get update && ACCEPT_EULA=Y apt-get install -y msodbcsql17 \
 
 RUN groupadd -r app && useradd -r -g app -m -d /app -s /bin/bash app
 
+# Create necessary directories with proper permissions
+RUN mkdir -p /app/src/logs /app/src/static/files && chown -R app:app /app/src/logs /app/src/static/files
+
 RUN chown -R app:app /app 
 
 USER app
@@ -43,9 +46,6 @@ RUN . venv/bin/activate && pip install --upgrade pip && pip install -r requireme
 
 # Copy application files
 COPY . .
-
-# Create necessary directories with proper permissions
-RUN mkdir -p /app/src/logs /app/src/static/files && chown -R app:app /app/src/logs /app/src/static/files
 
 # Define the command to run the application
 CMD ["./venv/bin/python", "src/run.py"]
