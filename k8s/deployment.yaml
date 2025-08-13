@@ -84,16 +84,19 @@ spec:
             secretKeyRef:
               name: datalys-secrets
               key: mail-username
+              optional: true
         - name: MAIL_PASSWORD
           valueFrom:
             secretKeyRef:
               name: datalys-secrets
               key: mail-password
+              optional: true
         - name: MAIL_DEFAULT_SENDER
           valueFrom:
             secretKeyRef:
               name: datalys-secrets
               key: mail-default-sender
+              optional: true
         
         # Configuration de l'application
         - name: SECRET_KEY
