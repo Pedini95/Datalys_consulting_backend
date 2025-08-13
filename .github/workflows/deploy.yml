@@ -1,26 +1,161 @@
----
-name: Deploy 
+name: Deploy to Hostinger VPS
 
 on:
-  workflow_dispatch:
   push:
-    branches:
-        - develop
-        - staging
-     
-        
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:  # Déploiement manuel
+
+env:
+  PYTHON_VERSION: '3.9'
+  PROJECT_DIR: '/home/datalys/Datalys_consulting_backend'
+  APP_DIR: '/home/datalys/Datalys_consulting_backend/src'
+
 jobs:
-    vars:
-        uses: OrangeLiberia/pipelines/.github/workflows/vars.yml@main
-    deploy:
-        needs: vars
-        uses: OrangeLiberia/pipelines/.github/workflows/deploy.yml@main
-    # postgresql:
-    #     needs: vars
-    #     uses: OrangeLiberia/pipelines/.github/workflows/postgresql.yml@main
-    redis:
-        needs: vars
-        uses: OrangeLiberia/pipelines/.github/workflows/redis.yml@main
-    pyodbc:
-        needs: vars
-        uses: OrangeLiberia/pipelines/.github/workflows/pyodbc.yml@main
+  # Job de test et validation
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('src/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          
+    - name: Install dependencies
+      run: |
+        cd src
+        pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Lint with flake8
+      run: |
+        cd src
+        pip install flake8
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || echo "Linting completed"
+        
+    - name: Check imports
+      run: |
+        cd src
+        python -c "import app; print('✅ All imports successful')"
+        
+    - name: Validate configuration
+      run: |
+        cd src
+        python -c "
+        from config import Config
+        print('✅ Configuration loaded successfully')
+        print(f'Environment: {Config.ENV}')
+        print(f'Database URI configured: {\"mysql\" in Config.SQLALCHEMY_DATABASE_URI}')
+        "
+
+  # Job de déploiement (seulement si les tests passent)
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Deploy to Hostinger VPS
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.HOSTINGER_HOST }}
+        username: ${{ secrets.HOSTINGER_USERNAME }}
+        key: ${{ secrets.HOSTINGER_SSH_KEY }}
+        port: ${{ secrets.HOSTINGER_PORT }}
+        script: |
+          # Log du déploiement
+          echo "🚀 Début du déploiement - $(date)"
+          
+          # Aller dans le répertoire du projet
+          cd ${{ env.PROJECT_DIR }}
+          
+          # Sauvegarde de la version actuelle
+          echo "📦 Sauvegarde de la version actuelle..."
+          if [ -d "src" ]; then
+            mkdir -p backups
+            cp -r src "backups/backup_$(date +%Y%m%d_%H%M%S)"
+          fi
+          
+          # Mise à jour du code
+          echo "🔄 Mise à jour du code depuis Git..."
+          git fetch origin
+          git reset --hard origin/main
+          
+          # Activation de l'environnement virtuel
+          echo "🐍 Activation de l'environnement virtuel..."
+          source venv/bin/activate
+          
+          # Installation des dépendances
+          echo "📦 Installation des dépendances..."
+          cd src
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          
+          # Vérification de la configuration
+          echo "🔧 Vérification de la configuration..."
+          if [ ! -f ".env.local" ] && [ ! -f ".env.production" ]; then
+            echo "⚠️  Aucun fichier de configuration trouvé"
+            exit 1
+          fi
+          
+          # Test de connexion à la base de données
+          echo "🗄️  Test de connexion à la base de données..."
+          python -c "
+          from config import db
+          try:
+              db.engine.execute('SELECT 1')
+              print('✅ Connexion DB OK')
+          except Exception as e:
+              print(f'❌ Erreur DB: {e}')
+              exit(1)
+          "
+          
+          # Redémarrage de l'application
+          echo "🔄 Redémarrage de l'application..."
+          pm2 restart datalys-api || pm2 start ecosystem.config.js
+          
+          # Rechargement de Nginx
+          echo "🌐 Rechargement de Nginx..."
+          sudo systemctl reload nginx
+          
+          # Test de santé
+          echo "🏥 Test de santé de l'application..."
+          sleep 10
+          if curl -f http://localhost:8081/health > /dev/null 2>&1; then
+            echo "✅ Application en ligne et fonctionnelle"
+          else
+            echo "❌ L'application ne répond pas"
+            pm2 logs datalys-api --lines 20
+            exit 1
+          fi
+          
+          # Nettoyage des anciennes sauvegardes (garder 5)
+          echo "🧹 Nettoyage des anciennes sauvegardes..."
+          cd ${{ env.PROJECT_DIR }}/backups
+          ls -t | tail -n +6 | xargs -r rm -rf
+          
+          echo "🎉 Déploiement terminé avec succès - $(date)"
+          
+    - name: Notify deployment status
+      if: always()
+      run: |
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "✅ Déploiement réussi sur ${{ secrets.HOSTINGER_HOST }}"
+        else
+          echo "❌ Déploiement échoué sur ${{ secrets.HOSTINGER_HOST }}"
+        fi

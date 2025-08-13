@@ -1,113 +1,194 @@
 #!/bin/bash
 
-# Script de déploiement pour Datalys Consulting Backend
-# Usage: ./deploy.sh
+# Script de déploiement automatique pour Datalys Consulting Backend
+# Usage: ./deploy.sh [environment]
 
-set -e
+set -e  # Arrêter en cas d'erreur
 
-echo "🚀 Déploiement de Datalys Consulting Backend..."
+# Configuration
+PROJECT_DIR="/home/datalys/Datalys_consulting_backend"
+APP_DIR="$PROJECT_DIR/src"
+VENV_DIR="$PROJECT_DIR/venv"
+LOG_FILE="$PROJECT_DIR/deploy.log"
+BACKUP_DIR="$PROJECT_DIR/backups"
 
-# Couleurs pour les messages
+# Couleurs pour les logs
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Variables
-APP_NAME="datalys-api"
-APP_DIR="/home/datalys/Datalys_consulting_backend"
-VENV_DIR="$APP_DIR/venv"
-LOG_DIR="$APP_DIR/logs"
-
-# Fonction pour afficher les messages
-log_info() {
-    echo -e "${GREEN}[INFO]${NC} $1"
+# Fonction de logging
+log() {
+    echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')]${NC} $1" | tee -a "$LOG_FILE"
 }
 
-log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
-}
-
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-# Vérifier si on est sur le serveur de production
-if [ ! -d "$APP_DIR" ]; then
-    log_error "Répertoire de l'application non trouvé: $APP_DIR"
-    log_info "Ce script doit être exécuté sur le serveur de production"
+error() {
+    echo -e "${RED}[ERROR]${NC} $1" | tee -a "$LOG_FILE"
     exit 1
-fi
+}
 
-# Aller dans le répertoire de l'application
-cd "$APP_DIR"
+success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1" | tee -a "$LOG_FILE"
+}
 
-log_info "📁 Répertoire de travail: $(pwd)"
+warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1" | tee -a "$LOG_FILE"
+}
 
-# Sauvegarder les logs actuels
-if [ -d "$LOG_DIR" ]; then
-    log_info "📋 Sauvegarde des logs actuels..."
-    tar -czf "logs_backup_$(date +%Y%m%d_%H%M%S).tar.gz" -C "$LOG_DIR" .
-fi
+# Vérification des prérequis
+check_prerequisites() {
+    log "Vérification des prérequis..."
+    
+    if [ ! -d "$PROJECT_DIR" ]; then
+        error "Le répertoire du projet n'existe pas: $PROJECT_DIR"
+    fi
+    
+    if [ ! -d "$VENV_DIR" ]; then
+        error "L'environnement virtuel n'existe pas: $VENV_DIR"
+    fi
+    
+    if ! command -v pm2 &> /dev/null; then
+        error "PM2 n'est pas installé"
+    fi
+    
+    if ! command -v nginx &> /dev/null; then
+        error "Nginx n'est pas installé"
+    fi
+    
+    success "Prérequis vérifiés"
+}
 
-# Mettre à jour le code depuis Git
-log_info "🔄 Mise à jour du code depuis Git..."
-git fetch origin
-git reset --hard origin/develop
+# Sauvegarde de la version actuelle
+backup_current_version() {
+    log "Sauvegarde de la version actuelle..."
+    
+    mkdir -p "$BACKUP_DIR"
+    BACKUP_NAME="backup_$(date +'%Y%m%d_%H%M%S')"
+    BACKUP_PATH="$BACKUP_DIR/$BACKUP_NAME"
+    
+    if [ -d "$APP_DIR" ]; then
+        cp -r "$APP_DIR" "$BACKUP_PATH"
+        log "Sauvegarde créée: $BACKUP_PATH"
+    fi
+}
 
-# Activer l'environnement virtuel
-log_info "🐍 Activation de l'environnement virtuel..."
-source "$VENV_DIR/bin/activate"
+# Mise à jour du code
+update_code() {
+    log "Mise à jour du code depuis Git..."
+    
+    cd "$PROJECT_DIR"
+    
+    # Sauvegarde des modifications locales
+    if ! git stash push -m "Auto-stash before deployment $(date)" &> /dev/null; then
+        warning "Aucune modification locale à sauvegarder"
+    fi
+    
+    # Pull des dernières modifications
+    if git pull origin main; then
+        success "Code mis à jour avec succès"
+    else
+        error "Échec de la mise à jour du code"
+    fi
+}
 
-# Mettre à jour les dépendances
-log_info "📦 Mise à jour des dépendances..."
-pip install --upgrade pip
-pip install -r src/requirements.txt
+# Installation des dépendances
+install_dependencies() {
+    log "Installation des dépendances..."
+    
+    cd "$APP_DIR"
+    source "$VENV_DIR/bin/activate"
+    
+    if pip install -r requirements.txt; then
+        success "Dépendances installées avec succès"
+    else
+        error "Échec de l'installation des dépendances"
+    fi
+}
 
-# Créer les répertoires nécessaires
-log_info "📁 Création des répertoires..."
-mkdir -p "$LOG_DIR"
-mkdir -p src/static/files/logos
-mkdir -p src/static/files/files
-mkdir -p src/static/files/projects
+# Vérification de la configuration
+check_configuration() {
+    log "Vérification de la configuration..."
+    
+    cd "$APP_DIR"
+    
+    # Vérifier que les fichiers de config existent
+    if [ ! -f ".env.local" ] && [ ! -f ".env.production" ]; then
+        error "Aucun fichier de configuration trouvé (.env.local ou .env.production)"
+    fi
+    
+    # Test de connexion à la base de données
+    if python -c "from config import db; db.engine.execute('SELECT 1')" &> /dev/null; then
+        success "Connexion à la base de données OK"
+    else
+        error "Impossible de se connecter à la base de données"
+    fi
+}
 
-# Vérifier la configuration
-if [ ! -f "src/.env.production" ]; then
-    log_warn "⚠️  Fichier .env.production non trouvé"
-    log_info "Création du fichier .env.production..."
-    cp src/env.template src/.env.production
-    log_warn "⚠️  Veuillez configurer src/.env.production avant de continuer"
-    exit 1
-fi
-
-# Redémarrer l'application avec PM2
-log_info "🔄 Redémarrage de l'application..."
-pm2 restart "$APP_NAME" || pm2 start ecosystem.config.js
-
-# Vérifier le statut
-log_info "📊 Vérification du statut..."
-pm2 status "$APP_NAME"
-
-# Vérifier les logs
-log_info "📋 Derniers logs de l'application:"
-pm2 logs "$APP_NAME" --lines 10
+# Redémarrage de l'application
+restart_application() {
+    log "Redémarrage de l'application..."
+    
+    # Redémarrage PM2
+    if pm2 restart datalys-app; then
+        success "Application redémarrée avec PM2"
+    else
+        error "Échec du redémarrage de l'application"
+    fi
+    
+    # Rechargement Nginx
+    if sudo systemctl reload nginx; then
+        success "Nginx rechargé"
+    else
+        error "Échec du rechargement de Nginx"
+    fi
+}
 
 # Test de santé
-log_info "🏥 Test de santé de l'application..."
-sleep 5
-if curl -f http://localhost:5000/health > /dev/null 2>&1; then
-    log_info "✅ Application en ligne et fonctionnelle"
-else
-    log_error "❌ L'application ne répond pas"
-    log_info "Vérifiez les logs avec: pm2 logs $APP_NAME"
-    exit 1
-fi
+health_check() {
+    log "Test de santé de l'application..."
+    
+    # Attendre que l'application démarre
+    sleep 5
+    
+    # Test de l'endpoint de santé
+    if curl -f http://localhost/health &> /dev/null; then
+        success "Application en bonne santé"
+    else
+        error "L'application ne répond pas correctement"
+    fi
+}
 
-# Redémarrer Nginx si nécessaire
-log_info "🌐 Redémarrage de Nginx..."
-sudo systemctl reload nginx
+# Nettoyage des anciennes sauvegardes
+cleanup_old_backups() {
+    log "Nettoyage des anciennes sauvegardes..."
+    
+    # Garder seulement les 5 dernières sauvegardes
+    cd "$BACKUP_DIR"
+    ls -t | tail -n +6 | xargs -r rm -rf
+    success "Anciennes sauvegardes nettoyées"
+}
 
-log_info "🎉 Déploiement terminé avec succès!"
-log_info "📊 Statut: pm2 status"
-log_info "📋 Logs: pm2 logs $APP_NAME"
-log_info "🌐 URL: https://api.datalysconsulting.com" 
+# Fonction principale
+main() {
+    log "=== Début du déploiement ==="
+    
+    check_prerequisites
+    backup_current_version
+    update_code
+    install_dependencies
+    check_configuration
+    restart_application
+    health_check
+    cleanup_old_backups
+    
+    log "=== Déploiement terminé avec succès ==="
+    success "L'application est maintenant en ligne!"
+}
+
+# Gestion des erreurs
+trap 'error "Déploiement interrompu par une erreur"' ERR
+
+# Exécution
+main "$@" 
