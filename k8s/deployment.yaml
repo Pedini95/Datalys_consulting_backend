@@ -1,0 +1,118 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: datalys-api
+  labels:
+    app: datalys-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: datalys-api
+  template:
+    metadata:
+      labels:
+        app: datalys-api
+    spec:
+      containers:
+      - name: datalys-api
+        image: datalys/api:latest
+        ports:
+        - containerPort: 5000
+        env:
+        - name: FLASK_ENV
+          value: "production"
+        - name: ENV
+          value: "production"
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: datalys-secrets
+              key: db-host
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: datalys-secrets
+              key: db-user
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: datalys-secrets
+              key: db-password
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: datalys-secrets
+              key: db-name
+        - name: REDIS_HOST
+          valueFrom:
+            secretKeyRef:
+              name: datalys-secrets
+              key: redis-host
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: datalys-secrets
+              key: secret-key
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+        - name: uploads-volume
+          mountPath: /app/src/static/files
+      volumes:
+      - name: uploads-volume
+        persistentVolumeClaim:
+          claimName: datalys-uploads-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: datalys-api-service
+spec:
+  selector:
+    app: datalys-api
+  ports:
+  - port: 80
+    targetPort: 5000
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: datalys-uploads-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: datalys-secrets
+type: Opaque
+data:
+  db-host: <base64-encoded-db-host>
+  db-user: <base64-encoded-db-user>
+  db-password: <base64-encoded-db-password>
+  db-name: <base64-encoded-db-name>
+  redis-host: <base64-encoded-redis-host>
+  secret-key: <base64-encoded-secret-key> 
