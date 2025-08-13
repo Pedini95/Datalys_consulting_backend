@@ -35,7 +35,7 @@ RUN chown -R app:app /app
 USER app
 
 # Copy requirements first for better caching
-COPY requirements.txt .
+COPY src/requirements.txt .
 
 # Create virtual environment and install dependencies
 RUN python3 -m venv venv
