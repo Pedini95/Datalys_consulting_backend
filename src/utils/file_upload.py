@@ -88,7 +88,7 @@ class FileUploadManager:
             os.makedirs(base_path, exist_ok=True)
             return str(base_path)
     
-    def save_file(self, file, subfolder: str = 'files', custom_filename: str = None, image_only: bool = False) -> Tuple[bool, str, str]:
+    def save_file(self, file, subfolder: str = 'files', custom_filename: str | None = None, image_only: bool = False) -> Tuple[bool, str, str]:
         """
         Sauvegarder un fichier uploadé
         
@@ -135,7 +135,7 @@ class FileUploadManager:
             file.save(file_path)
             
             # Retourner le chemin relatif pour la base de données
-            relative_path = os.path.join(self.upload_folder, str(subfolder), filename)
+            relative_path = os.path.join(self.upload_folder, subfolder, filename)
             
             logger.info(f"Fichier sauvegardé: {file_path}")
             return True, "Fichier sauvegardé avec succès", relative_path
