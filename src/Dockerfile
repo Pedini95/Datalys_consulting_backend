@@ -34,12 +34,14 @@ RUN chown -R app:app /app
 
 USER app
 
-# Copy application files
+# Copy requirements first for better caching
 COPY requirements.txt .
 
-RUN python3 -m venv venv && chmod +x venv/bin/activate
-RUN ./venv/bin/activate && pip install --user --no-cache-dir --break-system-packages -r requirements.txt
+# Create virtual environment and install dependencies
+RUN python3 -m venv venv
+RUN . venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt
 
+# Copy application files
 COPY . .
 
 # Define the command to run the application
