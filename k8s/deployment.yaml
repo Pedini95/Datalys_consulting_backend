@@ -19,6 +19,7 @@ spec:
       containers:
       - name: datalys-api
         image: datalys/api:latest
+        imagePullPolicy: Never
         ports:
         - containerPort: 8081
           name: http
@@ -189,9 +190,6 @@ spec:
         runAsNonRoot: true
         runAsUser: 1000
       
-      # Image pull policy
-      imagePullPolicy: Always
-      
       # Restart policy
       restartPolicy: Always
 
@@ -248,35 +246,7 @@ spec:
       storage: 5Gi
   storageClassName: ""
 
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: datalys-secrets
-  labels:
-    app: datalys-api
-type: Opaque
-data:
-  # Base de données
-  db-host: <base64-encoded-db-host>
-  db-user: <base64-encoded-db-user>
-  db-password: <base64-encoded-db-password>
-  db-name: <base64-encoded-db-name>
-  
-  # Redis
-  redis-host: <base64-encoded-redis-host>
-  redis-password: <base64-encoded-redis-password>
-  
-  # Application
-  secret-key: <base64-encoded-secret-key>
-  
-  # Email SMTP
-  mail-username: <base64-encoded-mail-username>
-  mail-password: <base64-encoded-mail-password>
-  mail-default-sender: <base64-encoded-mail-default-sender>
-  
-  # Webhook (optionnel)
-  webhook-secret: <base64-encoded-webhook-secret>
+
 
 ---
 apiVersion: networking.k8s.io/v1
