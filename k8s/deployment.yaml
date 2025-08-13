@@ -169,6 +169,7 @@ spec:
         securityContext:
           runAsNonRoot: true
           runAsUser: 1000
+          runAsGroup: 1000
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: false
           capabilities:
@@ -194,6 +195,7 @@ spec:
         fsGroup: 1000
         runAsNonRoot: true
         runAsUser: 1000
+        runAsGroup: 1000
       
       # Restart policy
       restartPolicy: Always
