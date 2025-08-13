@@ -45,4 +45,4 @@ RUN . venv/bin/activate && pip install --upgrade pip && pip install -r requireme
 COPY . .
 
 # Define the command to run the application
-CMD ["python", "run.py"]
+CMD ["./venv/bin/python", "run.py"]
