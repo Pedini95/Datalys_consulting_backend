@@ -107,7 +107,7 @@ celerybeat.pid
 .env.development.local
 .env.test.local
 .env.production.local
-.env.local.backup
+# .env.local.backup  # Template file - keep this one
 
 # venv
 venv/
