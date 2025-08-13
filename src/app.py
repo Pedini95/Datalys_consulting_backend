@@ -24,6 +24,7 @@ logging.info(f"is_dev: {is_dev}")
 log_file_path = app.config['LOG_FILE_PATH']
 log_dir = os.path.dirname(log_file_path)
 # Utiliser le chemin absolu pour créer le dossier
+log_dir = os.path.abspath(log_dir)
 os.makedirs(log_dir, exist_ok=True)
 
 # Format
