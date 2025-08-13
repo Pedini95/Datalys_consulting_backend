@@ -69,6 +69,7 @@ spec:
             secretKeyRef:
               name: datalys-secrets
               key: redis-password
+              optional: true
         
         # Configuration SMTP (Email)
         - name: MAIL_SERVER

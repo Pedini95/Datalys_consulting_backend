@@ -241,20 +241,20 @@ def upload_file():
             file_record, create_success, create_message = file_service.create(file_data, g.current_user.id)
             
             if create_success and file_record:
-                response = {
-                    'status': 'success',
-                    'message': 'Fichier uploadé avec succès',
-                    'data': {
-                        'file_path': file_path,
-                        'file_url': file_url,
+            response = {
+                'status': 'success',
+                'message': 'Fichier uploadé avec succès',
+                'data': {
+                    'file_path': file_path,
+                    'file_url': file_url,
                         'filename': os.path.basename(file_path),
                         'file_id': file_record.id,
                         'db_record': file_record.as_dict()
-                    }
                 }
-                
+            }
+            
                 logger.info(f"**** Fichier uploadé et enregistré en DB: {file_path} (ID: {file_record.id}) ****")
-                return jsonify(response), 200
+            return jsonify(response), 200
             else:
                 # Supprimer le fichier physique si l'enregistrement DB échoue
                 file_upload_manager.delete_file(file_path)

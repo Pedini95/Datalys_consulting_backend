@@ -111,7 +111,7 @@ class FileUploadManager:
                 if image_only:
                     return False, f"Type de fichier non autorisé. Extensions autorisées: {', '.join(self.image_extensions)}", ""
                 else:
-                    return False, f"Type de fichier non autorisé. Extensions autorisées: {', '.join(self.allowed_extensions)}", ""
+                return False, f"Type de fichier non autorisé. Extensions autorisées: {', '.join(self.allowed_extensions)}", ""
             
             # Vérifier la taille
             file.seek(0, os.SEEK_END)
