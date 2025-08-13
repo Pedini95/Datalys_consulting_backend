@@ -55,8 +55,8 @@ def create_partners():
     Supporte les formats JSON et multipart/form-data
     """
     try:
-        logging.info("**** Begin create_partners ****")
-        logging.info("/partners/create")
+    logging.info("**** Begin create_partners ****")
+    logging.info("/partners/create")
         
         # Détecter le type de requête
         content_type = request.content_type or ''
@@ -186,25 +186,25 @@ def _create_partners_json():
     try:
         logging.info("**** Begin create_partners_json ****")
         
-        r = request.get_json() or {}
-        logging.info("**** request input ****")
-        logging.info(r)
+    r = request.get_json() or {}
+    logging.info("**** request input ****")
+    logging.info(r)
+    
+    user = r.get('user', {})
+    datas = r.get('datas', [])
+    
+    # Préparer les données pour le service
+    processed_datas = []
+    for data in datas:
+        # Champs obligatoires
+        required_fields = ['name']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
         
-        user = r.get('user', {})
-        datas = r.get('datas', [])
-        
-        # Préparer les données pour le service
-        processed_datas = []
-        for data in datas:
-            # Champs obligatoires
-            required_fields = ['name']
-            for field in required_fields:
-                if field not in data or not data[field]:
-                    return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
-            
-            processed_data = {
-                'name': data.get('name'),
-                'logo_url': data.get('logo_url'),
+        processed_data = {
+            'name': data.get('name'),
+            'logo_url': data.get('logo_url'),
                 'is_active': data.get('is_active', True)
             }
             
@@ -216,25 +216,25 @@ def _create_partners_json():
             if 'address' in data:
                 processed_data['address'] = data.get('address')
             
-            processed_datas.append(processed_data)
-        
-        items = []
-        for data in processed_datas:
-            item, success, message = partner_service.create(data, user.get('id'))
-            if not success:
-                return {"status": "error", "message": message}, 400
-            items.append(item)
-        
+        processed_datas.append(processed_data)
+    
+    items = []
+    for data in processed_datas:
+        item, success, message = partner_service.create(data, user.get('id'))
+        if not success:
+            return {"status": "error", "message": message}, 400
+        items.append(item)
+    
         response = {
             "items": [partner.as_dict() for partner in items], 
             "message": functional_error.MESSAGE_SUCCESS(), 
             "code": 200
         }
-        
-        logging.info("**** response output ****")
-        logging.info(response)
+    
+    logging.info("**** response output ****")
+    logging.info(response)
         logging.info("**** End create_partners_json ****")
-        return response
+    return response
         
     except Exception as e:
         logger.error(f"Erreur dans _create_partners_json: {str(e)}")

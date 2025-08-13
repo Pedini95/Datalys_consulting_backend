@@ -338,7 +338,7 @@ def serve_file(filename):
         return jsonify({
             'status': 'error',
             'message': 'Fichier non trouvé'
-        }), 404
+        }), 404 
 
 @bp.route('/files/download/<int:file_id>', methods=['GET'])
 @require_auth
