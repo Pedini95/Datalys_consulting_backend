@@ -35,8 +35,6 @@ RUN mkdir -p /app/src/logs /app/src/static/files && chown -R app:app /app/src/lo
 
 RUN chown -R app:app /app 
 
-USER app
-
 # Copy requirements first for better caching
 COPY src/requirements.txt .
 
@@ -47,9 +45,14 @@ RUN /app/venv/bin/pip install --upgrade pip && /app/venv/bin/pip install -r requ
 # Copy application files (only src directory)
 COPY src/ /app/src/
 
-# Copy and set up the startup script
+# Copy and set up the startup script (do this before changing user)
 COPY src/start.sh /app/start.sh
-RUN chmod +x /app/start.sh
+RUN chmod +x /app/start.sh && chown app:app /app/start.sh
+
+# Change ownership of all files to app user
+RUN chown -R app:app /app
+
+USER app
 
 # Expose port
 EXPOSE 8081
