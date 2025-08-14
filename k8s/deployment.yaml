@@ -143,19 +143,19 @@ spec:
           httpGet:
             path: /health
             port: 8081
-          initialDelaySeconds: 60
+          initialDelaySeconds: 90
           periodSeconds: 30
-          timeoutSeconds: 10
-          failureThreshold: 3
+          timeoutSeconds: 15
+          failureThreshold: 5
         
         readinessProbe:
           httpGet:
             path: /health
             port: 8081
-          initialDelaySeconds: 30
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
+          initialDelaySeconds: 60
+          periodSeconds: 15
+          timeoutSeconds: 10
+          failureThreshold: 5
         
         volumeMounts:
         - name: uploads-volume
@@ -177,8 +177,7 @@ spec:
             - ALL
         
         # Commandes de démarrage
-        command: ["./venv/bin/python"]
-        args: ["src/run.py"]
+        command: ["/app/start.sh"]
         workingDir: /app
         
       # Volumes

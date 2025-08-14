@@ -41,14 +41,18 @@ USER app
 COPY src/requirements.txt .
 
 # Create virtual environment and install dependencies
-RUN python3 -m venv venv
-RUN . venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt
+RUN python3 -m venv /app/venv
+RUN /app/venv/bin/pip install --upgrade pip && /app/venv/bin/pip install -r requirements.txt
 
 # Copy application files (only src directory)
 COPY src/ /app/src/
 
-# Ensure models directory exists and has correct permissions
-RUN ls -la /app/src/models/ || echo "Models directory not found"
+# Copy and set up the startup script
+COPY src/start.sh /app/start.sh
+RUN chmod +x /app/start.sh
 
-# Define the command to run the application
-CMD ["./venv/bin/python", "src/run.py"]
+# Expose port
+EXPOSE 8081
+
+# Default command
+CMD ["/app/start.sh"]
