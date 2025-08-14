@@ -176,7 +176,8 @@ spec:
             - ALL
         
         # Commandes de démarrage
-        command: ["/app/start.sh"]
+        command: ["/app/venv/bin/python"]
+        args: ["src/run.py"]
         workingDir: /app
         
       # Volumes
