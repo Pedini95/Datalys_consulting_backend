@@ -47,8 +47,5 @@ RUN . venv/bin/activate && pip install --upgrade pip && pip install -r requireme
 # Copy application files (only src directory)
 COPY src/ /app/src/
 
-# Ensure proper permissions for application files
-RUN chown -R app:app /app/src
-
 # Define the command to run the application
 CMD ["./venv/bin/python", "src/run.py"]
