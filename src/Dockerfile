@@ -45,7 +45,7 @@ RUN /app/venv/bin/pip install --upgrade pip && /app/venv/bin/pip install -r requ
 # Copy application files (only src directory)
 COPY src/ /app/src/
 
-# Copy and set up the startup script (do this before changing user)
+# Copy the startup script to the correct location
 COPY src/start.sh /app/start.sh
 RUN chmod +x /app/start.sh && chown app:app /app/start.sh
 
