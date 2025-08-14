@@ -25,6 +25,8 @@ log_file_path = app.config['LOG_FILE_PATH']
 # Forcer le chemin absolu correct
 log_dir = '/app/src/logs'
 os.makedirs(log_dir, exist_ok=True)
+# Corriger le chemin du fichier de log
+log_file_path = '/app/src/logs/datalys_consulting.log'
 
 # Format
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
