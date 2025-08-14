@@ -72,7 +72,12 @@ class FileUploadManager:
             if config_upload_folder is not None:
                 base_path = str(config_upload_folder)
             else:
-                base_path = '/var/www/html/uploads'
+                base_path = './static/files'
+            
+            # Si le chemin est relatif, le rendre absolu par rapport au répertoire de l'application
+            if not os.path.isabs(base_path):
+                base_path = os.path.join(current_app.root_path, base_path)
+            
             if subfolder and subfolder.strip():
                 base_path = os.path.join(base_path, str(subfolder))
             

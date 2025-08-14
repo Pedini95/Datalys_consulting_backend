@@ -13,7 +13,7 @@ app.config.from_object('config.Config')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Configuration du dossier d'upload
-app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', '/var/www/html/uploads')
+app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', './static/files')
 swagger = Swagger(app)
 
 # Determine if in development environment
