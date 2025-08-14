@@ -22,10 +22,8 @@ logging.info(f"is_dev: {is_dev}")
 
 # Dossier et fichier log
 log_file_path = app.config['LOG_FILE_PATH']
-log_dir = os.path.dirname(log_file_path)
-# S'assurer que le chemin est absolu et correct
-if not os.path.isabs(log_dir):
-    log_dir = os.path.abspath(log_dir)
+# Forcer le chemin absolu correct
+log_dir = '/app/src/logs'
 os.makedirs(log_dir, exist_ok=True)
 
 # Format
