@@ -44,11 +44,11 @@ COPY src/requirements.txt .
 RUN python3 -m venv venv
 RUN . venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt
 
-# Copy application files
-COPY . .
+# Copy application files (only src directory)
+COPY src/ /app/src/
 
-# Ensure proper permissions for all files
-RUN chown -R app:app /app
+# Ensure proper permissions for application files
+RUN chown -R app:app /app/src
 
 # Define the command to run the application
 CMD ["./venv/bin/python", "src/run.py"]
