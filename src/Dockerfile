@@ -48,7 +48,7 @@ COPY src/ /app/src/
 # Create the startup script directly in the image
 RUN echo '#!/bin/bash' > /app/start.sh && \
     echo 'set -e' >> /app/start.sh && \
-    echo 'echo "🚀 Démarrage de l\'application Datalys Consulting..."' >> /app/start.sh && \
+    echo 'echo "Démarrage de l application Datalys Consulting..."' >> /app/start.sh && \
     echo 'cd /app' >> /app/start.sh && \
     echo 'exec /app/venv/bin/python src/run.py' >> /app/start.sh && \
     chmod +x /app/start.sh && chown app:app /app/start.sh
