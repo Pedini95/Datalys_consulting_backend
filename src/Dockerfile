@@ -47,5 +47,8 @@ RUN . venv/bin/activate && pip install --upgrade pip && pip install -r requireme
 # Copy application files (only src directory)
 COPY src/ /app/src/
 
+# Ensure models directory exists and has correct permissions
+RUN ls -la /app/src/models/ || echo "Models directory not found"
+
 # Define the command to run the application
 CMD ["./venv/bin/python", "src/run.py"]
