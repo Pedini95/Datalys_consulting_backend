@@ -45,9 +45,13 @@ RUN /app/venv/bin/pip install --upgrade pip && /app/venv/bin/pip install -r requ
 # Copy application files (only src directory)
 COPY src/ /app/src/
 
-# Copy the startup script to the correct location
-COPY src/start.sh /app/start.sh
-RUN chmod +x /app/start.sh && chown app:app /app/start.sh
+# Create the startup script directly in the image
+RUN echo '#!/bin/bash' > /app/start.sh && \
+    echo 'set -e' >> /app/start.sh && \
+    echo 'echo "🚀 Démarrage de l\'application Datalys Consulting..."' >> /app/start.sh && \
+    echo 'cd /app' >> /app/start.sh && \
+    echo 'exec /app/venv/bin/python src/run.py' >> /app/start.sh && \
+    chmod +x /app/start.sh && chown app:app /app/start.sh
 
 # Change ownership of all files to app user
 RUN chown -R app:app /app
