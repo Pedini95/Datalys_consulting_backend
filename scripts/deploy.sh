@@ -12,8 +12,8 @@ PROJECT_DIR="/opt/Datalys_consulting_backend"
 CONTAINER_NAME="datalys-api"
 
 # Activer BuildKit pour des performances maximales
-export DOCKER_BUILDKIT=1
-export COMPOSE_DOCKER_CLI_BUILD=1
+# export DOCKER_BUILDKIT=1
+# export COMPOSE_DOCKER_CLI_BUILD=1
 
 # 1. Vérifier les services Docker
 echo "🔧 Vérification des services Docker..."
