@@ -31,9 +31,9 @@ RUN apt-get update && ACCEPT_EULA=Y apt-get install -y msodbcsql17 \
 # Create user and group early
 RUN groupadd -r app && useradd -r -g app -m -d /app -s /bin/bash app
 
-# Create necessary directories with proper permissions immediately
+# Create necessary directories and set ownership
 RUN mkdir -p /app/src/logs /app/src/static/files && \
-    chown -R app:app /app/src/logs /app/src/static/files
+    chown -R app:app /app
 
 # Copy requirements first for better caching
 COPY --chown=app:app src/requirements.txt .
