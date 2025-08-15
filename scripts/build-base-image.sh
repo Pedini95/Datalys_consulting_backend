@@ -7,9 +7,16 @@ echo "⏰ $(date)"
 REGISTRY="localhost:8081"
 BASE_IMAGE_NAME="datalys/base"
 
-# Enable Docker BuildKit for better performance
-export DOCKER_BUILDKIT=1
-export COMPOSE_DOCKER_CLI_BUILD=1
+# Vérifier si BuildKit est disponible
+if docker buildx version &> /dev/null; then
+    echo "✅ BuildKit disponible, activation..."
+    export DOCKER_BUILDKIT=1
+    export COMPOSE_DOCKER_CLI_BUILD=1
+    BUILDKIT_AVAILABLE=true
+else
+    echo "⚠️  BuildKit non disponible, utilisation du build Docker classique"
+    BUILDKIT_AVAILABLE=false
+fi
 
 # Vérifier si l'image de base existe déjà
 if docker images | grep -q "$BASE_IMAGE_NAME"; then
@@ -22,10 +29,17 @@ if docker images | grep -q "$BASE_IMAGE_NAME"; then
 fi
 
 echo "🔄 Construction de l'image de base..."
-docker build \
-  --tag $REGISTRY/$BASE_IMAGE_NAME:latest \
-  --progress=plain \
-  -f src/Dockerfile.base .
+
+if [ "$BUILDKIT_AVAILABLE" = true ]; then
+    docker build \
+      --tag $REGISTRY/$BASE_IMAGE_NAME:latest \
+      --progress=plain \
+      -f src/Dockerfile.base .
+else
+    docker build \
+      --tag $REGISTRY/$BASE_IMAGE_NAME:latest \
+      -f src/Dockerfile.base .
+fi
 
 if [ $? -eq 0 ]; then
     echo "✅ Image de base construite avec succès"
