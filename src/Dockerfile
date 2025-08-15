@@ -75,6 +75,10 @@ RUN mkdir -p /app/src/logs /app/src/static/files && \
 # Copier le code de l'application
 COPY --chown=app:app src/ /app/src/
 
+# S'assurer que les permissions sont correctes
+RUN chown -R app:app /app/src/logs /app/src/static && \
+    chmod -R 755 /app/src/logs /app/src/static
+
 # Créer le script de démarrage
 RUN echo '#!/bin/bash' > /app/start.sh && \
     echo 'set -e' >> /app/start.sh && \
