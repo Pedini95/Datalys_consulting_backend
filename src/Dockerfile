@@ -49,8 +49,10 @@ COPY src/ /app/src/
 RUN echo '#!/bin/bash' > /app/start.sh && \
     echo 'set -e' >> /app/start.sh && \
     echo 'echo "Démarrage de l application Datalys Consulting..."' >> /app/start.sh && \
-    echo 'cd /app' >> /app/start.sh && \
-    echo 'exec /app/venv/bin/python src/run.py' >> /app/start.sh && \
+    echo 'cd /app/src' >> /app/start.sh && \
+    echo 'export PYTHONPATH=/app/src:$PYTHONPATH' >> /app/start.sh && \
+    echo 'export PORT=8082' >> /app/start.sh && \
+    echo 'exec /app/venv/bin/python run.py' >> /app/start.sh && \
     chmod +x /app/start.sh && chown app:app /app/start.sh
 
 # Change ownership of all files to app user
@@ -59,7 +61,7 @@ RUN chown -R app:app /app
 USER app
 
 # Expose port
-EXPOSE 8081
+EXPOSE 8082
 
 # Default command
 CMD ["/app/start.sh"]

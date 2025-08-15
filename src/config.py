@@ -1,23 +1,21 @@
 import os
 from dotenv import load_dotenv
 
-# Charger le fichier .env.local depuis le répertoire src
+# Charger le fichier .env.local seulement en développement
 current_dir = os.path.dirname(os.path.abspath(__file__))
 env_path = os.path.join(current_dir, '.env.local')
 
-# Vérifier si le fichier existe
-if os.path.exists(env_path):
+# Vérifier si on est en production (Kubernetes/Docker)
+is_production = os.getenv('ENV') == 'production' or os.getenv('FLASK_ENV') == 'production'
+
+if is_production:
+    print("✅ Mode production: utilisation des variables d'environnement système")
+    # En production, ne pas charger de fichier .env pour éviter les conflits
+elif os.path.exists(env_path):
     load_dotenv(env_path, override=True)
     print(f"✅ Variables d'environnement chargées depuis: {env_path}")
 else:
     print(f"⚠️  Fichier .env.local non trouvé: {env_path}")
-    # Essayer de charger depuis le répertoire parent
-    parent_env_path = os.path.join(os.path.dirname(current_dir), '.env.local')
-    if os.path.exists(parent_env_path):
-        load_dotenv(parent_env_path, override=True)
-        print(f"✅ Variables d'environnement chargées depuis: {parent_env_path}")
-    else:
-        print(f"❌ Aucun fichier .env.local trouvé")
 
 class Config:
     SECRET_KEY=os.getenv('SECRET_KEY')

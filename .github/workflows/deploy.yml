@@ -1,16 +1,15 @@
-name: Deploy to Kubernetes
+name: Deploy to Docker Server
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ develop ]
   workflow_dispatch:  # Déploiement manuel
 
 env:
   REGISTRY: localhost:8081
   IMAGE_NAME: datalys/api
-  KUBERNETES_NAMESPACE: default
 
 jobs:
   build-and-deploy:
@@ -34,7 +33,18 @@ jobs:
         # Ajoutez vos tests ici
         echo "Running tests..."
         
-    - name: Deploy to server and build
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Cache Docker layers
+      uses: actions/cache@v3
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-
+          
+    - name: Deploy to Docker server
       uses: appleboy/ssh-action@v1.0.0
       with:
         host: ${{ secrets.HOSTINGER_HOST }}
@@ -42,14 +52,15 @@ jobs:
         key: ${{ secrets.HOSTINGER_SSH_KEY }}
         port: ${{ secrets.HOSTINGER_PORT }}
         script: |
-          echo "🚀 Début du déploiement automatique..."
+          echo "🚀 Début du déploiement automatique Docker avec cache..."
           
           # Variables
           REGISTRY="localhost:8081"
           IMAGE_NAME="datalys/api"
           PROJECT_DIR="/opt/Datalys_consulting_backend"
+          CONTAINER_NAME="datalys-api"
           
-          # 1. Vérifier et redémarrer les services Docker
+          # 1. Vérifier et redémarrer les services Docker essentiels
           echo "🔧 Vérification des services Docker..."
           docker start redis-db mysql-db registry || true
           
@@ -61,31 +72,71 @@ jobs:
           git fetch origin
           git reset --hard origin/develop
           
-          # 4. Reconstruire l'image Docker
-          echo "🐳 Construction de l'image Docker..."
-          docker build -t $REGISTRY/$IMAGE_NAME:latest -f src/Dockerfile .
+          # 4. Vérifier si l'image existe déjà avec le même hash
+          echo "🔍 Vérification du cache Docker..."
+          CURRENT_HASH=$(git rev-parse HEAD)
+          CACHED_IMAGE="$REGISTRY/$IMAGE_NAME:$CURRENT_HASH"
           
-          # 5. Redémarrer le deployment Kubernetes
-          echo "☸️  Redémarrage du deployment Kubernetes..."
-          kubectl rollout restart deployment/datalys-api
-          
-          # 6. Surveiller le déploiement
-          echo "👀 Surveillance du déploiement..."
-          kubectl rollout status deployment/datalys-api --timeout=300s
-          
-          # 7. Vérifier les pods
-          echo "🔍 Vérification des pods..."
-          kubectl get pods -l app=datalys-api
-          
-          # 8. Test de santé
-          echo "🏥 Test de santé de l'application..."
-          sleep 30
-          if curl -f http://localhost:32015/health > /dev/null 2>&1; then
-              echo "✅ Application en ligne et fonctionnelle"
+          if docker images | grep -q "$CURRENT_HASH"; then
+              echo "✅ Image en cache trouvée, utilisation de la version existante"
+              docker tag $CACHED_IMAGE $REGISTRY/$IMAGE_NAME:latest
           else
-              echo "❌ L'application ne répond pas"
-              kubectl logs -l app=datalys-api --tail=20
+              echo "🔄 Construction de l'image Docker avec cache..."
+              # Construction avec cache des layers
+              docker build \
+                --cache-from $REGISTRY/$IMAGE_NAME:latest \
+                --tag $REGISTRY/$IMAGE_NAME:latest \
+                --tag $CACHED_IMAGE \
+                -f src/Dockerfile .
+              
+              echo "💾 Sauvegarde de l'image dans le cache..."
+          fi
+          
+          # 5. Arrêter et supprimer l'ancien conteneur
+          echo "🔄 Arrêt de l'ancien conteneur..."
+          docker rm -f $CONTAINER_NAME || true
+          
+          # 6. Démarrer le nouveau conteneur
+          echo "🚀 Démarrage du nouveau conteneur..."
+          docker run -d --name $CONTAINER_NAME --network host $REGISTRY/$IMAGE_NAME:latest
+          
+          # 7. Attendre que l'application démarre
+          echo "⏳ Attente du démarrage de l'application..."
+          sleep 15
+          
+          # 8. Vérifier que le conteneur fonctionne
+          echo "🔍 Vérification du conteneur..."
+          if docker ps | grep -q $CONTAINER_NAME; then
+              echo "✅ Conteneur en cours d'exécution"
+          else
+              echo "❌ Le conteneur ne fonctionne pas"
+              docker logs $CONTAINER_NAME
               exit 1
           fi
           
+          # 9. Test de santé
+          echo "🏥 Test de santé de l'application..."
+          if curl -f http://localhost:8082/health > /dev/null 2>&1; then
+              echo "✅ Application en ligne et fonctionnelle sur le port 8082"
+          else
+              echo "❌ L'application ne répond pas"
+              docker logs $CONTAINER_NAME --tail=20
+              exit 1
+          fi
+          
+          # 10. Vérifier l'ouverture du port dans le firewall
+          echo "🔥 Vérification du firewall..."
+          if ufw status | grep -q "8082"; then
+              echo "✅ Port 8082 ouvert dans le firewall"
+          else
+              echo "⚠️  Ouverture du port 8082 dans le firewall..."
+              ufw allow 8082
+          fi
+          
+          # 11. Nettoyage des anciennes images (garder les 5 dernières)
+          echo "🧹 Nettoyage des anciennes images..."
+          docker images $REGISTRY/$IMAGE_NAME --format "table {{.Tag}}\t{{.CreatedAt}}" | grep -v "latest" | tail -n +6 | awk '{print $1}' | xargs -r docker rmi || true
+          
           echo "🎉 Déploiement terminé avec succès !"
+          echo "🌐 URL de l'API: http://${{ secrets.HOSTINGER_HOST }}:8082"
+          echo "⚡ Build optimisé avec cache Docker"
