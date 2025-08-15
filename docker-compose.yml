@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  datalys-api:
+    image: datalys-consulting/api:latest
+    container_name: datalys-api
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./uploads:/app/src/static/files
+      - ./logs:/app/src/logs
+    environment:
+      - FLASK_ENV=production
+      - PYTHONPATH=/app/src
+      - PORT=8082
+    healthcheck:
+      test: ["CMD", "curl", "-f", "--connect-timeout", "10", "--max-time", "30", "http://localhost:8082/health"]
+      interval: 60s
+      timeout: 30s
+      retries: 5
+      start_period: 120s
+    networks:
+      - datalys-network
+
+networks:
+  datalys-network:
+    driver: bridge 
