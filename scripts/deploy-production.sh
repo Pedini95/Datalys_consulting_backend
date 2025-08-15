@@ -8,7 +8,12 @@ cd "$APP_DIR"
 
 echo "📥 Pull du dernier docker-compose.yml..."
 git fetch --all
-git reset --hard origin/main
+# Utiliser la branche develop (ou main si elle existe)
+if git show-ref --verify --quiet refs/remotes/origin/main; then
+    git reset --hard origin/main
+else
+    git reset --hard origin/develop
+fi
 
 echo "⬇️ Pull de la dernière image..."
 docker compose pull
