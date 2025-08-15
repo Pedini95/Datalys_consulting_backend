@@ -42,26 +42,14 @@ echo "⚡ Construction ultra-rapide avec cache..."
 CURRENT_HASH=$(git rev-parse HEAD)
 CACHED_IMAGE="$REGISTRY/$IMAGE_NAME:$CURRENT_HASH"
 
-# Utiliser BuildKit avec cache optimisé
-if docker buildx version &> /dev/null; then
-    echo "🔨 BuildKit disponible - Construction optimisée..."
-    docker build \
-        --build-arg BUILDKIT_INLINE_CACHE=1 \
-        --cache-from $REGISTRY/$IMAGE_NAME:latest \
-        --cache-from $REGISTRY/$IMAGE_NAME:buildcache \
-        --tag $REGISTRY/$IMAGE_NAME:latest \
-        --tag $CACHED_IMAGE \
-        --tag $REGISTRY/$IMAGE_NAME:buildcache \
-        --progress=plain \
-        -f src/Dockerfile .
-else
-    echo "🔨 Docker classique - Construction avec cache..."
-    docker build \
-        --cache-from $REGISTRY/$IMAGE_NAME:latest \
-        --tag $REGISTRY/$IMAGE_NAME:latest \
-        --tag $CACHED_IMAGE \
-        -f src/Dockerfile .
-fi
+# Construction avec cache optimisé (sans BuildKit)
+echo "🔨 Construction avec cache Docker classique..."
+docker build \
+    --cache-from $REGISTRY/$IMAGE_NAME:latest \
+    --tag $REGISTRY/$IMAGE_NAME:latest \
+    --tag $CACHED_IMAGE \
+    --tag $REGISTRY/$IMAGE_NAME:buildcache \
+    -f src/Dockerfile .
 
 # 6. Arrêt rapide de l'ancien conteneur
 echo "🔄 Arrêt de l'ancien conteneur..."
