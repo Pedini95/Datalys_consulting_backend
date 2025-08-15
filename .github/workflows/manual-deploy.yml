@@ -1,22 +1,32 @@
-name: Deploy to Docker Server
+name: Manual Deploy
 
 on:
-  push:
-    branches: [ develop ]
-  workflow_dispatch:  # Déploiement manuel
-
-env:
-  REGISTRY: localhost:8081
-  IMAGE_NAME: datalys/api
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+        - production
+        - staging
+      branch:
+        description: 'Branch to deploy'
+        required: true
+        default: 'develop'
+        type: string
 
 jobs:
-  test-and-deploy:
+  manual-deploy:
     runs-on: ubuntu-latest
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+      with:
+        ref: ${{ github.event.inputs.branch }}
+        
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
@@ -27,25 +37,7 @@ jobs:
         cd src
         pip install -r requirements.txt
         
-    - name: Run tests
-      run: |
-        cd src
-        echo "Running tests..."
-        # Ajoutez vos tests ici
-        # python -m pytest tests/
-        
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-      
-    - name: Cache Docker layers
-      uses: actions/cache@v3
-      with:
-        path: /tmp/.buildx-cache
-        key: ${{ runner.os }}-buildx-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-buildx-
-          
-    - name: Deploy to Production Server
+    - name: Deploy to ${{ github.event.inputs.environment }}
       uses: appleboy/ssh-action@v1.0.0
       with:
         host: ${{ secrets.HOSTINGER_HOST }}
@@ -53,23 +45,29 @@ jobs:
         key: ${{ secrets.HOSTINGER_SSH_KEY }}
         port: ${{ secrets.HOSTINGER_PORT }}
         script: |
-          echo "🚀 Déploiement automatique via GitHub Actions..."
+          echo "🚀 Déploiement manuel vers ${{ github.event.inputs.environment }}"
           echo "📅 Date: $(date)"
           echo "🔗 Commit: ${{ github.sha }}"
           echo "👤 Auteur: ${{ github.actor }}"
+          echo "🌿 Branche: ${{ github.event.inputs.branch }}"
           
           # Aller dans le répertoire du projet
           cd /opt/Datalys_consulting_backend
           
-          # Exécuter le script de déploiement optimisé
+          # Mettre à jour vers la branche spécifiée
+          git fetch origin
+          git checkout ${{ github.event.inputs.branch }}
+          git reset --hard origin/${{ github.event.inputs.branch }}
+          
+          # Exécuter le script de déploiement
           ./scripts/deploy-production.sh
           
           # Vérification finale
           echo "🔍 Vérification finale du déploiement..."
           if curl -f http://localhost:8082/health > /dev/null 2>&1; then
-              echo "✅ Déploiement réussi !"
+              echo "✅ Déploiement manuel réussi !"
               echo "🌐 API accessible sur: http://${{ secrets.HOSTINGER_HOST }}:8082"
           else
-              echo "❌ Échec du déploiement"
+              echo "❌ Échec du déploiement manuel"
               exit 1
-          fi
+          fi 
