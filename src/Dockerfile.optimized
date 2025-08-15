@@ -1,0 +1,29 @@
+# Utilise l'image de base avec tous les packages système pré-installés
+FROM localhost:8081/datalys/base:latest
+
+# Copy requirements first for better caching
+COPY --chown=app:app src/requirements.txt .
+
+# Create virtual environment and install Python dependencies
+RUN python3 -m venv /app/venv \
+    && /app/venv/bin/pip install --upgrade pip setuptools wheel \
+    && /app/venv/bin/pip install --no-cache-dir --compile -r requirements.txt
+
+# Copy application files
+COPY --chown=app:app src/ /app/src/
+
+# Create startup script
+RUN echo '#!/bin/bash' > /app/start.sh \
+    && echo 'set -e' >> /app/start.sh \
+    && echo 'echo "Démarrage de l application Datalys Consulting..."' >> /app/start.sh \
+    && echo 'cd /app/src' >> /app/start.sh \
+    && echo 'export PYTHONPATH=/app/src:$PYTHONPATH' >> /app/start.sh \
+    && echo 'export PORT=8082' >> /app/start.sh \
+    && echo 'exec /app/venv/bin/python run.py' >> /app/start.sh \
+    && chmod +x /app/start.sh
+
+# Expose port
+EXPOSE 8082
+
+# Default command
+CMD ["/app/start.sh"] 
