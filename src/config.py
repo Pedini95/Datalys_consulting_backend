@@ -5,8 +5,13 @@ from dotenv import load_dotenv
 current_dir = os.path.dirname(os.path.abspath(__file__))
 env_path = os.path.join(current_dir, '.env.local')
 
-# Vérifier si on est en production (Kubernetes/Docker)
-is_production = os.getenv('ENV') == 'production' or os.getenv('FLASK_ENV') == 'production'
+# Vérifier si on est en production (Kubernetes/Docker/GitHub Actions)
+is_production = (
+    os.getenv('ENV') == 'production' or 
+    os.getenv('FLASK_ENV') == 'production' or
+    os.getenv('GITHUB_ACTIONS') == 'true' or
+    os.getenv('CI') == 'true'
+)
 
 if is_production:
     print("✅ Mode production: utilisation des variables d'environnement système")
@@ -15,15 +20,20 @@ elif os.path.exists(env_path):
     load_dotenv(env_path, override=True)
     print(f"✅ Variables d'environnement chargées depuis: {env_path}")
 else:
-    print(f"⚠️  Fichier .env.local non trouvé: {env_path}")
+    print(f"ℹ️  Mode développement: fichier .env.local non trouvé, utilisation des variables système")
 
 class Config:
-    SECRET_KEY=os.getenv('SECRET_KEY')
+    SECRET_KEY=os.getenv('SECRET_KEY', 'default-secret-key-for-development')
     SESSION_EXPIRE_MINUTES = 30
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
     # MySQL
-    SQLALCHEMY_DATABASE_URI = (f"mysql+pymysql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}/{os.getenv('DB_NAME')}")
+    DB_USER = os.getenv('DB_USER', 'root')
+    DB_PASSWORD = os.getenv('DB_PASSWORD', '')
+    DB_HOST = os.getenv('DB_HOST', 'localhost')
+    DB_NAME = os.getenv('DB_NAME', 'datalys_consulting')
+    
+    SQLALCHEMY_DATABASE_URI = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Configuration Redis

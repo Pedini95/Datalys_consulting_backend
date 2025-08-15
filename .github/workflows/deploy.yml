@@ -13,6 +13,8 @@ on:
 env:
   REGISTRY: localhost:8081
   IMAGE_NAME: datalys/api
+  ENV: production
+  GITHUB_ACTIONS: true
 
 jobs:
   deploy:
