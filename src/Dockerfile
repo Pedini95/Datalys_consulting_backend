@@ -32,7 +32,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # Copier et installer les dépendances Python
 WORKDIR /app
-COPY requirements.txt .
+COPY src/requirements.txt .
 
 # Installer les dépendances Python avec cache optimisé
 RUN pip install --upgrade pip setuptools wheel && \
