@@ -1,4 +1,4 @@
-name: Deploy Ultra-Fast with Registry Cache
+name: Deploy with Docker Compose + Registry Cache
 
 on:
   push:
@@ -19,7 +19,7 @@ env:
   # IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
     
@@ -33,7 +33,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Enable Docker BuildKit
+      - name: Enable BuildKit
         run: |
           echo "DOCKER_BUILDKIT=1" >> $GITHUB_ENV
           echo "COMPOSE_DOCKER_CLI_BUILD=1" >> $GITHUB_ENV
@@ -55,35 +55,33 @@ jobs:
           build-args: |
             BUILDKIT_INLINE_CACHE=1
 
-      - name: Deploy to production
+      - name: Deploy with Docker Compose
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.HOSTINGER_HOST }}
           username: ${{ secrets.HOSTINGER_USERNAME }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           script: |
-            echo "🚀 Déploiement avec cache registry..."
+            echo "🚀 Déploiement avec Docker Compose + cache registry..."
             
             cd /opt/Datalys_consulting_backend
+            
+            # Créer le fichier .env pour Docker Compose
+            cat > .env << EOF
+            REGISTRY=${{ env.REGISTRY }}
+            IMAGE_NAME=${{ env.IMAGE_NAME }}
+            EOF
             
             # Pull de la nouvelle image
             docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             
             # Arrêter et supprimer l'ancien conteneur
-            docker stop datalys-api || true
-            docker rm datalys-api || true
+            docker-compose down || true
             
-            # Démarrer le nouveau conteneur
-            docker run -d \
-              --name datalys-api \
-              --restart unless-stopped \
-              -p 8082:8082 \
-              -v /opt/Datalys_consulting_backend/uploads:/app/src/static/files \
-              -e FLASK_ENV=production \
-              -e PYTHONPATH=/app/src \
-              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            # Démarrer avec Docker Compose
+            docker-compose up -d
             
-            echo "✅ Conteneur déployé avec succès"
+            echo "✅ Conteneur déployé avec Docker Compose"
 
       - name: Health check
         uses: appleboy/ssh-action@v1.2.0
@@ -95,16 +93,19 @@ jobs:
             echo "🔍 Vérification de la santé de l'application..."
             sleep 30
             
-            # Vérification du conteneur
-            docker ps | grep datalys-api || (echo "❌ Conteneur non trouvé" && exit 1)
+            cd /opt/Datalys_consulting_backend
+            
+            # Vérification du conteneur avec Docker Compose
+            docker-compose ps | grep datalys-api || (echo "❌ Conteneur non trouvé" && exit 1)
             
             # Health check de l'application
             curl -f --connect-timeout 10 --max-time 30 http://localhost:8082/health || (echo "❌ Health check échoué" && exit 1)
             
             echo "✅ Déploiement réussi ! Application en ligne sur le port 8082"
             
-            # Nettoyage des anciennes images (optionnel)
-            docker image prune -f
+            # Afficher les logs pour debug
+            echo "📋 Logs du conteneur :"
+            docker-compose logs --tail=20 datalys-api
 
       - name: Cleanup old images
         uses: appleboy/ssh-action@v1.2.0
@@ -115,4 +116,7 @@ jobs:
           script: |
             echo "🧹 Nettoyage des anciennes images..."
             # Garder seulement les 3 dernières images
-            docker images ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }} --format "table {{.Repository}}:{{.Tag}}\t{{.CreatedAt}}" | tail -n +2 | sort -k2 -r | tail -n +4 | awk '{print $1}' | xargs -r docker rmi || true 
+            docker images ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }} --format "table {{.Repository}}:{{.Tag}}\t{{.CreatedAt}}" | tail -n +2 | sort -k2 -r | tail -n +4 | awk '{print $1}' | xargs -r docker rmi || true
+            
+            # Nettoyage général des images non utilisées
+            docker image prune -f 

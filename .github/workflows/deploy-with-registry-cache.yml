@@ -1,4 +1,4 @@
-name: Deploy Ultra-Fast with Registry Cache
+name: Deploy with Registry Cache
 
 on:
   push:
@@ -19,7 +19,7 @@ env:
   # IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
     
@@ -33,7 +33,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Enable Docker BuildKit
+      - name: Enable BuildKit
         run: |
           echo "DOCKER_BUILDKIT=1" >> $GITHUB_ENV
           echo "COMPOSE_DOCKER_CLI_BUILD=1" >> $GITHUB_ENV
@@ -63,8 +63,6 @@ jobs:
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           script: |
             echo "🚀 Déploiement avec cache registry..."
-            
-            cd /opt/Datalys_consulting_backend
             
             # Pull de la nouvelle image
             docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest

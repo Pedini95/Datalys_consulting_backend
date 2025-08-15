@@ -1,0 +1,31 @@
+name: Test Secrets Simple
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Test Secrets
+        run: |
+          echo "Test des secrets..."
+          
+          if [ "${{ secrets.REMOTE_HOST }}" != "" ]; then
+            echo "✅ REMOTE_HOST: ${{ secrets.REMOTE_HOST }}"
+          else
+            echo "❌ REMOTE_HOST est vide ou manquant"
+          fi
+          
+          if [ "${{ secrets.REMOTE_USER }}" != "" ]; then
+            echo "✅ REMOTE_USER: ${{ secrets.REMOTE_USER }}"
+          else
+            echo "❌ REMOTE_USER est vide ou manquant"
+          fi
+          
+          if [ "${{ secrets.SSH_PRIVATE_KEY }}" != "" ]; then
+            echo "✅ SSH_PRIVATE_KEY: [PRÉSENT]"
+          else
+            echo "❌ SSH_PRIVATE_KEY est vide ou manquant"
+          fi 
