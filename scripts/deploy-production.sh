@@ -33,7 +33,17 @@ echo "📦 Mise à jour du code..."
 git fetch origin
 git reset --hard origin/develop
 
-# 4. Vérifier si l'image existe déjà avec le même hash
+# 4. Vérifier si l'image de base existe
+echo "🔍 Vérification de l'image de base..."
+if docker images | grep -q "datalys/base"; then
+    echo "✅ Image de base trouvée, utilisation du Dockerfile optimisé"
+    DOCKERFILE_PATH="src/Dockerfile.optimized"
+else
+    echo "⚠️  Image de base non trouvée, utilisation du Dockerfile standard"
+    DOCKERFILE_PATH="src/Dockerfile"
+fi
+
+# 5. Vérifier si l'image existe déjà avec le même hash
 echo "🔍 Vérification du cache Docker..."
 CURRENT_HASH=$(git rev-parse HEAD)
 CACHED_IMAGE="$REGISTRY/$IMAGE_NAME:$CURRENT_HASH"
@@ -54,14 +64,14 @@ else
           --tag $CACHED_IMAGE \
           --tag $REGISTRY/$IMAGE_NAME:buildcache \
           --progress=plain \
-          -f src/Dockerfile .
+          -f $DOCKERFILE_PATH .
     else
         # Construction avec Docker classique
         docker build \
           --cache-from $REGISTRY/$IMAGE_NAME:latest \
           --tag $REGISTRY/$IMAGE_NAME:latest \
           --tag $CACHED_IMAGE \
-          -f src/Dockerfile .
+          -f $DOCKERFILE_PATH .
     fi
     
     if [ $? -eq 0 ]; then
@@ -73,11 +83,11 @@ else
     fi
 fi
 
-# 5. Arrêter et supprimer l'ancien conteneur
+# 6. Arrêter et supprimer l'ancien conteneur
 echo "🔄 Arrêt de l'ancien conteneur..."
 docker rm -f $CONTAINER_NAME || true
 
-# 6. Démarrer le nouveau conteneur avec health check
+# 7. Démarrer le nouveau conteneur avec health check
 echo "🚀 Démarrage du nouveau conteneur..."
 docker run -d \
   --name $CONTAINER_NAME \
@@ -89,7 +99,7 @@ docker run -d \
   --health-retries=3 \
   $REGISTRY/$IMAGE_NAME:latest
 
-# 7. Attendre que l'application démarre avec health check
+# 8. Attendre que l'application démarre avec health check
 echo "⏳ Attente du démarrage de l'application..."
 for i in {1..30}; do
     if docker ps | grep -q $CONTAINER_NAME; then
@@ -102,7 +112,7 @@ for i in {1..30}; do
     echo -n "."
 done
 
-# 8. Vérifier que le conteneur fonctionne
+# 9. Vérifier que le conteneur fonctionne
 echo "🔍 Vérification du conteneur..."
 if docker ps | grep -q $CONTAINER_NAME; then
     echo "✅ Conteneur en cours d'exécution"
@@ -113,7 +123,7 @@ else
     exit 1
 fi
 
-# 9. Test de santé final
+# 10. Test de santé final
 echo "🏥 Test de santé de l'application..."
 if curl -f http://localhost:8082/health > /dev/null 2>&1; then
     echo "✅ Application en ligne et fonctionnelle sur le port 8082"
@@ -123,7 +133,7 @@ else
     exit 1
 fi
 
-# 10. Vérifier l'ouverture du port dans le firewall
+# 11. Vérifier l'ouverture du port dans le firewall
 echo "🔥 Vérification du firewall..."
 if ufw status | grep -q "8082"; then
     echo "✅ Port 8082 ouvert dans le firewall"
@@ -132,11 +142,11 @@ else
     ufw allow 8082
 fi
 
-# 11. Nettoyage des anciennes images (garder les 5 dernières)
+# 12. Nettoyage des anciennes images (garder les 5 dernières)
 echo "🧹 Nettoyage des anciennes images..."
 docker images $REGISTRY/$IMAGE_NAME --format "table {{.Tag}}\t{{.CreatedAt}}" | grep -v "latest" | grep -v "buildcache" | tail -n +6 | awk '{print $1}' | xargs -r docker rmi || true
 
-# 12. Nettoyage des conteneurs arrêtés et images non utilisées
+# 13. Nettoyage des conteneurs arrêtés et images non utilisées
 echo "🧹 Nettoyage général Docker..."
 docker container prune -f
 docker image prune -f
