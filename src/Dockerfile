@@ -28,22 +28,23 @@ RUN dpkg -i packages-microsoft-prod.deb
 RUN apt-get update && ACCEPT_EULA=Y apt-get install -y msodbcsql17 \
     && rm -f packages-microsoft-prod.deb && rm -rf /var/lib/apt/lists/*
 
+# Create user and group early
 RUN groupadd -r app && useradd -r -g app -m -d /app -s /bin/bash app
 
-# Create necessary directories with proper permissions
-RUN mkdir -p /app/src/logs /app/src/static/files && chown -R app:app /app/src/logs /app/src/static/files
-
-RUN chown -R app:app /app 
+# Create necessary directories with proper permissions immediately
+RUN mkdir -p /app/src/logs /app/src/static/files && \
+    chown -R app:app /app/src/logs /app/src/static/files
 
 # Copy requirements first for better caching
-COPY src/requirements.txt .
+COPY --chown=app:app src/requirements.txt .
 
 # Create virtual environment and install dependencies
-RUN python3 -m venv /app/venv
+RUN python3 -m venv /app/venv && \
+    chown -R app:app /app/venv
 RUN /app/venv/bin/pip install --upgrade pip && /app/venv/bin/pip install -r requirements.txt
 
-# Copy application files (only src directory)
-COPY src/ /app/src/
+# Copy application files with correct ownership
+COPY --chown=app:app src/ /app/src/
 
 # Create the startup script directly in the image
 RUN echo '#!/bin/bash' > /app/start.sh && \
@@ -54,9 +55,6 @@ RUN echo '#!/bin/bash' > /app/start.sh && \
     echo 'export PORT=8082' >> /app/start.sh && \
     echo 'exec /app/venv/bin/python run.py' >> /app/start.sh && \
     chmod +x /app/start.sh && chown app:app /app/start.sh
-
-# Change ownership of all files to app user
-RUN chown -R app:app /app
 
 USER app
 
