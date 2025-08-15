@@ -38,10 +38,11 @@ RUN mkdir -p /app/src/logs /app/src/static/files && \
 # Copy requirements first for better caching
 COPY --chown=app:app src/requirements.txt .
 
-# Create virtual environment and install dependencies
+# Create virtual environment as app user (more efficient)
+USER app
 RUN python3 -m venv /app/venv && \
-    chown -R app:app /app/venv
-RUN /app/venv/bin/pip install --upgrade pip && /app/venv/bin/pip install -r requirements.txt
+    /app/venv/bin/pip install --upgrade pip && \
+    /app/venv/bin/pip install -r requirements.txt
 
 # Copy application files with correct ownership
 COPY --chown=app:app src/ /app/src/
@@ -54,9 +55,7 @@ RUN echo '#!/bin/bash' > /app/start.sh && \
     echo 'export PYTHONPATH=/app/src:$PYTHONPATH' >> /app/start.sh && \
     echo 'export PORT=8082' >> /app/start.sh && \
     echo 'exec /app/venv/bin/python run.py' >> /app/start.sh && \
-    chmod +x /app/start.sh && chown app:app /app/start.sh
-
-USER app
+    chmod +x /app/start.sh
 
 # Expose port
 EXPOSE 8082
