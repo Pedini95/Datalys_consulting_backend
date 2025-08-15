@@ -14,7 +14,21 @@ RUN  apt-get update && apt-get install -y \
     python3-pip \
     python3-dev \
     unixodbc \
-    unixodbc-dev 
+    unixodbc-dev \
+    # Dependencies for Python packages that need compilation
+    build-essential \
+    libffi-dev \
+    libssl-dev \
+    libjpeg-dev \
+    zlib1g-dev \
+    libfreetype6-dev \
+    liblcms2-dev \
+    libopenjp2-7-dev \
+    libtiff5-dev \
+    libwebp-dev \
+    libharfbuzz-dev \
+    libfribidi-dev \
+    libxcb1-dev
 
 # Set Python 3 as the default python command
 RUN ln -s /usr/bin/python3 /usr/bin/python
@@ -38,11 +52,11 @@ RUN mkdir -p /app/src/logs /app/src/static/files && \
 # Copy requirements first for better caching
 COPY --chown=app:app src/requirements.txt .
 
-# Create virtual environment as app user (more efficient)
+# Create virtual environment as app user with optimized pip installation
 USER app
 RUN python3 -m venv /app/venv && \
-    /app/venv/bin/pip install --upgrade pip && \
-    /app/venv/bin/pip install -r requirements.txt
+    /app/venv/bin/pip install --upgrade pip setuptools wheel && \
+    /app/venv/bin/pip install --no-cache-dir --compile -r requirements.txt
 
 # Copy application files with correct ownership
 COPY --chown=app:app src/ /app/src/
