@@ -1,5 +1,4 @@
-from models.User import User
-from models.Role import Role
+from models import User, Role
 from typing import Dict, Any, Optional, Tuple
 from sqlalchemy.exc import SQLAlchemyError
 from app import db

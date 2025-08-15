@@ -22,11 +22,11 @@ logging.info(f"is_dev: {is_dev}")
 
 # Dossier et fichier log
 log_file_path = app.config['LOG_FILE_PATH']
-# Utiliser un chemin relatif pour éviter les problèmes de permissions
-log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
+# Forcer le chemin absolu correct
+log_dir = '/app/src/logs'
 os.makedirs(log_dir, exist_ok=True)
 # Corriger le chemin du fichier de log
-log_file_path = os.path.join(log_dir, 'datalys_consulting.log')
+log_file_path = '/app/src/logs/datalys_consulting.log'
 
 # Format
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
@@ -58,27 +58,7 @@ mail = Mail(app)
 CORS(app)
 
 # Importer tous les modèles pour que SQLAlchemy les reconnaisse
-try:
-    from models import *
-except ImportError:
-    # Fallback pour l'environnement GitHub Actions
-    import sys
-    import os
-    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-    
-    # Imports explicites des modèles (nécessaires pour SQLAlchemy)
-    from models.Role import Role  # noqa: F401
-    from models.User import User  # noqa: F401
-    from models.Partner import Partner  # noqa: F401
-    from models.Project import Project  # noqa: F401
-    from models.Incident import Incident  # noqa: F401
-    from models.Folder import Folder  # noqa: F401
-    from models.File import File  # noqa: F401
-    from models.UserProjectPermission import UserProjectPermission  # noqa: F401
-    from models.ActionHistory import ActionHistory  # noqa: F401
-    
-    # Ces imports sont nécessaires pour que SQLAlchemy reconnaisse les modèles
-    # même s'ils ne sont pas directement utilisés dans ce fichier
+from models import *
 
 
 

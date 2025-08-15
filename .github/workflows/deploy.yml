@@ -13,8 +13,6 @@ on:
 env:
   REGISTRY: localhost:8081
   IMAGE_NAME: datalys/api
-  ENV: production
-  GITHUB_ACTIONS: true
 
 jobs:
   deploy:
@@ -53,7 +51,6 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /opt/Datalys_consulting_backend
-            export PYTHONPATH=/opt/Datalys_consulting_backend/src:$PYTHONPATH
             chmod +x scripts/deploy.sh
             ./scripts/deploy.sh
 
