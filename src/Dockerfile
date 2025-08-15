@@ -22,21 +22,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libharfbuzz-dev \
     libfribidi-dev \
     libxcb1-dev \
-    unixodbc \
-    unixodbc-dev \
     curl \
-    gnupg \
-    apt-transport-https \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
-
-# Installer Microsoft ODBC Driver
-RUN curl -sSL --connect-timeout 30 --max-time 60 -O https://packages.microsoft.com/config/debian/$(grep VERSION_ID /etc/os-release | cut -d '"' -f 2 | cut -d '.' -f 1)/packages-microsoft-prod.deb && \
-    dpkg -i packages-microsoft-prod.deb && \
-    apt-get update && \
-    ACCEPT_EULA=Y apt-get install -y --no-install-recommends msodbcsql17 && \
-    rm -f packages-microsoft-prod.deb && \
-    rm -rf /var/lib/apt/lists/*
 
 # Créer l'environnement virtuel
 RUN python -m venv /opt/venv
@@ -69,18 +57,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libharfbuzz0b \
     libfribidi0 \
     libxcb1 \
-    unixodbc \
     curl \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
-
-# Installer Microsoft ODBC Driver runtime
-RUN curl -sSL --connect-timeout 30 --max-time 60 -O https://packages.microsoft.com/config/debian/$(grep VERSION_ID /etc/os-release | cut -d '"' -f 2 | cut -d '.' -f 1)/packages-microsoft-prod.deb && \
-    dpkg -i packages-microsoft-prod.deb && \
-    apt-get update && \
-    ACCEPT_EULA=Y apt-get install -y --no-install-recommends msodbcsql17 && \
-    rm -f packages-microsoft-prod.deb && \
-    rm -rf /var/lib/apt/lists/*
 
 # Créer l'utilisateur non-root
 RUN groupadd -r app && useradd -r -g app -m -d /app -s /bin/bash app
