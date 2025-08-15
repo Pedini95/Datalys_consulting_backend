@@ -87,28 +87,29 @@ fi
 echo "🔄 Arrêt de l'ancien conteneur..."
 docker rm -f $CONTAINER_NAME || true
 
-# 7. Démarrer le nouveau conteneur avec health check
+# 7. Démarrer le nouveau conteneur avec health check optimisé
 echo "🚀 Démarrage du nouveau conteneur..."
 docker run -d \
   --name $CONTAINER_NAME \
   --network host \
   --restart unless-stopped \
-  --health-cmd="curl -f http://localhost:8082/health || exit 1" \
-  --health-interval=30s \
-  --health-timeout=10s \
-  --health-retries=3 \
+  --health-cmd="curl -f --connect-timeout 10 --max-time 30 http://localhost:8082/health || exit 1" \
+  --health-interval=60s \
+  --health-timeout=30s \
+  --health-retries=5 \
+  --health-start-period=120s \
   $REGISTRY/$IMAGE_NAME:latest
 
-# 8. Attendre que l'application démarre avec health check
+# 8. Attendre que l'application démarre avec health check optimisé
 echo "⏳ Attente du démarrage de l'application..."
-for i in {1..30}; do
+for i in {1..60}; do  # Augmenté de 30 à 60 tentatives
     if docker ps | grep -q $CONTAINER_NAME; then
-        if curl -f http://localhost:8082/health > /dev/null 2>&1; then
+        if curl -f --connect-timeout 10 --max-time 30 http://localhost:8082/health > /dev/null 2>&1; then
             echo "✅ Application en ligne après $i secondes"
             break
         fi
     fi
-    sleep 2
+    sleep 3  # Augmenté de 2 à 3 secondes
     echo -n "."
 done
 
@@ -125,11 +126,16 @@ fi
 
 # 10. Test de santé final
 echo "🏥 Test de santé de l'application..."
-if curl -f http://localhost:8082/health > /dev/null 2>&1; then
+if curl -f --connect-timeout 10 --max-time 30 http://localhost:8082/health > /dev/null 2>&1; then
     echo "✅ Application en ligne et fonctionnelle sur le port 8082"
 else
     echo "❌ L'application ne répond pas"
-    docker logs $CONTAINER_NAME --tail=20
+    echo "📋 Logs du conteneur:"
+    docker logs $CONTAINER_NAME --tail=50
+    echo "🔍 Statut du conteneur:"
+    docker ps -a | grep $CONTAINER_NAME
+    echo "🌐 Test de connectivité réseau:"
+    netstat -tlnp | grep 8082 || echo "Port 8082 non trouvé"
     exit 1
 fi
 

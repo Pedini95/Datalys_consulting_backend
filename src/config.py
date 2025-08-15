@@ -31,7 +31,17 @@ class Config:
     REDIS_PORT = os.getenv('REDIS_PORT')
     REDIS_DB = os.getenv('REDIS_DB')
 
-    TIME_OUT = int(os.getenv('TIME_OUT', 30))
+    TIME_OUT = int(os.getenv('TIME_OUT', 60))  # Augmenté de 30 à 60 secondes
+    
+    # Timeouts spécifiques pour les connexions
+    DB_CONNECT_TIMEOUT = int(os.getenv('DB_CONNECT_TIMEOUT', 30))
+    DB_READ_TIMEOUT = int(os.getenv('DB_READ_TIMEOUT', 60))
+    REDIS_CONNECT_TIMEOUT = int(os.getenv('REDIS_CONNECT_TIMEOUT', 30))
+    REDIS_READ_TIMEOUT = int(os.getenv('REDIS_READ_TIMEOUT', 60))
+    
+    # Configuration pour les requêtes HTTP
+    HTTP_TIMEOUT = int(os.getenv('HTTP_TIMEOUT', 30))
+    HTTP_CONNECT_TIMEOUT = int(os.getenv('HTTP_CONNECT_TIMEOUT', 10))
 
     ENV = os.getenv('ENV', 'local')
     UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER')

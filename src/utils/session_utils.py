@@ -28,8 +28,10 @@ class SessionManager:
                 db=redis_db,
                 password=redis_password,
                 decode_responses=True,
-                socket_connect_timeout=5,
-                socket_timeout=5
+                socket_connect_timeout=30,  # Augmenté de 5 à 30 secondes
+                socket_timeout=60,          # Augmenté de 5 à 60 secondes
+                retry_on_timeout=True,      # Ajout de retry automatique
+                health_check_interval=30    # Vérification de santé toutes les 30s
             )
             # Test de connexion
             self.redis_client.ping()
