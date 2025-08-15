@@ -1,0 +1,76 @@
+name: Deploy Debug
+
+on:
+  workflow_dispatch:
+
+env:
+  REGISTRY: localhost:8081
+  IMAGE_NAME: datalys/api
+  ENV: production
+  GITHUB_ACTIONS: true
+
+jobs:
+  deploy-debug:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Debug Secrets
+        run: |
+          echo "🔍 Debug des secrets..."
+          echo "REMOTE_HOST exists: ${{ secrets.REMOTE_HOST != '' }}"
+          echo "REMOTE_USER exists: ${{ secrets.REMOTE_USER != '' }}"
+          echo "SSH_PRIVATE_KEY exists: ${{ secrets.SSH_PRIVATE_KEY != '' }}"
+          
+          if [ -n "${{ secrets.REMOTE_HOST }}" ]; then
+            echo "✅ REMOTE_HOST: ${{ secrets.REMOTE_HOST }}"
+          else
+            echo "❌ REMOTE_HOST is empty or missing"
+          fi
+          
+          if [ -n "${{ secrets.REMOTE_USER }}" ]; then
+            echo "✅ REMOTE_USER: ${{ secrets.REMOTE_USER }}"
+          else
+            echo "❌ REMOTE_USER is empty or missing"
+          fi
+          
+          if [ -n "${{ secrets.SSH_PRIVATE_KEY }}" ]; then
+            echo "✅ SSH_PRIVATE_KEY: [PRESENT]"
+            echo "Key starts with: $(echo "${{ secrets.SSH_PRIVATE_KEY }}" | head -c 50)..."
+          else
+            echo "❌ SSH_PRIVATE_KEY is empty or missing"
+          fi
+
+      - name: Test SSH Connection (if secrets available)
+        if: secrets.REMOTE_HOST != '' && secrets.REMOTE_USER != '' && secrets.SSH_PRIVATE_KEY != ''
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "✅ Connexion SSH réussie !"
+            echo "Hostname: $(hostname)"
+            echo "User: $(whoami)"
+            echo "Current directory: $(pwd)"
+
+      - name: Show Error if Secrets Missing
+        if: secrets.REMOTE_HOST == '' || secrets.REMOTE_USER == '' || secrets.SSH_PRIVATE_KEY == ''
+        run: |
+          echo "❌ ERREUR: Secrets manquants !"
+          echo ""
+          echo "Pour résoudre ce problème :"
+          echo "1. Allez dans GitHub → Settings → Secrets and variables → Actions"
+          echo "2. Ajoutez ces 3 secrets :"
+          echo "   - REMOTE_HOST = 82.112.253.137"
+          echo "   - REMOTE_USER = root"
+          echo "   - SSH_PRIVATE_KEY = votre clé SSH privée complète"
+          echo ""
+          echo "Votre clé SSH privée commence par :"
+          echo "-----BEGIN OPENSSH PRIVATE KEY-----"
+          echo ""
+          echo "Pour récupérer votre clé SSH :"
+          echo "cat ~/.ssh/id_rsa"
+          exit 1 
