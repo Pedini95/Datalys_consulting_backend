@@ -1,21 +1,14 @@
-# Use Debian 11 (Bullseye) as the base image
-FROM debian:12-slim
+# Étape 1 : Builder des dépendances Python
+FROM python:3.11-slim AS builder
 
-# Set working directory
-WORKDIR /app
+# Activer BuildKit pour de meilleures performances
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Update package list and install essential tools
-RUN  apt-get update && apt-get install -y \
-    curl \
-    gnupg \
-    apt-transport-https \
-    python3 \
-    python3-venv \
-    python3-pip \
-    python3-dev \
-    unixodbc \
-    unixodbc-dev \
-    # Dependencies for Python packages that need compilation
+# Installer dépendances système minimales pour la compilation
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libffi-dev \
     libssl-dev \
@@ -28,51 +21,103 @@ RUN  apt-get update && apt-get install -y \
     libwebp-dev \
     libharfbuzz-dev \
     libfribidi-dev \
-    libxcb1-dev
+    libxcb1-dev \
+    unixodbc \
+    unixodbc-dev \
+    curl \
+    gnupg \
+    apt-transport-https \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
-# Set Python 3 as the default python command
-RUN ln -s /usr/bin/python3 /usr/bin/python
+# Installer Microsoft ODBC Driver
+RUN curl -sSL --connect-timeout 30 --max-time 60 -O https://packages.microsoft.com/config/debian/$(grep VERSION_ID /etc/os-release | cut -d '"' -f 2 | cut -d '.' -f 1)/packages-microsoft-prod.deb && \
+    dpkg -i packages-microsoft-prod.deb && \
+    apt-get update && \
+    ACCEPT_EULA=Y apt-get install -y --no-install-recommends msodbcsql17 && \
+    rm -f packages-microsoft-prod.deb && \
+    rm -rf /var/lib/apt/lists/*
 
-# Download the package to configure the Microsoft repo
-RUN curl -sSL -O https://packages.microsoft.com/config/debian/$(grep VERSION_ID /etc/os-release | cut -d '"' -f 2 | cut -d '.' -f 1)/packages-microsoft-prod.deb
-# Install the package
-RUN dpkg -i packages-microsoft-prod.deb
+# Créer l'environnement virtuel
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-# Update package list again and install ODBC Driver 17
-RUN apt-get update && ACCEPT_EULA=Y apt-get install -y msodbcsql17 \
-    && rm -f packages-microsoft-prod.deb && rm -rf /var/lib/apt/lists/*
+# Copier et installer les dépendances Python
+WORKDIR /app
+COPY requirements.txt .
 
-# Create user and group early
+# Installer les dépendances Python avec cache optimisé
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir --timeout 300 --retries 3 -r requirements.txt
+
+# Étape 2 : Image finale légère
+FROM python:3.11-slim AS production
+
+# Variables d'environnement
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/opt/venv/bin:$PATH"
+
+# Installer uniquement les dépendances runtime (sans outils de build)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libjpeg62-turbo \
+    libfreetype6 \
+    liblcms2-2 \
+    libopenjp2-7 \
+    libtiff5 \
+    libwebp6 \
+    libharfbuzz0b \
+    libfribidi0 \
+    libxcb1 \
+    unixodbc \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Installer Microsoft ODBC Driver runtime
+RUN curl -sSL --connect-timeout 30 --max-time 60 -O https://packages.microsoft.com/config/debian/$(grep VERSION_ID /etc/os-release | cut -d '"' -f 2 | cut -d '.' -f 1)/packages-microsoft-prod.deb && \
+    dpkg -i packages-microsoft-prod.deb && \
+    apt-get update && \
+    ACCEPT_EULA=Y apt-get install -y --no-install-recommends msodbcsql17 && \
+    rm -f packages-microsoft-prod.deb && \
+    rm -rf /var/lib/apt/lists/*
+
+# Créer l'utilisateur non-root
 RUN groupadd -r app && useradd -r -g app -m -d /app -s /bin/bash app
 
-# Create necessary directories and set ownership
+# Copier l'environnement virtuel depuis le builder
+COPY --from=builder /opt/venv /opt/venv
+
+# Créer les répertoires nécessaires
+WORKDIR /app
 RUN mkdir -p /app/src/logs /app/src/static/files && \
     chown -R app:app /app
 
-# Copy requirements first for better caching
-COPY --chown=app:app src/requirements.txt .
-
-# Create virtual environment as app user with optimized pip installation
-USER app
-RUN python3 -m venv /app/venv && \
-    /app/venv/bin/pip install --upgrade pip setuptools wheel && \
-    /app/venv/bin/pip install --no-cache-dir --compile -r requirements.txt
-
-# Copy application files with correct ownership
+# Copier le code de l'application
 COPY --chown=app:app src/ /app/src/
 
-# Create the startup script directly in the image
+# Créer le script de démarrage
 RUN echo '#!/bin/bash' > /app/start.sh && \
     echo 'set -e' >> /app/start.sh && \
-    echo 'echo "Démarrage de l application Datalys Consulting..."' >> /app/start.sh && \
+    echo 'echo "🚀 Démarrage de l application Datalys Consulting..."' >> /app/start.sh && \
     echo 'cd /app/src' >> /app/start.sh && \
     echo 'export PYTHONPATH=/app/src:$PYTHONPATH' >> /app/start.sh && \
     echo 'export PORT=8082' >> /app/start.sh && \
-    echo 'exec /app/venv/bin/python run.py' >> /app/start.sh && \
+    echo 'export ENV=production' >> /app/start.sh && \
+    echo 'echo "✅ Environnement configuré"' >> /app/start.sh && \
+    echo "🌐 Démarrage sur le port $PORT" >> /app/start.sh && \
+    echo 'exec /opt/venv/bin/python run.py' >> /app/start.sh && \
     chmod +x /app/start.sh
 
-# Expose port
+# Changer vers l'utilisateur non-root
+USER app
+
+# Exposer le port
 EXPOSE 8082
 
-# Default command
-CMD ["/app/start.sh"]
+# Health check optimisé
+HEALTHCHECK --interval=60s --timeout=30s --start-period=120s --retries=5 \
+    CMD curl -f --connect-timeout 10 --max-time 30 http://localhost:8082/health || exit 1
+
+# Commande par défaut
+CMD ["/app/start.sh"] 

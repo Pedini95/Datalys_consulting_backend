@@ -1,75 +1,88 @@
-name: Deploy to Docker Server
+name: Deploy Ultra-Fast
 
 on:
   push:
-    branches: [ develop ]
-  workflow_dispatch:  # Déploiement manuel
+    branches:
+      - develop
+      - main
+  pull_request:
+    branches:
+      - develop
+      - main
 
 env:
   REGISTRY: localhost:8081
   IMAGE_NAME: datalys/api
 
 jobs:
-  test-and-deploy:
+  test:
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r src/requirements.txt
+
+      - name: Run tests
+        run: |
+          cd src
+          python -m pytest tests/ -v
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
-        
-    - name: Install dependencies
-      run: |
-        cd src
-        pip install -r requirements.txt
-        
-    - name: Run tests
-      run: |
-        cd src
-        echo "Running tests..."
-        # Ajoutez vos tests ici
-        # python -m pytest tests/
-        
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-      
-    - name: Cache Docker layers
-      uses: actions/cache@v3
-      with:
-        path: /tmp/.buildx-cache
-        key: ${{ runner.os }}-buildx-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-buildx-
-          
-    - name: Deploy to Production Server
-      uses: appleboy/ssh-action@v1.0.0
-      with:
-        host: ${{ secrets.HOSTINGER_HOST }}
-        username: ${{ secrets.HOSTINGER_USERNAME }}
-        key: ${{ secrets.HOSTINGER_SSH_KEY }}
-        port: ${{ secrets.HOSTINGER_PORT }}
-        script: |
-          echo "🚀 Déploiement automatique via GitHub Actions..."
-          echo "📅 Date: $(date)"
-          echo "🔗 Commit: ${{ github.sha }}"
-          echo "👤 Auteur: ${{ github.actor }}"
-          
-          # Aller dans le répertoire du projet
-          cd /opt/Datalys_consulting_backend
-          
-          # Exécuter le script de déploiement optimisé
-          ./scripts/deploy-production.sh
-          
-          # Vérification finale
-          echo "🔍 Vérification finale du déploiement..."
-          if curl -f http://localhost:8082/health > /dev/null 2>&1; then
-              echo "✅ Déploiement réussi !"
-              echo "🌐 API accessible sur: http://${{ secrets.HOSTINGER_HOST }}:8082"
-          else
-              echo "❌ Échec du déploiement"
-              exit 1
-          fi
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Enable Docker BuildKit
+        run: |
+          echo "DOCKER_BUILDKIT=1" >> $GITHUB_ENV
+          echo "COMPOSE_DOCKER_CLI_BUILD=1" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and cache Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./src/Dockerfile
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+
+      - name: Deploy to production
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /opt/Datalys_consulting_backend
+            chmod +x scripts/deploy.sh
+            ./scripts/deploy.sh
+
+      - name: Health check
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            sleep 30
+            curl -f --connect-timeout 10 --max-time 30 http://localhost:8082/health
+            echo "✅ Déploiement réussi !" 
