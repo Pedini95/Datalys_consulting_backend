@@ -27,12 +27,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
       - name: Enable Docker BuildKit
         run: |
           echo "DOCKER_BUILDKIT=1" >> $GITHUB_ENV
@@ -41,17 +35,15 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and Push with Registry Cache
+      - name: Build Docker image (local cache)
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./src/Dockerfile
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:cache
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:cache,mode=max
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: datalys-api:latest
           build-args: |
             BUILDKIT_INLINE_CACHE=1
 
@@ -62,16 +54,16 @@ jobs:
           username: ${{ secrets.HOSTINGER_USERNAME }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           script: |
-            echo "🚀 Déploiement avec cache registry..."
+            echo "🚀 Déploiement local..."
             
             cd /opt/Datalys_consulting_backend
-            
-            # Pull de la nouvelle image
-            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             
             # Arrêter et supprimer l'ancien conteneur
             docker stop datalys-api || true
             docker rm datalys-api || true
+            
+            # Build local de l'image
+            docker build -t datalys-api:latest -f src/Dockerfile .
             
             # Démarrer le nouveau conteneur
             docker run -d \
@@ -81,7 +73,7 @@ jobs:
               -v /opt/Datalys_consulting_backend/uploads:/app/src/static/files \
               -e FLASK_ENV=production \
               -e PYTHONPATH=/app/src \
-              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+              datalys-api:latest
             
             echo "✅ Conteneur déployé avec succès"
 
@@ -114,5 +106,5 @@ jobs:
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           script: |
             echo "🧹 Nettoyage des anciennes images..."
-            # Garder seulement les 3 dernières images
-            docker images ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }} --format "table {{.Repository}}:{{.Tag}}\t{{.CreatedAt}}" | tail -n +2 | sort -k2 -r | tail -n +4 | awk '{print $1}' | xargs -r docker rmi || true 
+            # Nettoyage général des images non utilisées
+            docker image prune -f 
