@@ -5,12 +5,9 @@ Script pour initialiser la base de données et créer toutes les tables
 
 import os
 import sys
-from dotenv import load_dotenv
 
-# Charger les variables d'environnement
-current_dir = os.path.dirname(os.path.abspath(__file__))
-env_path = os.path.join(current_dir, '.env.local')
-load_dotenv(env_path, override=True)
+# Charger les variables d'environnement directement
+# Les variables sont déjà définies dans le conteneur Docker
 
 # Importer l'application Flask
 from app import app, db
