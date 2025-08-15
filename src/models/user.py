@@ -7,10 +7,12 @@ class User(db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    name = db.Column(db.String(255), nullable=False)
-    email = db.Column(db.String(255), nullable=False, unique=True)
+    username = db.Column(db.String(80), nullable=False)
+    email = db.Column(db.String(120), nullable=False, unique=True)
     password_hash = db.Column(db.String(255), nullable=False)
-    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=False)
+    first_name = db.Column(db.String(50), nullable=True)
+    last_name = db.Column(db.String(50), nullable=True)
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=True)
     is_active = db.Column(db.Boolean, default=True)
     is_deleted = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -26,7 +28,7 @@ class User(db.Model):
     def as_dict(self):
         data = {}
         # Utiliser les attributs de la classe directement
-        columns = ['id', 'name', 'email', 'password_hash', 'role_id', 
+        columns = ['id', 'username', 'email', 'first_name', 'last_name', 'password_hash', 'role_id', 
                   'is_active', 'is_deleted', 'created_at', 'created_by', 'updated_at', 'updated_by']
         
         for column in columns:
@@ -36,6 +38,13 @@ class User(db.Model):
                     data[column] = value.isoformat()
                 else:
                     data[column] = value
+        
+        # Ajouter un champ name calculé pour la compatibilité
+        if data.get('first_name') or data.get('last_name'):
+            data['name'] = f"{data.get('first_name', '')} {data.get('last_name', '')}".strip()
+        else:
+            data['name'] = data.get('username', '')
+        
         return data
 
     @staticmethod
@@ -46,7 +55,13 @@ class User(db.Model):
         if 'id' in criteria:
             conditions.append(User.id == criteria['id'])
         if 'name' in criteria:
-            conditions.append(User.name.like(f"%{criteria['name']}%"))
+            # Rechercher dans username, first_name et last_name
+            name_condition = (
+                User.username.like(f"%{criteria['name']}%") |
+                User.first_name.like(f"%{criteria['name']}%") |
+                User.last_name.like(f"%{criteria['name']}%")
+            )
+            conditions.append(name_condition)
         if 'email' in criteria:
             conditions.append(User.email.like(f"%{criteria['email']}%"))
         if 'role_id' in criteria:

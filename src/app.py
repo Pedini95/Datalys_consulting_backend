@@ -22,11 +22,11 @@ logging.info(f"is_dev: {is_dev}")
 
 # Dossier et fichier log
 log_file_path = app.config['LOG_FILE_PATH']
-# Forcer le chemin absolu correct
-log_dir = '/app/src/logs'
+# Utiliser un chemin relatif pour éviter les problèmes de permissions
+log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
 os.makedirs(log_dir, exist_ok=True)
 # Corriger le chemin du fichier de log
-log_file_path = '/app/src/logs/datalys_consulting.log'
+log_file_path = os.path.join(log_dir, 'datalys_consulting.log')
 
 # Format
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
