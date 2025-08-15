@@ -9,9 +9,16 @@ IMAGE_NAME="datalys/api"
 PROJECT_DIR="/opt/Datalys_consulting_backend"
 CONTAINER_NAME="datalys-api"
 
-# Enable Docker BuildKit for better performance
-export DOCKER_BUILDKIT=1
-export COMPOSE_DOCKER_CLI_BUILD=1
+# Vérifier si BuildKit est disponible
+if docker buildx version &> /dev/null; then
+    echo "✅ BuildKit disponible, activation..."
+    export DOCKER_BUILDKIT=1
+    export COMPOSE_DOCKER_CLI_BUILD=1
+    BUILDKIT_AVAILABLE=true
+else
+    echo "⚠️  BuildKit non disponible, utilisation du build Docker classique"
+    BUILDKIT_AVAILABLE=false
+fi
 
 # 1. Vérifier et redémarrer les services Docker essentiels
 echo "🔧 Vérification des services Docker..."
@@ -37,16 +44,25 @@ if docker images | grep -q "$CURRENT_HASH"; then
 else
     echo "🔄 Construction de l'image Docker optimisée..."
     
-    # Construction avec BuildKit et cache optimisé
-    docker build \
-      --build-arg BUILDKIT_INLINE_CACHE=1 \
-      --cache-from $REGISTRY/$IMAGE_NAME:latest \
-      --cache-from $REGISTRY/$IMAGE_NAME:buildcache \
-      --tag $REGISTRY/$IMAGE_NAME:latest \
-      --tag $CACHED_IMAGE \
-      --tag $REGISTRY/$IMAGE_NAME:buildcache \
-      --progress=plain \
-      -f src/Dockerfile .
+    if [ "$BUILDKIT_AVAILABLE" = true ]; then
+        # Construction avec BuildKit et cache optimisé
+        docker build \
+          --build-arg BUILDKIT_INLINE_CACHE=1 \
+          --cache-from $REGISTRY/$IMAGE_NAME:latest \
+          --cache-from $REGISTRY/$IMAGE_NAME:buildcache \
+          --tag $REGISTRY/$IMAGE_NAME:latest \
+          --tag $CACHED_IMAGE \
+          --tag $REGISTRY/$IMAGE_NAME:buildcache \
+          --progress=plain \
+          -f src/Dockerfile .
+    else
+        # Construction avec Docker classique
+        docker build \
+          --cache-from $REGISTRY/$IMAGE_NAME:latest \
+          --tag $REGISTRY/$IMAGE_NAME:latest \
+          --tag $CACHED_IMAGE \
+          -f src/Dockerfile .
+    fi
     
     if [ $? -eq 0 ]; then
         echo "✅ Construction réussie"
@@ -127,5 +143,5 @@ docker image prune -f
 
 echo "🎉 Déploiement terminé avec succès !"
 echo "🌐 URL de l'API: http://***:8082"
-echo "⚡ Build optimisé avec BuildKit et cache Docker"
+echo "⚡ Build optimisé avec cache Docker"
 echo "⏰ $(date)" 
