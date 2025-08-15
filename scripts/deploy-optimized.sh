@@ -21,9 +21,21 @@ wait_for_service() {
     
     echo "⏳ Attente du service $service_name..."
     for i in $(seq 1 $max_attempts); do
-        if curl -f --connect-timeout 10 --max-time $timeout "$service_url" > /dev/null 2>&1; then
-            echo "✅ $service_name accessible après $i tentatives"
-            return 0
+        if [[ $service_url == tcp://* ]]; then
+            # Test TCP
+            local host_port=${service_url#tcp://}
+            local host=${host_port%:*}
+            local port=${host_port#*:}
+            if timeout 5 bash -c "</dev/tcp/$host/$port" 2>/dev/null; then
+                echo "✅ $service_name accessible après $i tentatives"
+                return 0
+            fi
+        else
+            # Test HTTP
+            if curl -f --connect-timeout 10 --max-time $timeout "$service_url" > /dev/null 2>&1; then
+                echo "✅ $service_name accessible après $i tentatives"
+                return 0
+            fi
         fi
         echo -n "."
         sleep 5
@@ -59,12 +71,12 @@ done
 
 # 2. Attendre que les services soient prêts
 echo "⏳ Attente que les services soient prêts..."
-wait_for_service "MySQL" "http://localhost:3306" 10 30 || {
+wait_for_service "MySQL" "tcp://localhost:3306" 10 30 || {
     echo "❌ MySQL non accessible, arrêt du déploiement"
     exit 1
 }
 
-wait_for_service "Redis" "http://localhost:6379" 10 30 || {
+wait_for_service "Redis" "tcp://localhost:6379" 10 30 || {
     echo "❌ Redis non accessible, arrêt du déploiement"
     exit 1
 }
