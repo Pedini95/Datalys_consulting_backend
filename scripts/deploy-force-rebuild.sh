@@ -14,7 +14,7 @@ git reset --hard origin/develop
 
 # 2. Arrêter et supprimer le conteneur
 echo "🛑 Arrêt et suppression du conteneur..."
-docker-compose down datalys-api || true
+docker-compose -f docker-compose.deploy.yml down datalys-api || true
 
 # 3. Supprimer l'ancienne image
 echo "🗑️ Suppression de l'ancienne image..."
@@ -23,11 +23,11 @@ docker rmi datalys_consulting_backend_datalys-api:latest || true
 
 # 4. Rebuild complet de l'image
 echo "🔨 Rebuild complet de l'image..."
-docker-compose build --no-cache datalys-api
+docker-compose -f docker-compose.deploy.yml build --no-cache datalys-api
 
 # 5. Démarrage avec la nouvelle image
 echo "🚀 Démarrage avec la nouvelle image..."
-docker-compose up -d datalys-api
+docker-compose -f docker-compose.deploy.yml up -d datalys-api
 
 # 6. Attendre le démarrage
 echo "⏳ Attente du démarrage complet..."
@@ -41,7 +41,7 @@ if docker ps | grep -q "datalys-api"; then
     echo "✅ Conteneur en cours d'exécution"
 else
     echo "❌ Problème avec le conteneur"
-    docker-compose logs --tail=15 datalys-api
+    docker-compose -f docker-compose.deploy.yml logs --tail=15 datalys-api
     exit 1
 fi
 
@@ -57,6 +57,6 @@ for i in {1..10}; do
 done
 
 echo "📋 Logs pour diagnostic :"
-docker-compose logs --tail=20 datalys-api
+docker-compose -f docker-compose.deploy.yml logs --tail=20 datalys-api
 
 echo "💥 Rebuild forcé terminé !" 

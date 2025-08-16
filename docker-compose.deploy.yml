@@ -1,0 +1,41 @@
+services:
+  datalys-api:
+    build:
+      context: .
+      dockerfile: ./src/Dockerfile
+    container_name: datalys-api
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./uploads:/app/src/static/files
+      - ./logs:/app/src/logs
+    environment:
+      - ENV=production
+      - FLASK_ENV=production
+      - PYTHONPATH=/app/src
+      - PORT=8082
+      - SECRET_KEY=your_very_secure_secret_key_here
+      - DB_HOST=mysql-db
+      - DB_PORT=3306
+      - DB_NAME=datalys_consulting
+      - DB_USER=datalys
+      - DB_PASSWORD=datalysconsulting
+      - REDIS_HOST=redis-db
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - TIME_OUT=60
+      - DB_CONNECT_TIMEOUT=30
+      - DB_READ_TIMEOUT=60
+      - REDIS_CONNECT_TIMEOUT=30
+      - REDIS_READ_TIMEOUT=60
+      - UPLOAD_FOLDER=/app/src/static/files
+      - LOG_FILE_PATH=/app/src/logs/datalys_consulting.log
+    healthcheck:
+      test: ["CMD", "curl", "-f", "--connect-timeout", "10", "--max-time", "30", "http://localhost:8082/health"]
+      interval: 60s
+      timeout: 30s
+      retries: 5
+      start_period: 120s
+    external_links:
+      - mysql-db:mysql-db 

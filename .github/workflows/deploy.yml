@@ -61,8 +61,8 @@ jobs:
             echo "📥 Pull du code le plus récent..."
             git fetch origin
             git reset --hard origin/develop
-            echo "🏁 Exécution du déploiement final..."
-            bash scripts/deploy-final.sh
+            echo "🎯 Exécution du déploiement sécurisé..."
+            bash scripts/deploy-app-only.sh
 
       - name: Health Check
         uses: appleboy/ssh-action@v1.2.0

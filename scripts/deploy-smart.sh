@@ -17,14 +17,14 @@ echo "🔍 Vérification de l'état du conteneur..."
 
 if docker ps | grep -q "datalys-api"; then
     echo "📦 Conteneur en cours d'exécution - Redémarrage..."
-    docker-compose restart datalys-api
+    docker-compose -f docker-compose.deploy.yml restart datalys-api
 elif docker ps -a | grep -q "datalys-api"; then
     echo "🔄 Conteneur arrêté - Redémarrage..."
-    docker-compose start datalys-api
+    docker-compose -f docker-compose.deploy.yml start datalys-api
 else
     echo "🚀 Aucun conteneur - Build et démarrage..."
-    docker-compose build datalys-api
-    docker-compose up -d datalys-api
+    docker-compose -f docker-compose.deploy.yml build datalys-api
+    docker-compose -f docker-compose.deploy.yml up -d datalys-api
 fi
 
 # 3. Attendre le démarrage
@@ -39,7 +39,7 @@ if docker ps | grep -q "datalys-api.*Up"; then
     echo "✅ Conteneur en cours d'exécution"
 else
     echo "❌ Problème avec le conteneur"
-    docker-compose logs --tail=10 datalys-api
+    docker-compose -f docker-compose.deploy.yml logs --tail=10 datalys-api
     exit 1
 fi
 
@@ -54,6 +54,6 @@ for i in {1..6}; do
 done
 
 echo "⚠️ L'application met du temps à démarrer, vérification des logs..."
-docker-compose logs --tail=15 datalys-api
+docker-compose -f docker-compose.deploy.yml logs --tail=15 datalys-api
 
 echo "🧠 Déploiement intelligent terminé !" 
