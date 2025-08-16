@@ -34,7 +34,17 @@ chown -R 1000:1000 /app/src/logs /app/src/static/files
 echo "✅ Configuration terminée"
 echo "🌍 Démarrage de l'application sur le port ${PORT:-8081}"
 
-# Démarrer l'application
+# Démarrer l'application avec debug
 cd /app
 export PYTHONPATH=/app/src:$PYTHONPATH
-exec /app/venv/bin/python src/run.py 
+
+echo "🔍 Debug: Current working directory: $(pwd)"
+echo "🔍 Debug: Python path: $PYTHONPATH"
+echo "🔍 Debug: Contents of /app/src:"
+ls -la /app/src/
+echo "🔍 Debug: Contents of /app/src/models:"
+ls -la /app/src/models/ || echo "models directory not found"
+echo "🔍 Debug: Python version: $(/app/venv/bin/python --version)"
+
+cd /app/src
+exec /app/venv/bin/python run.py 
