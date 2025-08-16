@@ -21,9 +21,9 @@ echo "📥 Pull du code le plus récent..."
 git fetch origin
 git reset --hard origin/develop
 
-# 4. Rebuild complet sans cache
-echo "🔨 Rebuild complet sans cache..."
-docker-compose build --no-cache --pull
+# 4. Rebuild avec cache intelligent
+echo "🔨 Rebuild avec cache intelligent..."
+docker-compose build --pull
 
 # 5. Redémarrage
 echo "🚀 Redémarrage..."
