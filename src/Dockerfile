@@ -36,7 +36,7 @@ RUN echo '#!/bin/bash' > /app/start.sh && \
     echo 'export PORT=8082' >> /app/start.sh && \
     echo 'export ENV=production' >> /app/start.sh && \
     echo 'echo "✅ Environnement configuré"' >> /app/start.sh && \
-    echo "🌐 Démarrage sur le port $PORT" >> /app/start.sh && \
+    echo "echo \"🌐 Démarrage sur le port \$PORT\"" >> /app/start.sh && \
     echo 'exec python run.py' >> /app/start.sh && \
     chmod +x /app/start.sh
 
