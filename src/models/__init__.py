@@ -1,12 +1,12 @@
-from .Role import Role
-from .User import User
-from .Partner import Partner
-from .Project import Project
-from .Incident import Incident
-from .Folder import Folder
-from .File import File
-from .UserProjectPermission import UserProjectPermission
-from .ActionHistory import ActionHistory
+from models.Role import Role
+from models.User import User
+from models.Partner import Partner
+from models.Project import Project
+from models.Incident import Incident
+from models.Folder import Folder
+from models.File import File
+from models.UserProjectPermission import UserProjectPermission
+from models.ActionHistory import ActionHistory
 
 __all__ = [
     'Role',
