@@ -26,6 +26,7 @@ RUN python -m pip install --upgrade pip setuptools wheel \
 
 # Copier le code et donner les droits au user
 COPY --chown=app:app src/ /app/src
+COPY --chown=app:app scripts/ /app/scripts
 
 # S'assurer que l'utilisateur app a les permissions d'écriture
 RUN chown -R app:app /app/src/logs /app/src/static && \
@@ -48,6 +49,8 @@ RUN echo '#!/bin/bash' > /app/start.sh && \
     echo 'echo "🔍 Debug: Contents of /app/src/models:"' >> /app/start.sh && \
     echo 'ls -la /app/src/models/ || echo "models directory not found"' >> /app/start.sh && \
     echo 'echo "🔍 Debug: Python version: $(python --version)"' >> /app/start.sh && \
+    echo 'echo "🔍 Vérification de la sensibilité à la casse..."' >> /app/start.sh && \
+    echo 'python /app/scripts/check-case-sensitivity.py || echo "⚠️ Vérification de casse échouée, mais on continue..."' >> /app/start.sh && \
     echo "echo \"🌐 Démarrage sur le port \$PORT\"" >> /app/start.sh && \
     echo 'cd /app/src' >> /app/start.sh && \
     echo 'exec python run.py' >> /app/start.sh && \

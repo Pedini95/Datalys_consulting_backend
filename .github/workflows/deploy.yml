@@ -20,6 +20,10 @@ jobs:
       - name: Check Python imports
         run: |
           python3 scripts/check-imports.py
+          
+      - name: Check case sensitivity
+        run: |
+          python3 scripts/check-case-sensitivity-local.py
 
       - name: Enable BuildKit
         run: |
