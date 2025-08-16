@@ -56,7 +56,7 @@ jobs:
           username: ${{ secrets.HOSTINGER_USERNAME }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           script: |
-            bash /opt/Datalys_consulting_backend/scripts/deploy-production.sh
+            bash /opt/Datalys_consulting_backend/scripts/deploy-emergency.sh
 
       - name: Health Check
         uses: appleboy/ssh-action@v1.2.0
