@@ -211,8 +211,13 @@ class AuthService:
             )
             
             if not session_created:
-                logger.warning(f"Impossible de créer la session Redis pour l'utilisateur {user.id}")
-            
+                logger.error(f"ERREUR CRITIQUE: Impossible de créer la session Redis pour l'utilisateur {user.id}")
+                # En production, on peut soit échouer soit continuer en mode dégradé
+                # Pour l'instant, on continue mais on log l'erreur
+                logger.error("Mode dégradé activé - authentification sans session Redis")
+            else:
+                logger.info(f"Session Redis créée avec succès pour l'utilisateur {user.id}")
+
             # Préparer la réponse
             user_data = user.as_dict()
             user_data['token'] = token
@@ -235,10 +240,24 @@ class AuthService:
         """
         try:
             # Vérifier d'abord si la session existe dans Redis
-            if not session_utils.is_user_session_valid(token):
-                return None, False, "Session expirée ou invalide"
+            redis_session_valid = session_utils.is_user_session_valid(token)
             
-            # Décoder le token
+            if not redis_session_valid:
+                # Mode dégradé : si Redis n'est pas disponible, on continue avec JWT seulement
+                logger.warning("Session Redis non trouvée - tentative de vérification JWT seule (mode dégradé)")
+                
+                # Vérifier si Redis est complètement down
+                try:
+                    from utils.session_utils import session_manager
+                    if session_manager.redis_client is None:
+                        logger.warning("Redis non disponible - mode dégradé activé")
+                    else:
+                        # Redis fonctionne mais session pas trouvée = vraiment expirée
+                        return None, False, "Session expirée ou invalide"
+                except Exception as e:
+                    logger.warning(f"Erreur lors de la vérification Redis: {e} - mode dégradé activé")
+            
+            # Décoder le token JWT
             secret_key = Config.SECRET_KEY or 'default-secret-key'
             payload = jwt.decode(token, secret_key, algorithms=['HS256'])
             
@@ -252,6 +271,9 @@ class AuthService:
             # Vérifier si l'utilisateur est actif
             if not user.is_active:
                 return None, False, "Compte désactivé"
+            
+            if not redis_session_valid:
+                logger.info(f"Authentification réussie en mode dégradé pour l'utilisateur {user.id}")
             
             return user.as_dict(), True, "Token valide"
             
