@@ -2,7 +2,7 @@ services:
   datalys-api:
     build:
       context: .
-      dockerfile: ./src/Dockerfile
+      dockerfile: ./src/Dockerfile.fast
     container_name: datalys-api
     restart: unless-stopped
     ports:

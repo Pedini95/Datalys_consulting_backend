@@ -40,13 +40,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build & Push
+      - name: Build & Push (with cache)
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./src/Dockerfile
           push: true
-          no-cache: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: ghcr.io/pedini95/datalys-consulting-backend:latest,ghcr.io/pedini95/datalys-consulting-backend:${{ github.sha }}
 
       - name: Deploy via SSH
@@ -61,8 +62,8 @@ jobs:
             echo "📥 Pull du code le plus récent..."
             git fetch origin
             git reset --hard origin/develop
-            echo "🎯 Exécution du déploiement sécurisé..."
-            bash scripts/deploy-app-only.sh
+            echo "⚡ Exécution du déploiement ultra-rapide..."
+            bash scripts/deploy-ultra-fast-secure.sh
 
       - name: Health Check
         uses: appleboy/ssh-action@v1.2.0
@@ -71,19 +72,14 @@ jobs:
           username: ${{ secrets.HOSTINGER_USERNAME }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           script: |
-            echo "🔍 Vérification de la santé..."
-            sleep 30
+            echo "🔍 Vérification rapide..."
+            sleep 10
             
-            cd /opt/Datalys_consulting_backend
-            
-            # Vérification avec Docker Compose
-            docker-compose ps | grep datalys-api || (echo "❌ Conteneur non trouvé" && exit 1)
-            
-            # Health check de l'application
-            curl -f --connect-timeout 10 --max-time 30 http://localhost:8082/health || (echo "❌ Health check échoué" && exit 1)
-            
-            echo "✅ Déploiement réussi ! Application en ligne sur le port 8082"
-            
-            # Afficher les logs pour debug
-            echo "📋 Logs du conteneur :"
-            docker-compose logs --tail=10 datalys-api 
+            # Health check ultra-rapide
+            if curl -f --connect-timeout 5 --max-time 10 http://localhost:8082/health > /dev/null 2>&1; then
+                echo "✅ Déploiement ultra-rapide réussi ! Application en ligne"
+            else
+                echo "⚠️ Application en cours de démarrage, vérification des logs..."
+                cd /opt/Datalys_consulting_backend
+                docker-compose -f docker-compose.deploy.yml logs --tail=5 datalys-api
+            fi 

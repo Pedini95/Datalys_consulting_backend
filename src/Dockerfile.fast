@@ -1,0 +1,61 @@
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DEBIAN_FRONTEND=noninteractive \
+    PYTHONPATH="/app/src"
+
+# Dépendances système minimales (optimisé pour cache)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
+# Créer l'utilisateur applicatif
+RUN groupadd -r app && useradd -r -g app -m -d /app -s /bin/bash app
+WORKDIR /app
+
+# Dossiers nécessaires
+RUN mkdir -p /app/src/logs /app/src/static/files
+
+# Copier et installer les dépendances (optimisé pour cache Docker)
+COPY src/requirements.txt .
+RUN python -m pip install --upgrade pip setuptools wheel
+
+# Installation ultra-rapide des dépendances (une seule couche)
+RUN python -m pip install --no-cache-dir --timeout 600 \
+    Flask Flask-SQLAlchemy flask_migrate flask_login flask_cors \
+    flask_request_id_header flask_mail flask-httpauth pymysql \
+    itsdangerous xlsxwriter requests python-dotenv flask-restx \
+    apscheduler pycryptodome pillow redis async-timeout tomli \
+    cryptography reportlab bcrypt pycryptodomex PyJWT
+
+# Copier le code (cette couche changera souvent, mise en dernier pour optimiser cache)
+COPY --chown=app:app src/ /app/src
+COPY --chown=app:app scripts/ /app/scripts
+
+# Permissions optimisées
+RUN chown -R app:app /app/src/logs /app/src/static && \
+    chmod -R 755 /app/src/logs /app/src/static
+
+USER app
+
+# Script de démarrage ultra-rapide (sans debug verbeux)
+RUN echo '#!/bin/bash' > /app/start.sh && \
+    echo 'set -e' >> /app/start.sh && \
+    echo 'export PORT=8082' >> /app/start.sh && \
+    echo 'export ENV=production' >> /app/start.sh && \
+    echo 'export PYTHONPATH=/app/src' >> /app/start.sh && \
+    echo 'echo "🚀 Datalys Consulting - Starting..."' >> /app/start.sh && \
+    echo 'cd /app/src' >> /app/start.sh && \
+    echo 'exec python run.py' >> /app/start.sh && \
+    chmod +x /app/start.sh
+
+EXPOSE 8082
+
+# Health check rapide
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f --connect-timeout 5 --max-time 10 http://localhost:8082/health || exit 1
+
+CMD ["/app/start.sh"] 
