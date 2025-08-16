@@ -16,6 +16,11 @@ services:
       - FLASK_ENV=production
       - PYTHONPATH=/app/src
       - PORT=8082
+      - DATABASE_URL=mysql+pymysql://root:password@mysql-db:3306/datalys_db
+      - MYSQL_HOST=mysql-db
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=password
+      - MYSQL_DATABASE=datalys_db
     healthcheck:
       test: ["CMD", "curl", "-f", "--connect-timeout", "10", "--max-time", "30", "http://localhost:8082/health"]
       interval: 60s
@@ -24,7 +29,24 @@ services:
       start_period: 120s
     networks:
       - datalys-network
+    depends_on:
+      - mysql-db
+
+  mysql-db:
+    image: mysql:8.0
+    container_name: mysql-db
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=datalys_db
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - datalys-network
 
 networks:
   datalys-network:
-    driver: bridge 
+    driver: bridge
+
+volumes:
+  mysql_data: 
