@@ -1,39 +1,31 @@
-# Version ultra-optimisée pour build rapide
 FROM python:3.11-slim
 
-# Variables d'environnement
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DEBIAN_FRONTEND=noninteractive
 
-# Installer uniquement les dépendances essentielles
+# Dépendances système minimales (curl pour healthchecks/diagnostic)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+    curl ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
 
-# Créer l'utilisateur non-root
+# Créer l'utilisateur applicatif
 RUN groupadd -r app && useradd -r -g app -m -d /app -s /bin/bash app
-
-# Créer les répertoires nécessaires
 WORKDIR /app
-RUN mkdir -p /app/src/logs /app/src/static/files && \
-    chown -R app:app /app
 
-# Copier les dépendances Python
-COPY --chown=app:app src/requirements.txt .
+# Dossiers nécessaires
+RUN mkdir -p /app/src/logs /app/src/static/files
 
-# Installer les dépendances Python (sans compilation)
+# Installer les deps Python en root (dans /usr/local)
+COPY src/requirements.txt .
+RUN python -m pip install --upgrade pip setuptools wheel \
+ && python -m pip install --no-cache-dir --timeout 300 --retries 3 -r requirements.txt
+
+# Copier le code et donner les droits au user
+COPY --chown=app:app src/ /app/src
 USER app
-RUN pip install --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir --timeout 300 --retries 3 -r requirements.txt
-
-# Copier le code de l'application
-COPY --chown=app:app src/ /app/src/
-
-# S'assurer que les permissions sont correctes
-RUN chmod -R 755 /app/src/logs /app/src/static
 
 # Créer le script de démarrage
 RUN echo '#!/bin/bash' > /app/start.sh && \

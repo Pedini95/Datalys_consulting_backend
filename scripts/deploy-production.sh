@@ -15,8 +15,8 @@ else
     git reset --hard origin/develop
 fi
 
-echo "🔨 Build de l'image localement..."
-docker build -t datalys-consulting/api:latest -f src/Dockerfile .
+echo "⬇️ Pull de la dernière image..."
+docker-compose pull
 
 echo "🔄 Redémarrage des services..."
 docker-compose up -d

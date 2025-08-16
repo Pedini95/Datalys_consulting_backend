@@ -1,33 +1,23 @@
-name: Deploy with Docker Compose + Registry Cache
+name: Build & Deploy
 
 on:
   push:
     branches:
       - develop
       - main
-  pull_request:
-    branches:
-      - develop
-      - main
-
-env:
-  # Configuration du registry Docker Hub
-  REGISTRY: docker.io
-  IMAGE_NAME: datalys-consulting/api
-  # Alternative pour GHCR (GitHub Container Registry)
-  # REGISTRY: ghcr.io
-  # IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
-    
+    permissions:
+      contents: read
+      packages: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Enable Docker BuildKit
+      - name: Enable BuildKit
         run: |
           echo "DOCKER_BUILDKIT=1" >> $GITHUB_ENV
           echo "COMPOSE_DOCKER_CLI_BUILD=1" >> $GITHUB_ENV
@@ -35,44 +25,39 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker image
+      - name: Build & Push
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./src/Dockerfile
-          push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          tags: datalys-api:latest
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
+          push: true
+          tags: datalys-consulting/api:latest,datalys-consulting/api:${{ github.sha }}
+          cache-from: type=registry,ref=datalys-consulting/api:buildcache
+          cache-to: type=registry,ref=datalys-consulting/api:buildcache,mode=max
 
-      - name: Deploy with Docker Compose
+      - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.HOSTINGER_HOST }}
           username: ${{ secrets.HOSTINGER_USERNAME }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           script: |
-            echo "🚀 Déploiement avec Docker Compose..."
-            
+            set -e
+            export DOCKER_BUILDKIT=1
             cd /opt/Datalys_consulting_backend
-            
-            # Rendre le script exécutable
-            chmod +x scripts/deploy-production.sh
-            
-            # Exécuter le script de déploiement
-            ./scripts/deploy-production.sh
+            docker-compose pull
+            docker-compose up -d
+            docker image prune -f
 
-      - name: Final Health Check
+      - name: Health Check
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.HOSTINGER_HOST }}
           username: ${{ secrets.HOSTINGER_USERNAME }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           script: |
-            echo "🔍 Vérification finale..."
-            sleep 10
+            echo "🔍 Vérification de la santé..."
+            sleep 30
             
             # Vérification avec Docker Compose
             docker-compose ps | grep datalys-api || (echo "❌ Conteneur non trouvé" && exit 1)
@@ -84,15 +69,4 @@ jobs:
             
             # Afficher les logs pour debug
             echo "📋 Logs du conteneur :"
-            docker-compose logs --tail=10 datalys-api
-
-      - name: Cleanup old images
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.HOSTINGER_HOST }}
-          username: ${{ secrets.HOSTINGER_USERNAME }}
-          key: ${{ secrets.HOSTINGER_SSH_KEY }}
-          script: |
-            echo "🧹 Nettoyage des anciennes images..."
-            # Nettoyage général des images non utilisées
-            docker image prune -f 
+            docker-compose logs --tail=10 datalys-api 
