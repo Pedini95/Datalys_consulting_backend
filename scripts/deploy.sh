@@ -18,7 +18,13 @@ mkdir -p ./logs ./uploads
 chown -R 999:999 ./logs ./uploads 2>/dev/null || true
 chmod -R 755 ./logs ./uploads 2>/dev/null || true
 
-# 3. Check si rebuild nécessaire (optimisation intelligente)
+# 3. Configurer les réseaux Docker (correction automatique)
+echo "🌐 Configuration automatique des réseaux Docker..."
+# Connecter MySQL et Redis au réseau de l'application si pas déjà connectés
+docker network connect datalys_consulting_backend_default mysql-db 2>/dev/null || true
+docker network connect datalys_consulting_backend_default redis-db 2>/dev/null || true
+
+# 4. Check si rebuild nécessaire (optimisation intelligente)
 CURRENT_HASH=$(git rev-parse HEAD)
 LAST_BUILD_HASH_FILE="/tmp/datalys_last_build_hash"
 
