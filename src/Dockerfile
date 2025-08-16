@@ -5,7 +5,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     DEBIAN_FRONTEND=noninteractive \
-    PYTHONPATH="${PYTHONPATH}:/app/src"
+    PYTHONPATH="/app/src"
 
 # Dépendances système minimales (curl pour healthchecks/diagnostic)
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -44,19 +44,12 @@ RUN echo '#!/bin/bash' > /app/start.sh && \
     echo 'echo "✅ Environnement configuré"' >> /app/start.sh && \
     echo 'echo "🔍 Debug: Current working directory: $(pwd)"' >> /app/start.sh && \
     echo 'echo "🔍 Debug: Python path: $PYTHONPATH"' >> /app/start.sh && \
-    echo 'echo "🔍 Debug: Contents of /app/src:"' >> /app/start.sh && \
-    echo 'ls -la /app/src/' >> /app/start.sh && \
     echo 'echo "🔍 Debug: Contents of /app/src/models:"' >> /app/start.sh && \
-    echo 'ls -la /app/src/models/ || echo "models directory not found"' >> /app/start.sh && \
-    echo 'echo "🔍 Debug: Python version: $(python --version)"' >> /app/start.sh && \
-    echo 'echo "🔍 Debug: Contents of /app/src/models:"' >> /app/start.sh && \
-    echo 'ls -la /app/src/models/ || echo "models directory not found"' >> /app/start.sh && \
+    echo 'ls -la /app/src/models/' >> /app/start.sh && \
     echo 'echo "🔍 Debug: Checking for Role.py:"' >> /app/start.sh && \
     echo 'ls -la /app/src/models/Role.py || echo "Role.py not found"' >> /app/start.sh && \
     echo 'echo "🔍 Debug: Contents of models/__init__.py:"' >> /app/start.sh && \
     echo 'cat /app/src/models/__init__.py || echo "Cannot read __init__.py"' >> /app/start.sh && \
-    echo 'echo "🔍 Vérification de la sensibilité à la casse..."' >> /app/start.sh && \
-    echo 'python /app/scripts/check-case-sensitivity.py || echo "⚠️ Vérification de casse échouée, mais on continue..."' >> /app/start.sh && \
     echo "echo \"🌐 Démarrage sur le port \$PORT\"" >> /app/start.sh && \
     echo 'cd /app/src' >> /app/start.sh && \
     echo 'exec python run.py' >> /app/start.sh && \
