@@ -35,6 +35,6 @@ echo "✅ Configuration terminée"
 echo "🌍 Démarrage de l'application sur le port ${PORT:-8081}"
 
 # Démarrer l'application
-cd /app/src
+cd /app
 export PYTHONPATH=/app/src:$PYTHONPATH
-exec /app/venv/bin/python run.py 
+exec /app/venv/bin/python src/run.py 

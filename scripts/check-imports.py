@@ -158,12 +158,12 @@ class ImportChecker:
                 content = f.read()
                 
             # Vérifier le WORKDIR
-            if 'WORKDIR /app/src' not in content:
-                errors.append("Le WORKDIR dans Dockerfile doit être '/app/src'")
+            if 'WORKDIR /app' not in content:
+                errors.append("Le WORKDIR dans Dockerfile doit être '/app'")
                 
             # Vérifier le PYTHONPATH
-            if 'PYTHONPATH=/app/src' not in content:
-                errors.append("Le PYTHONPATH dans Dockerfile doit inclure '/app/src'")
+            if 'PYTHONPATH="${PYTHONPATH}:/app/src"' not in content:
+                errors.append("Le PYTHONPATH dans Dockerfile doit être 'PYTHONPATH=\"${PYTHONPATH}:/app/src\"'")
                 
         except Exception as e:
             errors.append(f"Impossible de lire le Dockerfile: {e}")

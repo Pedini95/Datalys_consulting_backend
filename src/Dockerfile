@@ -4,7 +4,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    DEBIAN_FRONTEND=noninteractive
+    DEBIAN_FRONTEND=noninteractive \
+    PYTHONPATH="${PYTHONPATH}:/app/src"
 
 # Dépendances système minimales (curl pour healthchecks/diagnostic)
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -13,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Créer l'utilisateur applicatif
 RUN groupadd -r app && useradd -r -g app -m -d /app -s /bin/bash app
-WORKDIR /app/src
+WORKDIR /app
 
 # Dossiers nécessaires
 RUN mkdir -p /app/src/logs /app/src/static/files
@@ -36,12 +37,11 @@ USER app
 RUN echo '#!/bin/bash' > /app/start.sh && \
     echo 'set -e' >> /app/start.sh && \
     echo 'echo "🚀 Démarrage de l application Datalys Consulting..."' >> /app/start.sh && \
-    echo 'export PYTHONPATH=/app/src:$PYTHONPATH' >> /app/start.sh && \
     echo 'export PORT=8082' >> /app/start.sh && \
     echo 'export ENV=production' >> /app/start.sh && \
     echo 'echo "✅ Environnement configuré"' >> /app/start.sh && \
     echo "echo \"🌐 Démarrage sur le port \$PORT\"" >> /app/start.sh && \
-    echo 'exec python run.py' >> /app/start.sh && \
+    echo 'exec python src/run.py' >> /app/start.sh && \
     chmod +x /app/start.sh
 
 # Exposer le port
