@@ -13,7 +13,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.engine.url import make_url
 
 # Importer l'application Flask et les modèles
-from app import app, db
+from app import app
+from extensions import db
 from models import *  # noqa: F401,F403
 
 def ensure_database_exists(sqlalchemy_uri: str) -> None:

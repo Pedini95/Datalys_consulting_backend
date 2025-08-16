@@ -1,7 +1,7 @@
 from models import Partner
 from typing import Dict, Any, Optional, Tuple
 from sqlalchemy.exc import SQLAlchemyError
-from app import db
+from extensions import db
 import logging
 from utils.file_upload import file_upload_manager
 

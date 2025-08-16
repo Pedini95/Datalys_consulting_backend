@@ -5,7 +5,7 @@ import logging
 import utils.functional_error as functional_error
 import utils.utilities as utilities
 import os
-from app import db
+from extensions import db
 from routes.auth import require_auth
 
 logger = logging.getLogger(__name__)

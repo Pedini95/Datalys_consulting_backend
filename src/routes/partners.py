@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from app import db
+from extensions import db
 from services.partner_service import PartnerService
 from utils.file_upload import file_upload_manager
 import logging

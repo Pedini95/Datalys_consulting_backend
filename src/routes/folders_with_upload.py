@@ -4,9 +4,8 @@ import logging
 import utils.functional_error as functional_error
 import utils.utilities as utilities
 import json
-from datetime import datetime
 import os
-from app import db
+from extensions import db
 from flask_cors import cross_origin
 from routes.auth import require_auth
 
@@ -286,6 +285,8 @@ def upload_multiple_files(user, project_name, parent_folder_name, folder_name):
             
             # Uploader le fichier
             filename = path_parts[-1]
+            if current_folder is None:
+                return {"status": "error", "message": "Impossible de créer le dossier parent"}, 400
             file_path = os.path.join(current_folder.path, filename)
             
             # Créer le répertoire si nécessaire
@@ -297,10 +298,10 @@ def upload_multiple_files(user, project_name, parent_folder_name, folder_name):
             # Enregistrer en base de données
             from models import File
             file_record = File(
-                name=filename,
-                folder_id=current_folder.id,
-                file_url=file_path,
-                created_by=user.get('id')
+                name=filename,  # type: ignore
+                folder_id=current_folder.id,  # type: ignore
+                file_url=file_path,  # type: ignore
+                created_by=user.get('id')  # type: ignore
             )
             db.session.add(file_record)
             
@@ -311,6 +312,9 @@ def upload_multiple_files(user, project_name, parent_folder_name, folder_name):
             })
     
     db.session.commit()
+    
+    if folder is None:
+        return {"status": "error", "message": "Impossible de créer le dossier principal"}, 400
     
     return {
         "status": "success",
@@ -329,6 +333,8 @@ def upload_zip_file(user, project_name, parent_folder_name, folder_name):
         return {"status": "error", "message": "Aucun fichier ZIP fourni"}, 400
     
     # Vérifier l'extension
+    if zip_file.filename is None:
+        return {"status": "error", "message": "Nom de fichier invalide"}, 400
     if not zip_file.filename.lower().endswith('.zip'):
         return {"status": "error", "message": "Le fichier doit être un ZIP"}, 400
     
@@ -377,6 +383,9 @@ def upload_zip_file(user, project_name, parent_folder_name, folder_name):
                     # Créer les sous-dossiers
                     for i, part in enumerate(path_parts[:-1]):
                         subfolder_name = part
+                        if current_folder is None:
+                            logger.error("current_folder est None, impossible de créer le sous-dossier")
+                            continue
                         subfolder_data = {
                             'name': subfolder_name,
                             'project_name': project_name,
@@ -391,6 +400,9 @@ def upload_zip_file(user, project_name, parent_folder_name, folder_name):
                     
                     # Copier le fichier vers la destination finale
                     filename = path_parts[-1]
+                    if current_folder is None:
+                        logger.error("current_folder est None, impossible de continuer")
+                        continue
                     final_path = os.path.join(current_folder.path, filename)
                     
                     # Créer le répertoire si nécessaire
@@ -403,10 +415,10 @@ def upload_zip_file(user, project_name, parent_folder_name, folder_name):
                     # Enregistrer en base de données
                     from models import File
                     file_record = File(
-                        name=filename,
-                        folder_id=current_folder.id,
-                        path=final_path,
-                        created_by=user.get('id')
+                        name=filename,  # type: ignore
+                        folder_id=current_folder.id,  # type: ignore
+                        file_url=final_path,  # type: ignore
+                        created_by=user.get('id')  # type: ignore
                     )
                     db.session.add(file_record)
                     
@@ -417,6 +429,9 @@ def upload_zip_file(user, project_name, parent_folder_name, folder_name):
                     })
     
     db.session.commit()
+    
+    if folder is None:
+        return {"status": "error", "message": "Impossible de créer le dossier principal"}, 400
     
     return {
         "status": "success",

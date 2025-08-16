@@ -1,7 +1,7 @@
 from models import File
 from typing import Dict, Any, Optional, Tuple
 from sqlalchemy.exc import SQLAlchemyError
-from app import db
+from extensions import db
 import logging
 
 logger = logging.getLogger(__name__)

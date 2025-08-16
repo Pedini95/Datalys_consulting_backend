@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify
 from sqlalchemy import text
-from app import db
+from extensions import db
 import logging
 from utils.notification import EmailService
 

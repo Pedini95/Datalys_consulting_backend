@@ -1,7 +1,7 @@
 from models import User
 from typing import Dict, Any, Optional, Tuple
 from sqlalchemy.exc import SQLAlchemyError
-from app import db
+from extensions import db
 import logging
 import utils.utilities as utilities
 import utils.session_utils as session_utils

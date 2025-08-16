@@ -1,4 +1,4 @@
-from app import db
+from extensions import db
 from sqlalchemy import and_
 from datetime import datetime
 
