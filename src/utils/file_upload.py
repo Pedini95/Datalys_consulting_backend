@@ -31,7 +31,7 @@ class FileUploadManager:
             # Autres
             'csv', 'tsv', 'log', 'md'
         }
-        self.max_file_size = 16 * 1024 * 1024  # 16MB (augmenté)
+        self.max_file_size = 50 * 1024 * 1024  # 50MB (augmenté pour être cohérent avec Flask)
     
     def allowed_file(self, filename: str, image_only: bool = False) -> bool:
         """Vérifier si l'extension du fichier est autorisée"""

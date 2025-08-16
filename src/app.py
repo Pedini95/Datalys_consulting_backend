@@ -10,7 +10,8 @@ from config import Config
 
 app = Flask(__name__)
 app.config.from_object(Config)
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+# Augmenter la limite pour permettre l'upload de fichiers plus volumineux
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB (augmenté de 16MB)
 
 # Configuration du dossier d'upload
 app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', './static/files')
