@@ -181,20 +181,49 @@ class FileUploadManager:
     
     def get_file_url(self, file_path: str) -> str:
         """
-        Générer l'URL d'accès au fichier
+        Générer l'URL d'accès au fichier via la route /files/serve
         
         Args:
-            file_path: Chemin relatif du fichier
+            file_path: Chemin absolu du fichier uploadé
             
         Returns:
-            str: URL complète du fichier
+            str: URL complète du fichier accessible via /files/serve
         """
         if not file_path:
             return ""
         
-        # Pour le développement local
-        base_url = current_app.config.get('BASE_URL', 'http://localhost:8081')
-        return f"{base_url}/uploads/{file_path.replace(self.upload_folder + '/', '')}"
+        try:
+            # Obtenir l'URL de base du serveur
+            from flask import request
+            from urllib.parse import urlparse
+            
+            # En production, construire l'URL basée sur la requête actuelle
+            if hasattr(request, 'url_root') and request.url_root:
+                base_url = request.url_root.rstrip('/')
+            else:
+                # Fallback depuis la configuration
+                base_url = current_app.config.get('APP_URL', 'http://localhost:8082')
+            
+            # Extraire le nom du fichier relatif depuis le chemin absolu
+            # Exemple: /app/src/static/files/logos/image.png -> logos/image.png
+            
+            # Trouver la partie après 'static/files/'
+            if 'static/files/' in file_path:
+                relative_path = file_path.split('static/files/', 1)[1]
+            else:
+                # Fallback: utiliser juste le nom du fichier
+                relative_path = os.path.basename(file_path)
+            
+            # Construire l'URL avec la route /files/serve
+            file_url = f"{base_url}/files/serve/{relative_path}"
+            
+            logger.info(f"Generated file URL: {file_url} from path: {file_path}")
+            return file_url
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de la génération d'URL: {str(e)}")
+            # Fallback d'urgence
+            return f"http://82.112.253.137:8082/files/serve/{os.path.basename(file_path)}"
     
     def validate_image_file(self, file) -> Tuple[bool, str]:
         """

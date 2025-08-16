@@ -31,6 +31,18 @@ services:
       - REDIS_READ_TIMEOUT=60
       - UPLOAD_FOLDER=/app/src/static/files
       - LOG_FILE_PATH=/app/src/logs/datalys_consulting.log
+      # Configuration Email SMTP Hostinger
+      - MAIL_SERVER=smtp.hostinger.com
+      - MAIL_PORT=587
+      - MAIL_USE_TLS=True
+      - MAIL_USERNAME=datalysconsultingapp@datalysconsulting.com
+      - MAIL_PASSWORD=Datalysconsulting@2025
+      - MAIL_DEFAULT_SENDER=datalysconsultingapp@datalysconsulting.com
+      - SENDER_NAME=Datalys Consulting
+      - APP_URL=http://82.112.253.137:8082
+      - SERVER_NAME=82.112.253.137:8082
+      - APPLICATION_ROOT=/
+      - PREFERRED_URL_SCHEME=http
     healthcheck:
       test: ["CMD", "curl", "-f", "--connect-timeout", "10", "--max-time", "30", "http://localhost:8082/health"]
       interval: 60s
