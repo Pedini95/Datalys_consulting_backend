@@ -194,15 +194,21 @@ class FileUploadManager:
         
         try:
             # Obtenir l'URL de base du serveur
-            from flask import request
-            from urllib.parse import urlparse
+            base_url = None
             
-            # En production, construire l'URL basée sur la requête actuelle
-            if hasattr(request, 'url_root') and request.url_root:
-                base_url = request.url_root.rstrip('/')
-            else:
-                # Fallback depuis la configuration
-                base_url = current_app.config.get('APP_URL', 'http://localhost:8082')
+            # Essayer d'obtenir l'URL depuis la requête actuelle
+            try:
+                from flask import request, has_request_context
+                
+                if has_request_context() and hasattr(request, 'url_root') and request.url_root:
+                    base_url = request.url_root.rstrip('/')
+            except (RuntimeError, ImportError):
+                # Pas de contexte de requête disponible
+                pass
+            
+            # Fallback depuis la configuration
+            if not base_url:
+                base_url = current_app.config.get('APP_URL', 'http://82.112.253.137:8082')
             
             # Extraire le nom du fichier relatif depuis le chemin absolu
             # Exemple: /app/src/static/files/logos/image.png -> logos/image.png
@@ -211,8 +217,13 @@ class FileUploadManager:
             if 'static/files/' in file_path:
                 relative_path = file_path.split('static/files/', 1)[1]
             else:
-                # Fallback: utiliser juste le nom du fichier
-                relative_path = os.path.basename(file_path)
+                # Fallback: utiliser juste le nom du fichier avec le dossier logos/
+                filename = os.path.basename(file_path)
+                # Détecter le type de fichier pour le sous-dossier approprié
+                if any(ext in filename.lower() for ext in ['.png', '.jpg', '.jpeg', '.gif', '.svg']):
+                    relative_path = f"logos/{filename}"
+                else:
+                    relative_path = f"files/{filename}"
             
             # Construire l'URL avec la route /files/serve
             file_url = f"{base_url}/files/serve/{relative_path}"
@@ -222,8 +233,12 @@ class FileUploadManager:
             
         except Exception as e:
             logger.error(f"Erreur lors de la génération d'URL: {str(e)}")
-            # Fallback d'urgence
-            return f"http://82.112.253.137:8082/files/serve/{os.path.basename(file_path)}"
+            # Fallback d'urgence avec une URL statique
+            filename = os.path.basename(file_path)
+            if any(ext in filename.lower() for ext in ['.png', '.jpg', '.jpeg', '.gif', '.svg']):
+                return f"http://82.112.253.137:8082/files/serve/logos/{filename}"
+            else:
+                return f"http://82.112.253.137:8082/files/serve/files/{filename}"
     
     def validate_image_file(self, file) -> Tuple[bool, str]:
         """
