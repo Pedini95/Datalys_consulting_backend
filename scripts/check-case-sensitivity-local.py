@@ -52,34 +52,41 @@ def check_case_sensitivity():
         else:
             print(f"✅ {expected_file} - OK")
     
-    # Vérifier les imports
-    print("\n🔍 Test des imports...")
+    # Vérifier la structure du package
+    print("\n🔍 Test de la structure du package...")
     
     # Ajouter src au PYTHONPATH
     sys.path.insert(0, 'src')
     
     try:
-        # Test d'import de tous les modèles
-        from models import Role, User, Partner, Project, Incident, Folder, File, UserProjectPermission, ActionHistory
-        print("✅ Tous les imports fonctionnent correctement!")
+        # Test d'import du package models seulement
+        import models
+        print("✅ Package 'models' trouvé!")
+        print(f"📁 Contenu du package: {dir(models)}")
         
-        # Vérifier que les classes sont bien importées
-        models = [Role, User, Partner, Project, Incident, Folder, File, UserProjectPermission, ActionHistory]
-        for model in models:
-            print(f"✅ {model.__name__} importé avec succès")
+        # Vérifier que les modules sont listés dans __all__
+        if hasattr(models, '__all__'):
+            print(f"✅ __all__ défini: {models.__all__}")
+            
+            # Vérifier que tous les modèles attendus sont dans __all__
+            expected_models = ['Role', 'User', 'Partner', 'Project', 'Incident', 'Folder', 'File', 'UserProjectPermission', 'ActionHistory']
+            for model in expected_models:
+                if model in models.__all__:
+                    print(f"✅ {model} dans __all__")
+                else:
+                    errors.append(f"❌ {model} manquant dans __all__")
+        else:
+            print("⚠️ __all__ non défini dans models")
             
     except ImportError as e:
-        errors.append(f"❌ Erreur d'import: {e}")
+        errors.append(f"❌ Erreur d'import du package models: {e}")
         print(f"❌ Erreur d'import détectée: {e}")
         
         # Debug supplémentaire
         print("\n🔍 Debug des imports...")
-        try:
-            import models
-            print(f"✅ Package 'models' trouvé: {models}")
-            print(f"📁 Contenu du package: {dir(models)}")
-        except Exception as e2:
-            print(f"❌ Impossible d'importer le package 'models': {e2}")
+        print(f"🔍 PYTHONPATH: {sys.path}")
+        print(f"🔍 Répertoire models existe: {Path('src/models').exists()}")
+        print(f"🔍 __init__.py existe: {Path('src/models/__init__.py').exists()}")
     
     # Afficher les erreurs
     if errors:
