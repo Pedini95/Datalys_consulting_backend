@@ -86,8 +86,8 @@ def create_users():
             try:
                 email_service = EmailService()
                 login_url = f"https://applicationweb.datalysconsulting.com/connexion"
-                # Calculer le nom complet pour l'email
-                user_name = f"{item.first_name or ''} {item.last_name or ''}".strip() or item.name
+                # Utiliser le nom de l'utilisateur pour l'email
+                user_name = item.name
                 email_sent = email_service.send_welcome_email(
                     user_email=item.email,
                     user_name=user_name,

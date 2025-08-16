@@ -51,16 +51,8 @@ class UserService:
                     return None, False, f"Rôle '{role_name}' non trouvé"
                 data['role_id'] = roles[0].id
             
-            # Gérer le champ name -> name, first_name, last_name
-            if 'name' in data:
-                name = data['name']  # Ne pas pop, garder le champ name
-                # Si le nom contient un espace, séparer en first_name et last_name
-                name_parts = name.strip().split(' ', 1)
-                if len(name_parts) > 1:
-                    data['first_name'] = name_parts[0]
-                    data['last_name'] = name_parts[1]
-                else:
-                    data['first_name'] = name
+            # Le champ name reste tel quel - pas de séparation en first_name/last_name
+            # car ces colonnes n'existent pas dans la table
             
             # Hasher le mot de passe
             if 'password' in data:
@@ -115,16 +107,8 @@ class UserService:
                     return None, False, f"Rôle '{role_name}' non trouvé"
                 data['role_id'] = roles[0].id
             
-            # Gérer le champ name -> name, first_name, last_name
-            if 'name' in data:
-                name = data['name']  # Ne pas pop, garder le champ name
-                # Si le nom contient un espace, séparer en first_name et last_name
-                name_parts = name.strip().split(' ', 1)
-                if len(name_parts) > 1:
-                    data['first_name'] = name_parts[0]
-                    data['last_name'] = name_parts[1]
-                else:
-                    data['first_name'] = name
+            # Le champ name reste tel quel - pas de séparation en first_name/last_name
+            # car ces colonnes n'existent pas dans la table
             
             # Hasher le mot de passe si fourni
             if 'password' in data:
