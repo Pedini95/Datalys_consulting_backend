@@ -7,7 +7,7 @@ class User(db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    username = db.Column(db.String(80), nullable=False)
+    name = db.Column(db.String(255), nullable=False)  # Changed from username to name
     email = db.Column(db.String(120), nullable=False, unique=True)
     password_hash = db.Column(db.String(255), nullable=False)
     first_name = db.Column(db.String(50), nullable=True)
@@ -28,7 +28,7 @@ class User(db.Model):
     def as_dict(self):
         data = {}
         # Utiliser les attributs de la classe directement
-        columns = ['id', 'username', 'email', 'first_name', 'last_name', 'password_hash', 'role_id', 
+        columns = ['id', 'name', 'email', 'first_name', 'last_name', 'password_hash', 'role_id', 
                   'is_active', 'is_deleted', 'created_at', 'created_by', 'updated_at', 'updated_by']
         
         for column in columns:
@@ -39,11 +39,8 @@ class User(db.Model):
                 else:
                     data[column] = value
         
-        # Ajouter un champ name calculé pour la compatibilité
-        if data.get('first_name') or data.get('last_name'):
-            data['name'] = f"{data.get('first_name', '')} {data.get('last_name', '')}".strip()
-        else:
-            data['name'] = data.get('username', '')
+        # Ajouter un champ username pour la compatibilité (alias de name)
+        data['username'] = data.get('name', '')
         
         return data
 
@@ -55,9 +52,9 @@ class User(db.Model):
         if 'id' in criteria:
             conditions.append(User.id == criteria['id'])
         if 'name' in criteria:
-            # Rechercher dans username, first_name et last_name
+            # Rechercher dans name, first_name et last_name
             name_condition = (
-                User.username.like(f"%{criteria['name']}%") |
+                User.name.like(f"%{criteria['name']}%") |
                 User.first_name.like(f"%{criteria['name']}%") |
                 User.last_name.like(f"%{criteria['name']}%")
             )
