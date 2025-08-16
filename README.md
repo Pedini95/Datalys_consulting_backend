@@ -33,3 +33,4 @@ API backend pour Datalys Consulting avec déploiement automatique optimisé.
 # Trigger rebuild
 # Force rebuild with latest fixes
 # Force rebuild with lowercase model files
+# URGENT: Force rebuild with latest fixes - Sat Aug 16 09:34:47 GMT 2025
