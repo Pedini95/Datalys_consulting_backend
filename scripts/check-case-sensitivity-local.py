@@ -20,15 +20,15 @@ def check_case_sensitivity():
     
     # Liste des modèles attendus avec leur casse exacte
     expected_models = {
-        'Role': 'Role.py',
-        'User': 'User.py', 
-        'Partner': 'Partner.py',
-        'Project': 'Project.py',
-        'Incident': 'Incident.py',
-        'Folder': 'Folder.py',
-        'File': 'File.py',
-        'UserProjectPermission': 'UserProjectPermission.py',
-        'ActionHistory': 'ActionHistory.py'
+        'Role': 'role.py',
+        'User': 'user.py', 
+        'Partner': 'partner.py',
+        'Project': 'project.py',
+        'Incident': 'incident.py',
+        'Folder': 'folder.py',
+        'File': 'file.py',
+        'UserProjectPermission': 'user_project_permission.py',
+        'ActionHistory': 'action_history.py'
     }
     
     errors = []

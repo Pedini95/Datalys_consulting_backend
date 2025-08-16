@@ -46,8 +46,8 @@ RUN echo '#!/bin/bash' > /app/start.sh && \
     echo 'echo "🔍 Debug: Python path: $PYTHONPATH"' >> /app/start.sh && \
     echo 'echo "🔍 Debug: Contents of /app/src/models:"' >> /app/start.sh && \
     echo 'ls -la /app/src/models/' >> /app/start.sh && \
-    echo 'echo "🔍 Debug: Checking for Role.py:"' >> /app/start.sh && \
-    echo 'ls -la /app/src/models/Role.py || echo "Role.py not found"' >> /app/start.sh && \
+    echo 'echo "🔍 Debug: Checking for role.py:"' >> /app/start.sh && \
+    echo 'ls -la /app/src/models/role.py || echo "role.py not found"' >> /app/start.sh && \
     echo 'echo "🔍 Debug: Contents of models/__init__.py:"' >> /app/start.sh && \
     echo 'cat /app/src/models/__init__.py || echo "Cannot read __init__.py"' >> /app/start.sh && \
     echo "echo \"🌐 Démarrage sur le port \$PORT\"" >> /app/start.sh && \

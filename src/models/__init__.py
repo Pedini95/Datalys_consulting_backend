@@ -7,16 +7,16 @@ parent_dir = os.path.dirname(current_dir)
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
-# Imports relatifs uniquement
-from .Role import Role
-from .User import User
-from .Partner import Partner
-from .Project import Project
-from .Incident import Incident
-from .Folder import Folder
-from .File import File
-from .UserProjectPermission import UserProjectPermission
-from .ActionHistory import ActionHistory
+# Imports avec noms de fichiers en minuscules
+from .role import Role
+from .user import User
+from .partner import Partner
+from .project import Project
+from .incident import Incident
+from .folder import Folder
+from .file import File
+from .user_project_permission import UserProjectPermission
+from .action_history import ActionHistory
 
 __all__ = [
     'Role',
