@@ -3,8 +3,8 @@
 services:
   datalys-api:
     build:
-      context: ./src
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./src/Dockerfile
     container_name: datalys-api
     restart: unless-stopped
     ports:
