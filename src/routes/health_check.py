@@ -15,6 +15,7 @@ def health_check():
     health_status = {
         "status": "healthy",
         "timestamp": None,
+        "deployment_fix": "Script de déploiement corrigé - détection améliorée",
         "database": {
             "status": "unknown",
             "version": None,

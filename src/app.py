@@ -1,3 +1,4 @@
+# Force rebuild - $(date)
 from flask import Flask
 import os
 import logging
