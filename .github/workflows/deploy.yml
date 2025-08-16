@@ -61,8 +61,8 @@ jobs:
             echo "📥 Pull du code le plus récent..."
             git fetch origin
             git reset --hard origin/develop
-            echo "⚡ Exécution du déploiement rapide..."
-            bash scripts/deploy-quick.sh
+            echo "🚀 Exécution du déploiement ultra-rapide..."
+            bash scripts/deploy-ultra-fast.sh
 
       - name: Health Check
         uses: appleboy/ssh-action@v1.2.0

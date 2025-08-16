@@ -21,8 +21,15 @@ RUN mkdir -p /app/src/logs /app/src/static/files
 
 # Installer les deps Python en root (dans /usr/local)
 COPY src/requirements.txt .
-RUN python -m pip install --upgrade pip setuptools wheel \
- && python -m pip install --no-cache-dir --timeout 300 --retries 3 -r requirements.txt
+RUN python -m pip install --upgrade pip setuptools wheel
+
+# Installer les dépendances en deux étapes pour optimiser le cache
+RUN python -m pip install --no-cache-dir --timeout 600 \
+    Flask Flask-SQLAlchemy flask_migrate flask_login flask_cors \
+    flask_request_id_header flask_mail flask-httpauth pymysql \
+    itsdangerous xlsxwriter requests python-dotenv flask-restx \
+    apscheduler pycryptodome pillow redis async-timeout tomli \
+    cryptography reportlab bcrypt pycryptodomex PyJWT
 
 # Copier le code et donner les droits au user
 COPY --chown=app:app src/ /app/src

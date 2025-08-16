@@ -2,7 +2,7 @@ from flask import Flask
 import os
 import logging
 from logging.handlers import TimedRotatingFileHandler
-from flasgger import Swagger
+from flask_restx import Api
 from flask_cors import CORS
 from extensions import db, migrate, mail
 from config import Config
@@ -13,7 +13,7 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Configuration du dossier d'upload
 app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', './static/files')
-swagger = Swagger(app)
+api = Api(app, doc='/swagger/', title='Datalys Consulting API')
 
 # Determine if in development environment
 is_dev = app.config.get('ENV', 'local') == 'local'
