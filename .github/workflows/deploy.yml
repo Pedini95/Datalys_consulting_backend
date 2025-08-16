@@ -17,6 +17,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check Python imports
+        run: |
+          python3 scripts/check-imports.py
+
       - name: Enable BuildKit
         run: |
           echo "DOCKER_BUILDKIT=1" >> $GITHUB_ENV
