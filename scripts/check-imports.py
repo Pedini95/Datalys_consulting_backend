@@ -27,6 +27,16 @@ class ImportChecker:
             errors.append(f"Impossible de lire {file_path}: {e}")
             return errors
             
+        # Ignorer les lignes commentées
+        lines = content.split('\n')
+        active_lines = []
+        for line in lines:
+            stripped_line = line.strip()
+            if stripped_line and not stripped_line.startswith('#'):
+                active_lines.append(line)
+        
+        active_content = '\n'.join(active_lines)
+            
         # Patterns pour détecter les imports
         import_patterns = [
             r'from\s+(\w+(?:\.\w+)*)\s+import\s+(\w+(?:\s*,\s*\w+)*)',
@@ -34,7 +44,7 @@ class ImportChecker:
         ]
         
         for pattern in import_patterns:
-            matches = re.finditer(pattern, content)
+            matches = re.finditer(pattern, active_content)
             for match in matches:
                 if 'from' in pattern:
                     module_path = match.group(1)
