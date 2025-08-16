@@ -31,12 +31,17 @@ log_file_path = os.path.join(log_dir, 'datalys_consulting.log')
 # Format
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
-# Handler fichier
-file_handler = TimedRotatingFileHandler(
-    log_file_path, when='midnight', interval=1, backupCount=7, encoding='utf-8'
-)
-file_handler.setFormatter(formatter)
-file_handler.setLevel(logging.INFO)
+# Handler fichier (avec gestion d'erreur)
+try:
+    file_handler = TimedRotatingFileHandler(
+        log_file_path, when='midnight', interval=1, backupCount=7, encoding='utf-8'
+    )
+    file_handler.setFormatter(formatter)
+    file_handler.setLevel(logging.INFO)
+    logging.root.addHandler(file_handler)
+except (PermissionError, OSError) as e:
+    print(f"⚠️ Impossible de créer le fichier de log: {e}")
+    print("📝 Logs uniquement en console")
 
 # Handler console
 console_handler = logging.StreamHandler()
@@ -49,7 +54,6 @@ for handler in logging.root.handlers[:]:
 
 # Configuration du root logger
 logging.root.setLevel(logging.INFO)
-logging.root.addHandler(file_handler)
 logging.root.addHandler(console_handler)
 
 db = SQLAlchemy(app)

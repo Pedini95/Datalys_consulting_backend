@@ -25,6 +25,11 @@ RUN python -m pip install --upgrade pip setuptools wheel \
 
 # Copier le code et donner les droits au user
 COPY --chown=app:app src/ /app/src
+
+# S'assurer que l'utilisateur app a les permissions d'écriture
+RUN chown -R app:app /app/src/logs /app/src/static && \
+    chmod -R 755 /app/src/logs /app/src/static
+
 USER app
 
 # Créer le script de démarrage
