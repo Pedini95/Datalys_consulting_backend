@@ -12,13 +12,19 @@ echo "📥 Pull du code le plus récent..."
 git fetch origin
 git reset --hard origin/develop
 
-# 2. Redémarrage sans rebuild (plus rapide)
-echo "🔄 Redémarrage rapide..."
-docker-compose restart datalys-api
+# 2. Vérifier et démarrer le conteneur
+echo "🔄 Vérification du conteneur..."
+if docker-compose ps | grep -q "datalys-api.*Up"; then
+    echo "📦 Redémarrage du conteneur existant..."
+    docker-compose restart datalys-api
+else
+    echo "🚀 Démarrage du conteneur..."
+    docker-compose up -d datalys-api
+fi
 
-# 3. Vérification immédiate
-echo "🔍 Vérification..."
-sleep 10
+# 3. Attendre le démarrage
+echo "⏳ Attente du démarrage..."
+sleep 30
 
 if curl -f --connect-timeout 5 --max-time 10 http://localhost:8082/health > /dev/null 2>&1; then
     echo "✅ Application redémarrée avec succès"
