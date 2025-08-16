@@ -38,9 +38,9 @@ jobs:
           context: .
           file: ./src/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository }}:latest,ghcr.io/${{ github.repository }}:${{ github.sha }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:buildcache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:buildcache,mode=max
+          tags: ghcr.io/pedini95/datalys-consulting-backend:latest,ghcr.io/pedini95/datalys-consulting-backend:${{ github.sha }}
+          cache-from: type=registry,ref=ghcr.io/pedini95/datalys-consulting-backend:buildcache
+          cache-to: type=registry,ref=ghcr.io/pedini95/datalys-consulting-backend:buildcache,mode=max
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
