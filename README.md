@@ -32,3 +32,4 @@ API backend pour Datalys Consulting avec déploiement automatique optimisé.
 # Test de déploiement automatique - Fri Aug 15 23:04:52 GMT 2025
 # Trigger rebuild
 # Force rebuild with latest fixes
+# Force rebuild with lowercase model files
