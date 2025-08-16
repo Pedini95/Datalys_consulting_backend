@@ -49,6 +49,12 @@ RUN echo '#!/bin/bash' > /app/start.sh && \
     echo 'echo "🔍 Debug: Contents of /app/src/models:"' >> /app/start.sh && \
     echo 'ls -la /app/src/models/ || echo "models directory not found"' >> /app/start.sh && \
     echo 'echo "🔍 Debug: Python version: $(python --version)"' >> /app/start.sh && \
+    echo 'echo "🔍 Debug: Contents of /app/src/models:"' >> /app/start.sh && \
+    echo 'ls -la /app/src/models/ || echo "models directory not found"' >> /app/start.sh && \
+    echo 'echo "🔍 Debug: Checking for Role.py:"' >> /app/start.sh && \
+    echo 'ls -la /app/src/models/Role.py || echo "Role.py not found"' >> /app/start.sh && \
+    echo 'echo "🔍 Debug: Contents of models/__init__.py:"' >> /app/start.sh && \
+    echo 'cat /app/src/models/__init__.py || echo "Cannot read __init__.py"' >> /app/start.sh && \
     echo 'echo "🔍 Vérification de la sensibilité à la casse..."' >> /app/start.sh && \
     echo 'python /app/scripts/check-case-sensitivity.py || echo "⚠️ Vérification de casse échouée, mais on continue..."' >> /app/start.sh && \
     echo "echo \"🌐 Démarrage sur le port \$PORT\"" >> /app/start.sh && \
