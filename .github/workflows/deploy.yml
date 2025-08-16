@@ -61,8 +61,8 @@ jobs:
             echo "📥 Pull du code le plus récent..."
             git fetch origin
             git reset --hard origin/develop
-            echo "🧠 Exécution du déploiement intelligent..."
-            bash scripts/deploy-smart.sh
+            echo "💥 Exécution du déploiement force rebuild..."
+            bash scripts/deploy-force-rebuild.sh
 
       - name: Health Check
         uses: appleboy/ssh-action@v1.2.0

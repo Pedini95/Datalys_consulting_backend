@@ -22,7 +22,8 @@ elif docker ps -a | grep -q "datalys-api"; then
     echo "🔄 Conteneur arrêté - Redémarrage..."
     docker-compose start datalys-api
 else
-    echo "🚀 Aucun conteneur - Création et démarrage..."
+    echo "🚀 Aucun conteneur - Build et démarrage..."
+    docker-compose build datalys-api
     docker-compose up -d datalys-api
 fi
 
