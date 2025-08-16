@@ -3,8 +3,8 @@ from typing import Dict, Any, Optional, Tuple
 from sqlalchemy.exc import SQLAlchemyError
 from extensions import db
 import logging
-import utils.utilities as utilities
-import utils.session_utils as session_utils
+from utils import utilities
+from utils import session_utils
 import jwt
 import datetime
 from config import Config

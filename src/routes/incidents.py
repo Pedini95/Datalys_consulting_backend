@@ -1,10 +1,9 @@
 from flask import Blueprint, request
 from services import IncidentService
 import logging
-import utils.functional_error as functional_error
-import utils.utilities as utilities
+from utils import functional_error, utilities
 from flask_cors import cross_origin
-from routes.auth import require_auth
+from .auth import require_auth
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)

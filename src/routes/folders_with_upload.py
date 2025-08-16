@@ -1,13 +1,12 @@
 from flask import Blueprint, request
 from services.folder_service import FolderService
 import logging
-import utils.functional_error as functional_error
-import utils.utilities as utilities
+from utils import functional_error, utilities
 import json
 import os
 from extensions import db
 from flask_cors import cross_origin
-from routes.auth import require_auth
+from .auth import require_auth
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -205,9 +204,6 @@ def upload_folder():
     logging.info("/folders/upload")
     
     try:
-        # Vérifier l'authentification
-        from routes.auth import require_auth
-        # require_auth est un décorateur, on ne peut pas l'appeler directement
         # L'authentification sera vérifiée par le décorateur sur la route
         
         # Récupérer les paramètres
@@ -269,7 +265,7 @@ def upload_multiple_files(user, project_name, parent_folder_name, folder_name):
             current_folder = folder
             
             # Créer les sous-dossiers
-            for i, part in enumerate(path_parts[:-1]):
+            for part in path_parts[:-1]:
                 subfolder_name = part
                 subfolder_data = {
                     'name': subfolder_name,
@@ -369,7 +365,7 @@ def upload_zip_file(user, project_name, parent_folder_name, folder_name):
             zip_ref.extractall(temp_dir)
         
         # Parcourir les fichiers extraits
-        for root, dirs, files in os.walk(temp_dir):
+        for root, _, files in os.walk(temp_dir):
             for file in files:
                 if file != 'upload.zip':  # Ignorer le fichier ZIP lui-même
                     # Calculer le chemin relatif
@@ -381,7 +377,7 @@ def upload_zip_file(user, project_name, parent_folder_name, folder_name):
                     current_folder = folder
                     
                     # Créer les sous-dossiers
-                    for i, part in enumerate(path_parts[:-1]):
+                    for part in path_parts[:-1]:
                         subfolder_name = part
                         if current_folder is None:
                             logger.error("current_folder est None, impossible de créer le sous-dossier")

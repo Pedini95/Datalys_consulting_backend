@@ -1,7 +1,7 @@
 from flask import Blueprint, request
 from services.action_history_service import ActionHistoryService
 import logging
-import utils.functional_error as functional_error
+from utils import functional_error
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)

@@ -5,9 +5,10 @@ from logging.handlers import TimedRotatingFileHandler
 from flasgger import Swagger
 from flask_cors import CORS
 from extensions import db, migrate, mail
+from config import Config
 
 app = Flask(__name__)
-app.config.from_object('config.Config')
+app.config.from_object(Config)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # Configuration du dossier d'upload

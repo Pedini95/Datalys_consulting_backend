@@ -2,11 +2,10 @@ from flask import Blueprint, request, jsonify, send_from_directory, g
 from services.file_service import FileService
 from utils.file_upload import file_upload_manager
 import logging
-import utils.functional_error as functional_error
-import utils.utilities as utilities
+from utils import functional_error, utilities
 import os
 from extensions import db
-from routes.auth import require_auth
+from .auth import require_auth
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)

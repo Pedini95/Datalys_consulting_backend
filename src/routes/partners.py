@@ -1,16 +1,11 @@
-from flask import Blueprint, request, jsonify
-from extensions import db
+from flask import Blueprint, request
 from services.partner_service import PartnerService
 from utils.file_upload import file_upload_manager
 import logging
-import utils.functional_error as functional_error
-from datetime import datetime, date
-import utils.utilities as utilities
-from flasgger import swag_from
-from flask_cors import CORS, cross_origin
-from routes.auth import require_auth
+from utils import functional_error, utilities
+from flask_cors import cross_origin
+from .auth import require_auth
 import json
-import os
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)

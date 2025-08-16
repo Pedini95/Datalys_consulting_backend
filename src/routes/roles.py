@@ -1,8 +1,7 @@
 from flask import Blueprint, request
 from services import RoleService
 import logging
-import utils.functional_error as functional_error
-import utils.utilities as utilities
+from utils import functional_error, utilities
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)

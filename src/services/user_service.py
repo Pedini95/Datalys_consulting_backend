@@ -3,7 +3,7 @@ from typing import Dict, Any, Optional, Tuple
 from sqlalchemy.exc import SQLAlchemyError
 from extensions import db
 import logging
-import utils.utilities as utilities
+from utils import utilities
 
 logger = logging.getLogger(__name__)
 

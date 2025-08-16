@@ -1,6 +1,5 @@
 from flask import Blueprint, request, jsonify, g
 from services.auth_service import AuthService
-from utils.notification import EmailService
 import logging
 from flask_cors import cross_origin
 from functools import wraps
