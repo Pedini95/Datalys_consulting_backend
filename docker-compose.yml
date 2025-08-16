@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   datalys-api:
-    image: datalys-consulting/api:latest
+    image: ghcr.io/pedini95/datalys_consulting_backend:latest
     container_name: datalys-api
     restart: unless-stopped
     ports:
