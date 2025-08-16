@@ -75,7 +75,7 @@ jobs:
             sleep 10
             
             # Vérification avec Docker Compose
-            docker compose ps | grep datalys-api || (echo "❌ Conteneur non trouvé" && exit 1)
+            docker-compose ps | grep datalys-api || (echo "❌ Conteneur non trouvé" && exit 1)
             
             # Health check de l'application
             curl -f --connect-timeout 10 --max-time 30 http://localhost:8082/health || (echo "❌ Health check échoué" && exit 1)
@@ -84,7 +84,7 @@ jobs:
             
             # Afficher les logs pour debug
             echo "📋 Logs du conteneur :"
-            docker compose logs --tail=10 datalys-api
+            docker-compose logs --tail=10 datalys-api
 
       - name: Cleanup old images
         uses: appleboy/ssh-action@v1.2.0

@@ -16,10 +16,10 @@ else
 fi
 
 echo "⬇️ Pull de la dernière image..."
-docker compose pull
+docker-compose pull
 
 echo "🔄 Redémarrage des services..."
-docker compose up -d
+docker-compose up -d
 
 echo "⏳ Attente du démarrage..."
 sleep 30
@@ -29,7 +29,7 @@ if curl -f --connect-timeout 10 --max-time 30 http://localhost:8082/health; then
     echo "✅ Déploiement terminé avec succès !"
 else
     echo "❌ Health check échoué"
-    docker compose logs --tail=20 datalys-api
+    docker-compose logs --tail=20 datalys-api
     exit 1
 fi
 
