@@ -56,7 +56,12 @@ jobs:
           username: ${{ secrets.HOSTINGER_USERNAME }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           script: |
-            bash /opt/Datalys_consulting_backend/scripts/deploy-emergency.sh
+            cd /opt/Datalys_consulting_backend
+            echo "📥 Pull du code le plus récent..."
+            git fetch origin
+            git reset --hard origin/develop
+            echo "🚨 Exécution du déploiement d'urgence..."
+            bash scripts/deploy-emergency.sh
 
       - name: Health Check
         uses: appleboy/ssh-action@v1.2.0
