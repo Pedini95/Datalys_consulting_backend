@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Créer l'utilisateur applicatif
 RUN groupadd -r app && useradd -r -g app -m -d /app -s /bin/bash app
-WORKDIR /app
+WORKDIR /app/src
 
 # Dossiers nécessaires
 RUN mkdir -p /app/src/logs /app/src/static/files
@@ -36,8 +36,7 @@ USER app
 RUN echo '#!/bin/bash' > /app/start.sh && \
     echo 'set -e' >> /app/start.sh && \
     echo 'echo "🚀 Démarrage de l application Datalys Consulting..."' >> /app/start.sh && \
-    echo 'cd /app/src' >> /app/start.sh && \
-    echo 'export PYTHONPATH=/app/src:/app:$PYTHONPATH' >> /app/start.sh && \
+    echo 'export PYTHONPATH=/app/src:$PYTHONPATH' >> /app/start.sh && \
     echo 'export PORT=8082' >> /app/start.sh && \
     echo 'export ENV=production' >> /app/start.sh && \
     echo 'echo "✅ Environnement configuré"' >> /app/start.sh && \
