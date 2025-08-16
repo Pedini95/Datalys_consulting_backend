@@ -50,6 +50,10 @@ RUN echo '#!/bin/bash' > /app/start.sh && \
     echo 'ls -la /app/src/models/role.py || echo "role.py not found"' >> /app/start.sh && \
     echo 'echo "🔍 Debug: Contents of models/__init__.py:"' >> /app/start.sh && \
     echo 'cat /app/src/models/__init__.py || echo "Cannot read __init__.py"' >> /app/start.sh && \
+    echo 'echo "🔍 Debug: Checking all model files:"' >> /app/start.sh && \
+    echo 'ls -la /app/src/models/*.py' >> /app/start.sh && \
+    echo 'echo "🔍 Debug: Testing import directly:"' >> /app/start.sh && \
+    echo 'cd /app/src && python -c "from models import Role; print(\"✅ Role imported successfully\")" || echo "❌ Import failed"' >> /app/start.sh && \
     echo "echo \"🌐 Démarrage sur le port \$PORT\"" >> /app/start.sh && \
     echo 'cd /app/src' >> /app/start.sh && \
     echo 'exec python run.py' >> /app/start.sh && \
