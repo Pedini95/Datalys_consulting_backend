@@ -6,8 +6,8 @@ export COMPOSE_DOCKER_CLI_BUILD=1
 
 cd /opt/Datalys_consulting_backend
 
-echo "⬇️ Pull de la dernière image..."
-docker-compose pull
+echo "🔨 Build de la nouvelle image..."
+docker-compose build --no-cache
 
 echo "🔄 Redémarrage..."
 docker-compose up -d
