@@ -31,3 +31,4 @@ API backend pour Datalys Consulting avec déploiement automatique optimisé.
 *Dernière mise à jour : $(date)*
 # Test de déploiement automatique - Fri Aug 15 23:04:52 GMT 2025
 # Trigger rebuild
+# Force rebuild with latest fixes
