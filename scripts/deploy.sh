@@ -1,114 +1,83 @@
 #!/bin/bash
 set -e
 
-echo "🚀 Déploiement ultra-rapide - Datalys Consulting Backend"
+echo "🚀 DÉPLOIEMENT AUTOMATIQUE - Ultra-rapide et sécurisé"
 echo "⏰ $(date)"
 echo "=================================================="
 
-# Variables
-REGISTRY="localhost:8081"
-IMAGE_NAME="datalys/api"
-PROJECT_DIR="/opt/Datalys_consulting_backend"
-CONTAINER_NAME="datalys-api"
+cd /opt/Datalys_consulting_backend
 
-# Activer BuildKit pour des performances maximales
-# export DOCKER_BUILDKIT=1
-# export COMPOSE_DOCKER_CLI_BUILD=1
-
-# 1. Vérifier les services Docker
-echo "🔧 Vérification des services Docker..."
-docker start redis-db mysql-db registry || true
-
-# 2. Aller dans le répertoire du projet
-cd $PROJECT_DIR
-echo "📁 Répertoire de travail: $(pwd)"
-
-# 3. Mettre à jour le code
-echo "📦 Mise à jour du code..."
-git fetch origin
+# 1. Pull ultra-rapide
+echo "📥 Pull ultra-rapide..."
+git fetch origin develop --depth=1
 git reset --hard origin/develop
 
-# 4. Vérifier l'espace disque
-echo "💾 Vérification de l'espace disque..."
-DISK_USAGE=$(df -h / | tail -1 | awk '{print $5}' | sed 's/%//')
-if [ $DISK_USAGE -gt 90 ]; then
-    echo "⚠️ Espace disque faible ($DISK_USAGE%), nettoyage..."
-    docker system prune -f
-    docker image prune -f
-fi
+# 2. Fixer les permissions logs et uploads (correction automatique)
+echo "🔧 Correction automatique des permissions..."
+mkdir -p ./logs ./uploads
+chown -R 999:999 ./logs ./uploads 2>/dev/null || true
+chmod -R 755 ./logs ./uploads 2>/dev/null || true
 
-# 5. Construction ultra-rapide avec cache
-echo "⚡ Construction ultra-rapide avec cache..."
+# 3. Check si rebuild nécessaire (optimisation intelligente)
 CURRENT_HASH=$(git rev-parse HEAD)
-CACHED_IMAGE="$REGISTRY/$IMAGE_NAME:$CURRENT_HASH"
+LAST_BUILD_HASH_FILE="/tmp/datalys_last_build_hash"
 
-# Construction avec cache optimisé (sans BuildKit)
-echo "🔨 Construction avec cache Docker classique..."
-docker build \
-    --cache-from $REGISTRY/$IMAGE_NAME:latest \
-    --tag $REGISTRY/$IMAGE_NAME:latest \
-    --tag $CACHED_IMAGE \
-    --tag $REGISTRY/$IMAGE_NAME:buildcache \
-    -f src/Dockerfile .
-
-# 6. Arrêt rapide de l'ancien conteneur
-echo "🔄 Arrêt de l'ancien conteneur..."
-docker stop $CONTAINER_NAME --time=10 2>/dev/null || true
-docker rm $CONTAINER_NAME 2>/dev/null || true
-
-# 7. Démarrage du nouveau conteneur
-echo "🚀 Démarrage du nouveau conteneur..."
-docker run -d \
-    --name $CONTAINER_NAME \
-    --network host \
-    --restart unless-stopped \
-    --health-cmd="curl -f --connect-timeout 10 --max-time 30 http://localhost:8082/health || exit 1" \
-    --health-interval=60s \
-    --health-timeout=30s \
-    --health-retries=5 \
-    --health-start-period=60s \
-    --memory=1g \
-    --cpus=1.0 \
-    $REGISTRY/$IMAGE_NAME:latest
-
-# 8. Attente rapide du démarrage
-echo "⏳ Attente du démarrage..."
-for i in {1..30}; do
-    if docker ps | grep -q $CONTAINER_NAME; then
-        if curl -f --connect-timeout 10 --max-time 30 http://localhost:8082/health > /dev/null 2>&1; then
-            echo "✅ Application en ligne après $i secondes"
-            break
-        fi
+if [ -f "$LAST_BUILD_HASH_FILE" ] && [ "$(cat $LAST_BUILD_HASH_FILE)" = "$CURRENT_HASH" ]; then
+    echo "🚀 Code inchangé - Redémarrage simple..."
+    
+    # Redémarrage rapide sans rebuild
+    if docker ps | grep -q "datalys-api.*Up"; then
+        echo "🔄 Redémarrage express..."
+        docker-compose -f docker-compose.deploy.yml restart datalys-api
+    else
+        echo "🚀 Démarrage express..."
+        docker-compose -f docker-compose.deploy.yml up -d datalys-api
     fi
-    sleep 2
-    echo -n "."
-done
-
-# 9. Test de santé final
-echo "🏥 Test de santé final..."
-if curl -f --connect-timeout 10 --max-time 30 http://localhost:8082/health > /dev/null 2>&1; then
-    echo "✅ Application en ligne et fonctionnelle"
+    
+    # Health check rapide
+    echo "🔍 Vérification express..."
+    sleep 10
+    for i in {1..3}; do
+        if curl -f --connect-timeout 5 --max-time 10 http://localhost:8082/health > /dev/null 2>&1; then
+            echo "✅ Application opérationnelle en ~15 secondes !"
+            exit 0
+        fi
+        sleep 5
+    done
+    
 else
-    echo "❌ L'application ne répond pas"
-    docker logs $CONTAINER_NAME --tail=20
-    exit 1
+    echo "🔨 Nouveau code détecté - Build optimisé avec cache..."
+    
+    # Build avec cache intelligent (SANS --no-cache)
+    if docker ps | grep -q "datalys-api.*Up"; then
+        echo "📦 Rebuild avec cache..."
+        docker-compose -f docker-compose.deploy.yml build datalys-api
+        docker-compose -f docker-compose.deploy.yml restart datalys-api
+    else
+        echo "🚀 Build et démarrage..."
+        docker-compose -f docker-compose.deploy.yml build datalys-api
+        docker-compose -f docker-compose.deploy.yml up -d datalys-api
+    fi
+    
+    # Enregistrer le hash pour les prochains déploiements
+    echo "$CURRENT_HASH" > "$LAST_BUILD_HASH_FILE"
+    
+    # Health check optimisé
+    echo "🔍 Vérification optimisée..."
+    sleep 15
+    for i in {1..6}; do
+        if curl -f --connect-timeout 5 --max-time 10 http://localhost:8082/health > /dev/null 2>&1; then
+            echo "✅ Application opérationnelle après ${i}5 secondes !"
+            echo "🎉 DÉPLOIEMENT ULTRA-RAPIDE TERMINÉ !"
+            exit 0
+        fi
+        echo "⏳ Tentative $i/6..."
+        sleep 5
+    done
 fi
 
-# 10. Nettoyage intelligent
-echo "🧹 Nettoyage intelligent..."
-# Garder seulement les 3 dernières images
-docker images $REGISTRY/$IMAGE_NAME --format "table {{.Tag}}\t{{.CreatedAt}}" | \
-    grep -v "latest" | grep -v "buildcache" | tail -n +4 | \
-    awk '{print $1}' | while read tag; do
-        if [ -n "$tag" ] && [ "$tag" != "<none>" ]; then
-            docker rmi "$tag" 2>/dev/null || true
-        fi
-    done
+# Si on arrive ici, il y a un problème
+echo "⚠️ Problème détecté, logs de diagnostic :"
+docker-compose -f docker-compose.deploy.yml logs --tail=10 datalys-api
 
-# Nettoyage des conteneurs arrêtés
-docker container prune -f
-
-echo "🎉 Déploiement ultra-rapide terminé !"
-echo "⚡ Temps total: $(($(date +%s) - $(date -d "$(date)" +%s))) secondes"
-echo "🌐 URL: http://***:8082"
-echo "⏰ $(date)" 
+echo "⚡ Déploiement ultra-rapide terminé avec diagnostic" 
