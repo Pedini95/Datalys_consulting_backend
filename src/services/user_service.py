@@ -51,17 +51,15 @@ class UserService:
                     return None, False, f"Rôle '{role_name}' non trouvé"
                 data['role_id'] = roles[0].id
             
-            # Gérer le champ name -> username, first_name, last_name
+            # Gérer le champ name -> name, first_name, last_name
             if 'name' in data:
-                name = data.pop('name')
+                name = data['name']  # Ne pas pop, garder le champ name
                 # Si le nom contient un espace, séparer en first_name et last_name
                 name_parts = name.strip().split(' ', 1)
                 if len(name_parts) > 1:
                     data['first_name'] = name_parts[0]
                     data['last_name'] = name_parts[1]
-                    data['username'] = name_parts[0].lower()  # Utiliser first_name comme username
                 else:
-                    data['username'] = name.lower()
                     data['first_name'] = name
             
             # Hasher le mot de passe
@@ -117,17 +115,15 @@ class UserService:
                     return None, False, f"Rôle '{role_name}' non trouvé"
                 data['role_id'] = roles[0].id
             
-            # Gérer le champ name -> username, first_name, last_name
+            # Gérer le champ name -> name, first_name, last_name
             if 'name' in data:
-                name = data.pop('name')
+                name = data['name']  # Ne pas pop, garder le champ name
                 # Si le nom contient un espace, séparer en first_name et last_name
                 name_parts = name.strip().split(' ', 1)
                 if len(name_parts) > 1:
                     data['first_name'] = name_parts[0]
                     data['last_name'] = name_parts[1]
-                    data['username'] = name_parts[0].lower()  # Utiliser first_name comme username
                 else:
-                    data['username'] = name.lower()
                     data['first_name'] = name
             
             # Hasher le mot de passe si fourni
