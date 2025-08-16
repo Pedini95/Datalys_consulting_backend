@@ -2,7 +2,9 @@
 
 services:
   datalys-api:
-    image: ghcr.io/pedini95/datalys-consulting-backend:latest
+    build:
+      context: ./src
+      dockerfile: Dockerfile
     container_name: datalys-api
     restart: unless-stopped
     ports:
