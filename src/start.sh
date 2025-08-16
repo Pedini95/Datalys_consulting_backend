@@ -36,4 +36,5 @@ echo "🌍 Démarrage de l'application sur le port ${PORT:-8081}"
 
 # Démarrer l'application
 cd /app
+export PYTHONPATH=/app/src:/app:$PYTHONPATH
 exec /app/venv/bin/python src/run.py 
