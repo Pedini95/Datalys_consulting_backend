@@ -55,38 +55,47 @@ def check_case_sensitivity():
     # Vérifier la structure du package
     print("\n🔍 Test de la structure du package...")
     
-    # Ajouter src au PYTHONPATH
-    sys.path.insert(0, 'src')
-    
-    try:
-        # Test d'import du package models seulement
-        import models
-        print("✅ Package 'models' trouvé!")
-        print(f"📁 Contenu du package: {dir(models)}")
+    # Vérifier que le répertoire models existe
+    models_dir = Path('src/models')
+    if models_dir.exists():
+        print("✅ Répertoire models trouvé!")
         
-        # Vérifier que les modules sont listés dans __all__
-        if hasattr(models, '__all__'):
-            print(f"✅ __all__ défini: {models.__all__}")
+        # Vérifier que __init__.py existe
+        init_file = models_dir / '__init__.py'
+        if init_file.exists():
+            print("✅ __init__.py trouvé!")
             
-            # Vérifier que tous les modèles attendus sont dans __all__
-            expected_models = ['Role', 'User', 'Partner', 'Project', 'Incident', 'Folder', 'File', 'UserProjectPermission', 'ActionHistory']
-            for model in expected_models:
-                if model in models.__all__:
-                    print(f"✅ {model} dans __all__")
+            # Lire le contenu de __init__.py pour vérifier __all__
+            try:
+                with open(init_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                # Chercher la définition de __all__
+                import re
+                all_match = re.search(r'__all__\s*=\s*\[(.*?)\]', content, re.DOTALL)
+                if all_match:
+                    all_content = all_match.group(1)
+                    # Extraire les noms des modèles
+                    model_names = re.findall(r"'([^']+)'", all_content)
+                    print(f"✅ __all__ trouvé: {model_names}")
+                    
+                    # Vérifier que tous les modèles attendus sont dans __all__
+                    expected_models = ['Role', 'User', 'Partner', 'Project', 'Incident', 'Folder', 'File', 'UserProjectPermission', 'ActionHistory']
+                    for model in expected_models:
+                        if model in model_names:
+                            print(f"✅ {model} dans __all__")
+                        else:
+                            errors.append(f"❌ {model} manquant dans __all__")
                 else:
-                    errors.append(f"❌ {model} manquant dans __all__")
+                    print("⚠️ __all__ non trouvé dans __init__.py")
+                    errors.append("❌ __all__ non défini dans models/__init__.py")
+                    
+            except Exception as e:
+                errors.append(f"❌ Erreur lors de la lecture de __init__.py: {e}")
         else:
-            print("⚠️ __all__ non défini dans models")
-            
-    except ImportError as e:
-        errors.append(f"❌ Erreur d'import du package models: {e}")
-        print(f"❌ Erreur d'import détectée: {e}")
-        
-        # Debug supplémentaire
-        print("\n🔍 Debug des imports...")
-        print(f"🔍 PYTHONPATH: {sys.path}")
-        print(f"🔍 Répertoire models existe: {Path('src/models').exists()}")
-        print(f"🔍 __init__.py existe: {Path('src/models/__init__.py').exists()}")
+            errors.append("❌ __init__.py manquant dans models")
+    else:
+        errors.append("❌ Répertoire models manquant")
     
     # Afficher les erreurs
     if errors:
