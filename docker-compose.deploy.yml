@@ -37,5 +37,32 @@ services:
       timeout: 30s
       retries: 5
       start_period: 120s
+    depends_on:
+      - redis-db
     external_links:
-      - mysql-db:mysql-db 
+      - mysql-db:mysql-db
+
+  redis-db:
+    image: redis:7-alpine
+    container_name: redis-db
+    restart: unless-stopped
+    ports:
+      # NE PAS exposer Redis sur l'interface publique
+      - "127.0.0.1:6379:6379"  # Seulement localhost
+    command: >
+      redis-server 
+      --bind 127.0.0.1 
+      --protected-mode yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save 300 1
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  redis_data: 
