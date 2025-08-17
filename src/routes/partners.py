@@ -287,7 +287,12 @@ def upload_partner_logo(partner_id):
         
         # Upload du logo
         try:
-            logo_url = file_upload_manager.upload_file(logo_file, 'logos')
+            success, message, file_path = file_upload_manager.save_file(logo_file, subfolder='logos', image_only=True)
+            if not success:
+                return {"status": "error", "message": message}, 400
+            
+            # Générer l'URL d'accès
+            logo_url = file_upload_manager.get_file_url(file_path)
             logging.info(f"Logo uploadé avec succès: {logo_url}")
         except Exception as e:
             logger.error(f"Erreur upload logo: {str(e)}")
