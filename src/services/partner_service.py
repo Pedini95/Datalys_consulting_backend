@@ -28,6 +28,18 @@ class PartnerService:
             Tuple (partner, succès, message)
         """
         try:
+            # Validation des doublons avant création
+            has_duplicates, error_msg = self.model_class.check_duplicates(
+                email=data.get('email'),
+                phone=data.get('phone'),
+                name=data.get('name'),
+                address=data.get('address')
+            )
+            
+            if has_duplicates:
+                logger.warning(f"Tentative de création d'un partenaire en doublon: {error_msg}")
+                return None, False, error_msg
+            
             # Ajouter les champs d'audit
             if user_id:
                 data['created_by'] = user_id
@@ -67,6 +79,19 @@ class PartnerService:
                 return None, False, f"{self.model_class.__name__} non trouvé"
             
             partner = partners[0]
+            
+            # Validation des doublons avant mise à jour (exclure le partenaire actuel)
+            has_duplicates, error_msg = self.model_class.check_duplicates(
+                email=data.get('email'),
+                phone=data.get('phone'), 
+                name=data.get('name'),
+                address=data.get('address'),
+                exclude_id=partner_id
+            )
+            
+            if has_duplicates:
+                logger.warning(f"Tentative de mise à jour d'un partenaire avec des doublons: {error_msg}")
+                return None, False, error_msg
             
             # Gérer la suppression de l'ancien logo si un nouveau est fourni
             if 'logo_url' in data and data['logo_url'] and partner.logo_url:
