@@ -121,13 +121,14 @@ VALUES ('TechCorp', 'contact@techcorp.com', 'encrypted_temp_password',
 ### **Variables d'Environnement Requises :**
 
 ```env
-# Configuration SMTP
+# Configuration SMTP - SSL sur port 465
 MAIL_SERVER=smtp.hostinger.com
-MAIL_PORT=587
-MAIL_USE_TLS=True
-MAIL_USERNAME=noreply@votredomaine.com
+MAIL_PORT=465
+MAIL_USE_SSL=True
+MAIL_USE_TLS=False
+MAIL_USERNAME=datalysconsultingapp@datalysconsulting.com
 MAIL_PASSWORD=votre_mot_de_passe
-MAIL_DEFAULT_SENDER=noreply@votredomaine.com
+MAIL_DEFAULT_SENDER=datalysconsultingapp@datalysconsulting.com
 
 # Configuration de l'application
 SENDER_NAME=Datalys Consulting

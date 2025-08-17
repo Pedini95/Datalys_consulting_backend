@@ -49,13 +49,14 @@ class Config:
     # LOG_FILE_PATH=os.getenv('LOG_FILE_PATH')
     LOG_FILE_PATH = os.getenv("LOG_FILE_PATH", "logs/datalys_consulting.log")
     
-    # Configuration des emails (SMTP Hostinger)
+    # Configuration des emails (SMTP Hostinger - SSL sur port 465)
     MAIL_SERVER = os.getenv('MAIL_SERVER', 'smtp.hostinger.com')
-    MAIL_PORT = int(os.getenv('MAIL_PORT', '587'))
-    MAIL_USE_TLS = os.getenv('MAIL_USE_TLS', 'True').lower() == 'true'
-    MAIL_USERNAME = os.getenv('MAIL_USERNAME', '')
+    MAIL_PORT = int(os.getenv('MAIL_PORT', '465'))  # Port SSL au lieu de 587 TLS
+    MAIL_USE_SSL = os.getenv('MAIL_USE_SSL', 'True').lower() == 'true'  # SSL au lieu de TLS
+    MAIL_USE_TLS = os.getenv('MAIL_USE_TLS', 'False').lower() == 'true'  # TLS désactivé par défaut
+    MAIL_USERNAME = os.getenv('MAIL_USERNAME', 'datalysconsultingapp@datalysconsulting.com')
     MAIL_PASSWORD = os.getenv('MAIL_PASSWORD', '')
-    MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER', 'noreply@votredomaine.com')
+    MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER', 'datalysconsultingapp@datalysconsulting.com')
     
     # Configuration Flask-Mail pour UTF-8
     MAIL_ASCII_ATTACHMENTS = False

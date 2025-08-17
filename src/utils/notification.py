@@ -22,8 +22,8 @@ def send_email(to_email, subject, body):
     msg['Content-Type'] = 'text/plain; charset=UTF-8'
     msg.attach(MIMEText(body, 'plain', 'utf-8'))
     try:
-        server = smtplib.SMTP(current_app.config['MAIL_SERVER'], current_app.config['MAIL_PORT'])
-        server.starttls()
+        # Utiliser SMTP_SSL pour le port 465
+        server = smtplib.SMTP_SSL(current_app.config['MAIL_SERVER'], current_app.config['MAIL_PORT'])
         server.login(from_email, from_password)
         text = msg.as_string()
         # Convertir en bytes UTF-8 si nécessaire
@@ -146,7 +146,7 @@ class EmailService:
     
     def _send_smtp(self, message: MIMEMultipart) -> bool:
         """
-        Envoyer l'email via SMTP
+        Envoyer l'email via SMTP avec SSL sur le port 465
         
         Args:
             message: Message MIME à envoyer
@@ -155,11 +155,8 @@ class EmailService:
             True si l'envoi a réussi
         """
         try:
-            # Créer la connexion SMTP
-            context = ssl.create_default_context()
-            
-            with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
-                server.starttls(context=context)
+            # Utiliser SMTP_SSL pour le port 465
+            with smtplib.SMTP_SSL(self.smtp_server, self.smtp_port) as server:
                 server.login(self.smtp_username, self.smtp_password)
                 
                 # Envoyer l'email avec encodage UTF-8 explicite
@@ -173,7 +170,7 @@ class EmailService:
                 return True
                 
         except Exception as e:
-            logger.error(f"Erreur SMTP: {str(e)}")
+            logger.error(f"Erreur SMTP SSL: {str(e)}")
             return False
     
     def send_welcome_email(self, user_email: str, user_name: str, login_url: str) -> bool:

@@ -122,12 +122,13 @@ REDIS_PORT=6379
 REDIS_DB=0
 REDIS_PASSWORD=
 
-# SMTP Hostinger (vos paramètres actuels)
+# SMTP Hostinger - SSL sur port 465
 MAIL_SERVER=smtp.hostinger.com
-MAIL_PORT=587
-MAIL_USE_TLS=True
+MAIL_PORT=465
+MAIL_USE_SSL=True
+MAIL_USE_TLS=False
 MAIL_USERNAME=datalysconsultingapp@datalysconsulting.com
-MAIL_PASSWORD=Datalysconsulting@2025
+MAIL_PASSWORD=Nonsse@123
 MAIL_DEFAULT_SENDER=datalysconsultingapp@datalysconsulting.com
 
 # Application

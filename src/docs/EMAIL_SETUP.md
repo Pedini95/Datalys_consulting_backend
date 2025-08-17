@@ -29,13 +29,14 @@ Ce guide explique comment configurer l'envoi d'emails automatiques avec votre se
 Configurez les variables d'environnement dans le fichier `.env.local` :
 
 ```env
-# Configuration SMTP Hostinger
+# Configuration SMTP Hostinger - SSL sur port 465
 MAIL_SERVER=smtp.hostinger.com
-MAIL_PORT=587
-MAIL_USE_TLS=True
-MAIL_USERNAME=noreply@votredomaine.com
+MAIL_PORT=465
+MAIL_USE_SSL=True
+MAIL_USE_TLS=False
+MAIL_USERNAME=datalysconsultingapp@datalysconsulting.com
 MAIL_PASSWORD=votre_mot_de_passe
-MAIL_DEFAULT_SENDER=noreply@votredomaine.com
+MAIL_DEFAULT_SENDER=datalysconsultingapp@datalysconsulting.com
 
 # Configuration de l'expéditeur
 SENDER_NAME=Datalys Consulting
@@ -199,7 +200,7 @@ Tous les templates suivent le même style que le template existant :
 
 ```python
 # Configuration recommandée
-SMTP_PORT=587  # TLS
+SMTP_PORT=465  # SSL
 SMTP_SERVER=smtp.hostinger.com
 # Utilisez un mot de passe fort pour le compte email
 ```
@@ -216,7 +217,7 @@ SMTP_SERVER=smtp.hostinger.com
 #### 2. "Connection refused"
 
 **Cause** : Port SMTP incorrect ou pare-feu
-**Solution** : Utilisez le port 587 avec TLS
+**Solution** : Utilisez le port 465 avec SSL
 
 #### 3. "Sender address rejected"
 
@@ -230,16 +231,15 @@ from config import Config
 import smtplib
 import ssl
 
-# Test de connexion SMTP
+# Test de connexion SMTP SSL
 config = Config()
 try:
-    server = smtplib.SMTP(config.MAIL_SERVER, config.MAIL_PORT)
-    server.starttls(context=ssl.create_default_context())
+    server = smtplib.SMTP_SSL(config.MAIL_SERVER, config.MAIL_PORT)
     server.login(config.MAIL_USERNAME, config.MAIL_PASSWORD)
-    print("✅ Connexion SMTP réussie")
+    print("✅ Connexion SMTP SSL réussie")
     server.quit()
 except Exception as e:
-    print(f"❌ Erreur SMTP: {e}")
+    print(f"❌ Erreur SMTP SSL: {e}")
 ```
 
 ## 📊 Monitoring
