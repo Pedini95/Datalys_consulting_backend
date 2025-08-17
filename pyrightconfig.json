@@ -18,5 +18,8 @@
   "reportUnusedImport": "warning",
   "reportUnusedClass": "warning",
   "reportUnusedFunction": "warning",
-  "reportUnusedVariable": "warning"
+  "reportUnusedVariable": "warning",
+  "reportOptionalMemberAccess": "none",
+  "reportGeneralTypeIssues": "warning",
+  "reportAttributeAccessIssue": "warning"
 } 

@@ -39,6 +39,74 @@ def get_files():
     logging.info("**** End get_files ****")
     return response
 
+@bp.route('/files/create', methods=['POST'])
+@require_auth
+def create_files():
+    """
+    Créer un ou plusieurs fichiers (métadonnées seulement, sans upload)
+    Utilisé pour enregistrer des fichiers externes ou créer des références
+    """
+    logging.info("**** Begin create_files ****")
+    logging.info("/files/create")
+    r = request.get_json() or {}
+    logging.info("**** request input ****")
+    logging.info(r)
+    
+    user = r.get('user', {})
+    datas = r.get('datas', [])
+    
+    # Préparer les données pour le service
+    processed_datas = []
+    for data in datas:
+        # Champs obligatoires
+        required_fields = ['name', 'file_path']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
+        
+        processed_data = {
+            'name': data.get('name'),
+            'file_path': data.get('file_path'),
+            'file_size': data.get('file_size', 0),
+            'file_type': data.get('file_type'),
+            'is_active': data.get('is_active', True)
+        }
+        
+        # Ajouter folder_name si fourni (au lieu de folder_id)
+        if 'folder_name' in data and data['folder_name']:
+            processed_data['folder_name'] = data.get('folder_name')
+        elif 'folder_id' in data and data['folder_id']:
+            processed_data['folder_id'] = data.get('folder_id')
+        
+        # Ajouter project_name si fourni (au lieu de project_id)
+        if 'project_name' in data and data['project_name']:
+            processed_data['project_name'] = data.get('project_name')
+        elif 'project_id' in data and data['project_id']:
+            processed_data['project_id'] = data.get('project_id')
+            
+        processed_datas.append(processed_data)
+    
+    items = []
+    success = True
+    message = ""
+    
+    for data in processed_datas:
+        item, success, message = file_service.create(data, user.get('id'))
+        if not success:
+            return {"status": "error", "message": message}, 400
+        items.append(item)
+    
+    if success and items:
+        message = functional_error.MESSAGE_SUCCESS()
+        response = {"items": [item.as_dict() for item in items], "message": message, "code": 200}
+    else:
+        response = {"status": "error", "message": "Aucun fichier créé"}, 400
+
+    logging.info("**** response output ****")
+    logging.info(response)
+    logging.info("**** End create_files ****")
+    return response
+
 @bp.route('/files/update', methods=['POST'])
 @require_auth
 def update_files():
@@ -205,7 +273,7 @@ def upload_file():
         # Récupérer les paramètres optionnels
         folder_id = request.form.get('folder_id')
         folder_name = request.form.get('folder_name')
-        project_name = request.form.get('project_name')
+        # project_name = request.form.get('project_name')  # Conservé pour future utilisation
         is_public = request.form.get('is_public', 'false').lower() == 'true'
         
         # Sauvegarder le fichier (upload générique - tous types acceptés)

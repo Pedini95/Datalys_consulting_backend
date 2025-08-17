@@ -4,17 +4,261 @@ from sqlalchemy.exc import SQLAlchemyError
 from extensions import db
 import logging
 from datetime import datetime
+from utils.audit_decorator import audit_action
 
 logger = logging.getLogger(__name__)
 
 
 class IncidentService:
     """
-    Service pour la gestion des incidents
+    Service pour la gestion des incidents et communication
     """
     
     def __init__(self):
         self.model_class = Incident
+        # Import lazy pour éviter les dépendances circulaires
+        self._push_service = None
+    
+    # ===============================
+    # NOUVELLES MÉTHODES COMMUNICATION
+    # ===============================
+    
+    @audit_action('CREATE', 'message')
+    def create_message(self, data: Dict[str, Any], user_id: Optional[int] = None) -> Tuple[Optional[Incident], bool, str]:
+        """
+        Créer un message pour communiquer avec les admins
+        
+        Args:
+            data: Données du message (title, description, project_id)
+            user_id: ID de l'utilisateur qui envoie (partenaire)
+            
+        Returns:
+            Tuple (message, succès, message)
+        """
+        data.update({
+            'type': 'message',
+            'priority': data.get('priority', 'moyenne'),
+            'status': 'ouvert',
+            'category': 'communication'
+        })
+        
+        # Créer le message
+        incident, success, message = self.create(data, user_id)
+        
+        # 🆕 Envoyer notification push si priorité haute/critique
+        if success and incident and data.get('priority') in ['haute', 'critique']:
+            self._send_push_notification_for_message(incident, str(data.get('priority')))
+        
+        return incident, success, message
+    
+    @audit_action('CREATE', 'support')
+    def create_support_request(self, data: Dict[str, Any], user_id: Optional[int] = None) -> Tuple[Optional[Incident], bool, str]:
+        """
+        Créer une demande de support technique
+        
+        Args:
+            data: Données de la demande (title, description, priority, project_id)
+            user_id: ID de l'utilisateur qui demande
+            
+        Returns:
+            Tuple (demande, succès, message)
+        """
+        data.update({
+            'type': 'support',
+            'priority': data.get('priority', 'moyenne'),
+            'status': 'ouvert',
+            'category': 'technique'
+        })
+        
+        # Créer la demande de support
+        incident, success, message = self.create(data, user_id)
+        
+        # 🆕 Envoyer notification push si priorité haute/critique
+        if success and incident and data.get('priority') in ['haute', 'critique']:
+            self._send_push_notification_for_support(incident, str(data.get('priority')))
+        
+        return incident, success, message
+    
+    @audit_action('CREATE', 'notification')
+    def create_notification(self, data: Dict[str, Any], user_id: Optional[int] = None) -> Tuple[Optional[Incident], bool, str]:
+        """
+        Créer une notification officielle
+        
+        Args:
+            data: Données de la notification (title, description, assigned_to)
+            user_id: ID de l'admin qui envoie
+            
+        Returns:
+            Tuple (notification, succès, message)
+        """
+        data.update({
+            'type': 'notification',
+            'priority': data.get('priority', 'haute'),
+            'status': 'ouvert',
+            'category': 'officiel'
+        })
+        return self.create(data, user_id)
+    
+    def reply_to_message(self, parent_id: int, data: Dict[str, Any], user_id: Optional[int] = None) -> Tuple[Optional[Incident], bool, str]:
+        """
+        Répondre à un message existant
+        
+        Args:
+            parent_id: ID du message parent
+            data: Données de la réponse (title, description)
+            user_id: ID de l'utilisateur qui répond
+            
+        Returns:
+            Tuple (réponse, succès, message)
+        """
+        # Vérifier que le message parent existe
+        parent_messages, _ = self.model_class.get_by_criteria({'id': parent_id}, 0, 1)
+        if not parent_messages:
+            return None, False, "Message parent non trouvé"
+        
+        parent = parent_messages[0]
+        
+        data.update({
+            'parent_id': parent_id,
+            'type': parent.type,  # Même type que le parent
+            'priority': parent.priority,
+            'status': 'ouvert',
+            'category': parent.category,
+            'project_id': parent.project_id  # Même projet
+        })
+        
+        # Marquer le message parent comme lu
+        self.mark_as_read(parent_id, user_id)
+        
+        return self.create(data, user_id)
+    
+    def assign_to_admin(self, incident_id: int, admin_id: int, user_id: Optional[int] = None) -> Tuple[Optional[Incident], bool, str]:
+        """
+        Assigner un incident/message à un admin
+        
+        Args:
+            incident_id: ID de l'incident
+            admin_id: ID de l'admin assigné
+            user_id: ID de l'utilisateur qui assigne
+            
+        Returns:
+            Tuple (incident, succès, message)
+        """
+        return self.update(incident_id, {
+            'assigned_to': admin_id,
+            'status': 'en_cours'
+        }, user_id)
+    
+    def mark_as_read(self, incident_id: int, user_id: Optional[int] = None) -> Tuple[Optional[Incident], bool, str]:
+        """
+        Marquer un message comme lu
+        
+        Args:
+            incident_id: ID du message
+            user_id: ID de l'utilisateur qui lit
+            
+        Returns:
+            Tuple (incident, succès, message)
+        """
+        return self.update(incident_id, {
+            'is_read': True,
+            'read_at': datetime.utcnow()
+        }, user_id)
+    
+    def resolve_incident(self, incident_id: int, resolution_notes: Optional[str] = None, user_id: Optional[int] = None) -> Tuple[Optional[Incident], bool, str]:
+        """
+        Résoudre un incident avec des notes
+        
+        Args:
+            incident_id: ID de l'incident
+            resolution_notes: Notes de résolution (optionnel)
+            user_id: ID de l'admin qui résout
+            
+        Returns:
+            Tuple (incident, succès, message)
+        """
+        update_data = {'status': 'resolu'}
+        if resolution_notes:
+            update_data['resolution_notes'] = resolution_notes
+        return self.update(incident_id, update_data, user_id)
+    
+    def close_incident(self, incident_id: int, user_id: Optional[int] = None) -> Tuple[Optional[Incident], bool, str]:
+        """
+        Fermer définitivement un incident
+        
+        Args:
+            incident_id: ID de l'incident
+            user_id: ID de l'utilisateur qui ferme
+            
+        Returns:
+            Tuple (incident, succès, message)
+        """
+        return self.update(incident_id, {
+            'status': 'ferme'
+        }, user_id)
+    
+    # ===============================
+    # NOUVELLES MÉTHODES RECHERCHE
+    # ===============================
+    
+    def get_messages_for_user(self, user_id: int, index: int = 0, size: int = 10) -> Tuple[list, int]:
+        """
+        Récupérer tous les messages pour un utilisateur spécifique
+        """
+        return self.getByCriteria({
+            'user_id': user_id,
+            'type': 'message',
+            'is_active': True
+        }, index, size)
+    
+    def get_unread_notifications(self, user_id: int, index: int = 0, size: int = 10) -> Tuple[list, int]:
+        """
+        Récupérer les notifications non lues pour un utilisateur
+        """
+        return self.getByCriteria({
+            'assigned_to': user_id,
+            'type': 'notification',
+            'is_read': False,
+            'is_active': True
+        }, index, size)
+    
+    def get_support_requests(self, status: Optional[str] = None, index: int = 0, size: int = 10) -> Tuple[list, int]:
+        """
+        Récupérer les demandes de support
+        """
+        criteria = {
+            'type': 'support',
+            'is_active': True
+        }
+        if status:
+            criteria['status'] = status
+            
+        return self.getByCriteria(criteria, index, size)
+    
+    def get_conversation_thread(self, parent_id: int, index: int = 0, size: int = 50) -> Tuple[list, int]:
+        """
+        Récupérer toute la conversation (message + réponses)
+        """
+        # Récupérer le message parent et tous ses enfants
+        all_messages = []
+        
+        # Message parent
+        parent_messages, _ = self.getByCriteria({'id': parent_id}, 0, 1)
+        if parent_messages:
+            all_messages.extend(parent_messages)
+        
+        # Messages enfants
+        child_messages, child_count = self.getByCriteria({
+            'parent_id': parent_id,
+            'is_active': True
+        }, index, size)
+        all_messages.extend(child_messages)
+        
+        return all_messages, len(all_messages)
+
+    # ===============================
+    # MÉTHODES EXISTANTES MISES À JOUR
+    # ===============================
     
     def create(self, data: Dict[str, Any], user_id: Optional[int] = None) -> Tuple[Optional[Incident], bool, str]:
         """
@@ -62,7 +306,7 @@ class IncidentService:
             db.session.flush()  # Pour obtenir l'ID de l'incident
             
             # Envoyer des alertes par email si l'incident est lié à un projet
-            if incident.project_id:
+            if incident.project_id and incident.type == 'incident':
                 self._send_incident_alerts(incident, user_id)
             
             db.session.commit()
@@ -270,6 +514,69 @@ class IncidentService:
             db.session.rollback()
             logger.error(f"Erreur inattendue lors de la suppression de {self.model_class.__name__}: {str(e)}")
             return False, f"Erreur inattendue: {str(e)}"
+    
+    # ===============================
+    # MÉTHODES NOTIFICATIONS PUSH
+    # ===============================
+    
+    def _get_push_service(self):
+        """Lazy loading du service push pour éviter import circulaire"""
+        if self._push_service is None:
+            try:
+                from services.push_notification_service import push_service
+                self._push_service = push_service
+            except ImportError as e:
+                logger.warning(f"Service push non disponible: {e}")
+                self._push_service = None
+        return self._push_service
+    
+    def _send_push_notification_for_message(self, incident: Incident, priority: str):
+        """Envoyer notification push pour nouveau message urgent"""
+        push_service = self._get_push_service()
+        if not push_service:
+            logger.warning("⚠️ Service push non disponible pour message")
+            return
+        
+        emoji = "🚨" if priority == 'critique' else "⚠️"
+        title = f"{emoji} Message {priority.upper()}"
+        body = f"Nouveau message: {incident.title}"
+        
+        data = {
+            'incident_id': str(incident.id),
+            'type': 'message',
+            'priority': priority,
+            'action': 'open_message'
+        }
+        
+        success = push_service.send_to_admins(title, body, data)
+        if success:
+            logger.info(f"✅ Notification push envoyée pour message {incident.id}")
+        else:
+            logger.warning(f"⚠️ Échec notification push pour message {incident.id}")
+    
+    def _send_push_notification_for_support(self, incident: Incident, priority: str):
+        """Envoyer notification push pour demande support urgente"""
+        push_service = self._get_push_service()
+        if not push_service:
+            logger.warning("⚠️ Service push non disponible pour support")
+            return
+        
+        emoji = "🚨" if priority == 'critique' else "⚠️"
+        title = f"{emoji} Support {priority.upper()}"
+        body = f"Demande de support: {incident.title}"
+        
+        data = {
+            'incident_id': str(incident.id),
+            'type': 'support',
+            'priority': priority,
+            'action': 'open_support'
+        }
+        
+        success = push_service.send_to_admins(title, body, data)
+        if success:
+            logger.info(f"✅ Notification push envoyée pour support {incident.id}")
+        else:
+            logger.warning(f"⚠️ Échec notification push pour support {incident.id}")
     
     def getByCriteria(self, criteria: Dict[str, Any], index: int = 0, size: int = 10) -> Tuple[list, int]:
         """

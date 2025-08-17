@@ -1,0 +1,42 @@
+# Requirements pour développement
+# Inclut toutes les dépendances principales + optionnelles
+
+# Dépendances principales (depuis requirements.txt)
+Flask
+Flask-SQLAlchemy
+flask_migrate
+flask_login
+flask_cors
+flask_request_id_header
+flask_mail
+flask-httpauth
+pymysql
+itsdangerous
+xlsxwriter
+requests
+python-dotenv
+flask-restx
+apscheduler
+pycryptodome
+pillow
+redis
+async-timeout
+tomli
+cryptography
+reportlab
+bcrypt
+pycryptodomex
+PyJWT
+
+# 🆕 Dépendances pour notifications push
+firebase-admin
+
+# 🔧 Outils de développement
+pytest
+pytest-flask
+black
+flake8
+mypy
+
+# 📊 Monitoring et debug
+flask-debugtoolbar 

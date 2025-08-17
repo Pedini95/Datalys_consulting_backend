@@ -167,3 +167,7 @@ dump.rdb
 # Temporary files
 *.tmp
 *.temp
+
+# Firebase credentials (CRITICAL SECURITY)
+src/config/firebase-service-account.json
+src/config/firebase-*.json
