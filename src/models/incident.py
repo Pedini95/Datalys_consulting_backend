@@ -56,4 +56,4 @@ class Incident(db.Model):
         return query.all(), total_items
 
     def __repr__(self):
-        return f'<Incident {self.title}>' 
+        return f'<Incident {self.title}>' # Updated Sun Aug 17 05:06:06 GMT 2025
