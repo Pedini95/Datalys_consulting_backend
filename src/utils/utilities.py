@@ -3,14 +3,17 @@ from app import app
 import random
 import re
 import hashlib
-from datetime import datetime, date
+import secrets
+import string
+from datetime import datetime, timedelta, date
+import jwt
+from flask import current_app
 import unicodedata
 import base64
 from PIL import Image
 from io import BytesIO
 import os
 import shutil
-import string
 import json
 from werkzeug.utils import secure_filename
 
@@ -453,4 +456,31 @@ def check_service_connection(url: str, timeout: Optional[int] = None) -> dict:
         result["message"] = "Unexpected error during request"
 
     return result
+
+
+def generate_temp_password(length: int = 12) -> str:
+    """
+    Générer un mot de passe temporaire sécurisé
+    
+    Args:
+        length: Longueur du mot de passe (défaut: 12)
+        
+    Returns:
+        Mot de passe temporaire
+    """
+    # Caractères autorisés pour le mot de passe
+    characters = string.ascii_letters + string.digits + "!@#$%^&*"
+    
+    # Générer le mot de passe
+    password = ''.join(secrets.choice(characters) for _ in range(length))
+    
+    # S'assurer qu'il y a au moins une majuscule, une minuscule et un chiffre
+    if not any(c.isupper() for c in password):
+        password = password[:-1] + secrets.choice(string.ascii_uppercase)
+    if not any(c.islower() for c in password):
+        password = password[:-1] + secrets.choice(string.ascii_lowercase)
+    if not any(c.isdigit() for c in password):
+        password = password[:-1] + secrets.choice(string.digits)
+    
+    return password
 

@@ -4,6 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from extensions import db
 import logging
 from utils.file_upload import file_upload_manager
+from utils.utilities import generate_temp_password
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,96 @@ class PartnerService:
     
     def __init__(self):
         self.model_class = Partner
+    
+    def create_with_user(self, data: Dict[str, Any], user_id: Optional[int] = None) -> Tuple[Optional[Partner], Optional[str], Optional[str], bool, str]:
+        """
+        Créer un nouveau partner avec un utilisateur associé
+        
+        Args:
+            data: Données du partner à créer
+            user_id: ID de l'utilisateur qui crée
+            
+        Returns:
+            Tuple (partner, username, temp_password, succès, message)
+        """
+        try:
+            # Validation des doublons avant création
+            has_duplicates, error_msg = self.model_class.check_duplicates(
+                email=data.get('email'),
+                phone=data.get('phone'),
+                name=data.get('name'),
+                address=data.get('address')
+            )
+            
+            if has_duplicates:
+                logger.warning(f"Tentative de création d'un partenaire en doublon: {error_msg}")
+                return None, None, None, False, error_msg
+            
+            # Vérifier qu'un email est fourni (obligatoire pour créer l'utilisateur)
+            if not data.get('email'):
+                return None, None, None, False, "L'email est obligatoire pour créer un compte utilisateur"
+            
+            # Générer un mot de passe temporaire
+            temp_password = generate_temp_password()
+            
+            # Créer le partenaire
+            partner_data = data.copy()
+            if user_id:
+                partner_data['created_by'] = user_id
+                partner_data['updated_by'] = user_id
+            
+            partner = self.model_class(**partner_data)
+            db.session.add(partner)
+            db.session.flush()  # Pour obtenir l'ID du partenaire
+            
+            # Créer l'utilisateur associé
+            from models import User, Role
+            from utils.utilities import encrypt
+            
+            # 1. Trouver ou créer le rôle 'partner'
+            partner_role = Role.query.filter(Role.name == 'partner').first()
+            if not partner_role:
+                logger.info("Création du rôle 'partner' car il n'existe pas")
+                partner_role = Role()
+                partner_role.name = 'partner'
+                partner_role.is_active = True
+                if user_id:
+                    partner_role.created_by = user_id
+                    partner_role.updated_by = user_id
+                db.session.add(partner_role)
+                db.session.flush()
+            
+            # Générer un nom d'utilisateur basé sur l'email
+            username = data.get('email', '').lower()
+            
+            # Créer l'utilisateur avec la structure existante
+            user_data = {
+                'name': data.get('name', ''),  # Utiliser name au lieu de username
+                'email': data.get('email', ''),
+                'password_hash': encrypt(temp_password),  # Utiliser password_hash
+                'role_id': partner_role.id,  # Assigner le rôle 'partner'
+                'is_active': True
+            }
+            
+            if user_id:
+                user_data['created_by'] = str(user_id)  # Convertir en string
+                user_data['updated_by'] = str(user_id)  # Convertir en string
+            
+            user = User(**user_data)
+            db.session.add(user)
+            db.session.commit()
+            
+            logger.info(f"Partenaire et utilisateur créés avec succès: {partner.name} (ID: {partner.id}) avec rôle 'partner'")
+            return partner, username, temp_password, True, f"Partenaire créé avec succès"
+            
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            logger.error(f"Erreur lors de la création du partenaire avec utilisateur: {str(e)}")
+            return None, None, None, False, f"Erreur lors de la création: {str(e)}"
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Erreur inattendue lors de la création du partenaire avec utilisateur: {str(e)}")
+            return None, None, None, False, f"Erreur inattendue: {str(e)}"
     
     def create(self, data: Dict[str, Any], user_id: Optional[int] = None) -> Tuple[Optional[Partner], bool, str]:
         """

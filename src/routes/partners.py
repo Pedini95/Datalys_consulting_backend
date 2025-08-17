@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, g
 from services.partner_service import PartnerService
 from utils.file_upload import file_upload_manager
 import logging
@@ -6,6 +6,8 @@ from utils import functional_error, utilities
 from flask_cors import cross_origin
 from .auth import require_auth
 import json
+from utils.notification import EmailService
+from middleware.role_security import _get_user_role
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -46,140 +48,12 @@ def get_partners():
 @require_auth
 def create_partners():
     """
-    Création de partenaires avec upload de logo intégré
-    Supporte les formats JSON et multipart/form-data
+    Création de partenaires (mode JSON seulement)
+    L'upload de logo se fait via l'API dédiée /partners/upload-logo/{id}
     """
     try:
         logging.info("**** Begin create_partners ****")
         logging.info("/partners/create")
-        
-        # Détecter le type de requête
-        content_type = request.content_type or ''
-        
-        if 'multipart/form-data' in content_type:
-            # Requête avec fichier logo
-            logging.info("Mode multipart/form-data détecté")
-            return _create_partners_with_logo()
-        else:
-            # Requête JSON classique
-            logging.info("Mode JSON détecté")
-            return _create_partners_json()
-            
-    except Exception as e:
-        logger.error(f"Erreur lors de la création de partenaires: {str(e)}")
-        return {"status": "error", "message": "Erreur interne du serveur"}, 500
-
-def _create_partners_with_logo():
-    """
-    Création de partenaires avec upload de logo intégré
-    """
-    try:
-        logging.info("**** Begin create_partners_with_logo ****")
-        
-        # Récupérer les données JSON depuis form-data
-        partner_data_str = request.form.get('data', '{}')
-        user_data_str = request.form.get('user', '{}')
-        
-        logging.info(f"Partner data string: {partner_data_str}")
-        logging.info(f"User data string: {user_data_str}")
-        
-        # Parser les données JSON
-        try:
-            partner_data = json.loads(partner_data_str)
-            user_data = json.loads(user_data_str)
-        except json.JSONDecodeError as e:
-            logger.error(f"Erreur parsing JSON: {str(e)}")
-            return {"status": "error", "message": "Données JSON invalides"}, 400
-        
-        # Convertir en format attendu par le service
-        datas = [partner_data] if isinstance(partner_data, dict) else partner_data
-        
-        # Récupérer le fichier logo (optionnel)
-        logo_file = request.files.get('logo')
-        logo_url = None
-        
-        if logo_file and logo_file.filename:
-            logging.info(f"Logo file détecté: {logo_file.filename}")
-            
-            # Valider le fichier logo
-            is_valid, message = file_upload_manager.validate_image_file(logo_file)
-            if not is_valid:
-                logger.warning(f"Validation logo échouée: {message}")
-                return {"status": "error", "message": message}, 400
-            
-            # Uploader le logo
-            success, message, file_path = file_upload_manager.save_file(logo_file, subfolder='logos')
-            if success:
-                logo_url = file_upload_manager.get_file_url(file_path)
-                logging.info(f"Logo uploadé avec succès: {logo_url}")
-            else:
-                logger.error(f"Échec upload logo: {message}")
-                return {"status": "error", "message": f"Erreur upload logo: {message}"}, 500
-        else:
-            logging.info("Aucun logo fourni")
-        
-        # Préparer les données pour le service
-        processed_datas = []
-        for data in datas:
-            # Champs obligatoires
-            required_fields = ['name']
-            for field in required_fields:
-                if field not in data or not data[field]:
-                    return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
-            
-            processed_data = {
-                'name': data.get('name'),
-                'logo_url': logo_url or data.get('logo_url'),  # Priorité au logo uploadé
-                'is_active': data.get('is_active', True)
-            }
-            
-            # Ajouter les champs optionnels
-            if 'email' in data:
-                processed_data['email'] = data.get('email')
-            if 'phone' in data:
-                processed_data['phone'] = data.get('phone')
-            if 'address' in data:
-                processed_data['address'] = data.get('address')
-            
-            processed_datas.append(processed_data)
-        
-        # Créer les partenaires
-        items = []
-        for data in processed_datas:
-            item, success, message = partner_service.create(data, user_data.get('id'))
-            if not success:
-                # En cas d'échec, supprimer le logo uploadé
-                if logo_url:
-                    try:
-                        file_upload_manager.delete_file(logo_url)
-                        logging.info(f"Logo supprimé après échec création: {logo_url}")
-                    except Exception as e:
-                        logger.error(f"Erreur suppression logo: {str(e)}")
-                
-                return {"status": "error", "message": message}, 400
-            items.append(item)
-        
-        response = {
-            "items": [partner.as_dict() for partner in items], 
-            "message": functional_error.MESSAGE_SUCCESS(), 
-            "code": 200
-        }
-        
-        logging.info("**** response output ****")
-        logging.info(response)
-        logging.info("**** End create_partners_with_logo ****")
-        return response
-        
-    except Exception as e:
-        logger.error(f"Erreur dans _create_partners_with_logo: {str(e)}")
-        return {"status": "error", "message": "Erreur interne du serveur"}, 500
-
-def _create_partners_json():
-    """
-    Création de partenaires en mode JSON (compatibilité)
-    """
-    try:
-        logging.info("**** Begin create_partners_json ****")
         
         r = request.get_json() or {}
         logging.info("**** request input ****")
@@ -188,36 +62,98 @@ def _create_partners_json():
         user = r.get('user', {})
         datas = r.get('datas', [])
         
+        # Validation de la structure de base
+        if not user or not user.get('id'):
+            return {"status": "error", "message": "L'ID de l'utilisateur est requis"}, 400
+        
+        if not datas or not isinstance(datas, list):
+            return {"status": "error", "message": "Le champ 'datas' doit être une liste non vide"}, 400
+        
         # Préparer les données pour le service
         processed_datas = []
-        for data in datas:
-            # Champs obligatoires
+        for i, data in enumerate(datas):
+            # Validation des champs obligatoires
             required_fields = ['name']
             for field in required_fields:
                 if field not in data or not data[field]:
-                    return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
+                    return {"status": "error", "message": f"Le champ '{field}' est obligatoire pour l'élément {i+1}"}, 400
+            
+            # Validation du nom
+            name = data.get('name', '').strip()
+            if len(name) < 2:
+                return {"status": "error", "message": f"Le nom doit contenir au moins 2 caractères pour l'élément {i+1}"}, 400
+            if len(name) > 255:
+                return {"status": "error", "message": f"Le nom ne peut pas dépasser 255 caractères pour l'élément {i+1}"}, 400
+            
+            # Validation de l'email
+            email = data.get('email', '').strip()
+            if email:
+                if not utilities.is_valid_email(email):
+                    return {"status": "error", "message": f"L'email '{email}' n'est pas valide pour l'élément {i+1}"}, 400
+                if len(email) > 255:
+                    return {"status": "error", "message": f"L'email ne peut pas dépasser 255 caractères pour l'élément {i+1}"}, 400
+            
+            # Validation du téléphone
+            phone = data.get('phone', '').strip()
+            if phone:
+                # Vérifier que le téléphone contient au moins 10 chiffres
+                digits_only = ''.join(filter(str.isdigit, phone))
+                if len(digits_only) < 10:
+                    return {"status": "error", "message": f"Le téléphone doit contenir au moins 10 chiffres pour l'élément {i+1}"}, 400
+                if len(phone) > 50:
+                    return {"status": "error", "message": f"Le téléphone ne peut pas dépasser 50 caractères pour l'élément {i+1}"}, 400
+            
+            # Validation de l'adresse
+            address = data.get('address', '').strip()
+            if address:
+                if len(address) < 5:
+                    return {"status": "error", "message": f"L'adresse doit contenir au moins 5 caractères pour l'élément {i+1}"}, 400
+                if len(address) > 1000:
+                    return {"status": "error", "message": f"L'adresse ne peut pas dépasser 1000 caractères pour l'élément {i+1}"}, 400
             
             processed_data = {
-                'name': data.get('name'),
-                'logo_url': data.get('logo_url'),
-                'is_active': data.get('is_active', True)
+                'name': name,
+                'is_active': True  # Toujours initialisé à True lors de la création
             }
             
-            # Ajouter les champs optionnels
-            if 'email' in data:
-                processed_data['email'] = data.get('email')
-            if 'phone' in data:
-                processed_data['phone'] = data.get('phone')
-            if 'address' in data:
-                processed_data['address'] = data.get('address')
+            # Ajouter les champs optionnels validés
+            if email:
+                processed_data['email'] = email
+            if phone:
+                processed_data['phone'] = phone
+            if address:
+                processed_data['address'] = address
             
             processed_datas.append(processed_data)
         
         items = []
         for data in processed_datas:
-            item, success, message = partner_service.create(data, user.get('id'))
+            # Utiliser la nouvelle méthode qui crée aussi l'utilisateur
+            item, username, temp_password, success, message = partner_service.create_with_user(data, user.get('id'))
             if not success:
                 return {"status": "error", "message": message}, 400
+            
+            # Envoyer l'email avec les credentials
+            if success and item and item.email and username and temp_password:
+                try:
+                    email_service = EmailService()
+                    login_url = "https://applicationweb.datalysconsulting.com/connexion"
+                    
+                    email_sent = email_service.send_partner_credentials_email(
+                        partner_email=item.email,
+                        partner_name=item.name,
+                        username=username,
+                        password=temp_password,
+                        login_url=login_url
+                    )
+                    
+                    if email_sent:
+                        logging.info(f"Email avec credentials envoyé au partenaire {item.email}")
+                    else:
+                        logging.warning(f"Échec de l'envoi de l'email avec credentials à {item.email}")
+                except Exception as e:
+                    logging.error(f"Erreur lors de l'envoi de l'email avec credentials: {str(e)}")
+            
             items.append(item)
         
         response = {
@@ -228,11 +164,11 @@ def _create_partners_json():
         
         logging.info("**** response output ****")
         logging.info(response)
-        logging.info("**** End create_partners_json ****")
+        logging.info("**** End create_partners ****")
         return response
         
     except Exception as e:
-        logger.error(f"Erreur dans _create_partners_json: {str(e)}")
+        logger.error(f"Erreur dans create_partners: {str(e)}")
         return {"status": "error", "message": "Erreur interne du serveur"}, 500
 
 @bp.route('/partners/update', methods=['POST'])
@@ -322,3 +258,77 @@ def delete_partners():
     logging.info(response)
     logging.info("**** End delete_partners ****")
     return response 
+
+@bp.route('/partners/upload-logo/<int:partner_id>', methods=['POST'])
+@cross_origin()
+@require_auth
+def upload_partner_logo(partner_id):
+    """
+    Upload du logo pour un partenaire existant
+    Permet aux admins et partenaires de changer le logo
+    """
+    try:
+        logging.info(f"**** Begin upload_partner_logo for partner {partner_id} ****")
+        
+        # Vérifier que le partenaire existe
+        partners, _ = partner_service.model_class.get_by_criteria({'id': partner_id}, 0, 1)
+        if not partners:
+            return {"status": "error", "message": "Partenaire non trouvé"}, 404
+        
+        partner = partners[0]
+        
+        # Vérifier les permissions (admin ou le partenaire lui-même)
+        user_role = _get_user_role(g.current_user)
+        if user_role != 'admin' and g.current_user.email != partner.email:
+            return {"status": "error", "message": "Accès non autorisé"}, 403
+        
+        # Récupérer le fichier logo
+        logo_file = request.files.get('logo')
+        if not logo_file or not logo_file.filename:
+            return {"status": "error", "message": "Aucun fichier logo fourni"}, 400
+        
+        # Upload du logo
+        try:
+            logo_url = file_upload_manager.upload_file(logo_file, 'logos')
+            logging.info(f"Logo uploadé avec succès: {logo_url}")
+        except Exception as e:
+            logger.error(f"Erreur upload logo: {str(e)}")
+            return {"status": "error", "message": f"Erreur upload logo: {str(e)}"}, 400
+        
+        # Supprimer l'ancien logo si il existe
+        old_logo_url = partner.logo_url
+        if old_logo_url:
+            try:
+                file_upload_manager.delete_file(old_logo_url)
+                logging.info(f"Ancien logo supprimé: {old_logo_url}")
+            except Exception as e:
+                logger.warning(f"Impossible de supprimer l'ancien logo: {str(e)}")
+        
+        # Mettre à jour le partenaire avec le nouveau logo
+        update_data = {'logo_url': logo_url}
+        updated_partner, success, message = partner_service.update(partner_id, update_data, g.current_user.id)
+        
+        if not success:
+            # En cas d'échec, supprimer le nouveau logo uploadé
+            try:
+                file_upload_manager.delete_file(logo_url)
+                logging.info(f"Nouveau logo supprimé après échec mise à jour: {logo_url}")
+            except Exception as e:
+                logger.error(f"Erreur suppression nouveau logo: {str(e)}")
+            
+            return {"status": "error", "message": message}, 400
+        
+        response = {
+            "partner": updated_partner.as_dict(),
+            "message": "Logo mis à jour avec succès",
+            "code": 200
+        }
+        
+        logging.info(f"**** Logo uploadé avec succès pour le partenaire {partner_id} ****")
+        return response
+        
+    except Exception as e:
+        logger.error(f"Erreur dans upload_partner_logo: {str(e)}")
+        return {"status": "error", "message": "Erreur interne du serveur"}, 500 
+
+ 

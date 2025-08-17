@@ -345,5 +345,36 @@ class EmailService:
         
         return self.send_email(to_email, subject, html_content)
     
+    def send_partner_credentials_email(self, partner_email: str, partner_name: str, username: str, 
+                                     password: str, login_url: str) -> bool:
+        """
+        Envoyer un email avec les credentials aux partenaires nouvellement créés
+        
+        Args:
+            partner_email: Email du partenaire
+            partner_name: Nom du partenaire
+            username: Nom d'utilisateur pour la connexion
+            password: Mot de passe temporaire
+            login_url: URL de connexion
+            
+        Returns:
+            True si l'email a été envoyé
+        """
+        subject = f"🎉 Bienvenue chez {self.sender_name} - Vos identifiants de connexion"
+        
+        # Utiliser le template Flask
+        logo_url = url_for('static', filename='image/logo.png', _external=True)
+        html_content = render_template('email_partner_credentials.html',
+            partner_email=partner_email,
+            partner_name=partner_name,
+            username=username,
+            password=password,
+            login_url=login_url,
+            sender_name=self.sender_name,
+            logo_url=logo_url
+        )
+        
+        return self.send_email(partner_email, subject, html_content)
+    
 
 

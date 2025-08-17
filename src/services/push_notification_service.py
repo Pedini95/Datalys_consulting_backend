@@ -83,7 +83,7 @@ class PushNotificationService:
             )
             
             # Envoyer la notification
-            response = messaging.send_multicast(message)
+            response = messaging.send_each_for_multicast(message)
             
             # Logger les résultats
             success_count = response.success_count

@@ -3,7 +3,7 @@ import logging
 from utils import functional_error
 from flask_cors import cross_origin
 from .auth import require_auth
-from middleware.role_security import require_role, filter_data_by_role, get_role_based_criteria, _get_user_role
+from middleware.role_security import require_role, get_role_based_criteria, _get_user_role
 from services.project_service import ProjectService
 from services.incident_service import IncidentService
 from services.file_service import FileService
@@ -192,7 +192,7 @@ def get_admin_dashboard():
         # Statistiques globales
         all_projects, total_projects = project_service.getByCriteria({}, 0, 10000)
         all_incidents, total_incidents = incident_service.getByCriteria({}, 0, 10000)
-        all_files, total_files = file_service.getByCriteria({}, 0, 10000)
+        _, total_files = file_service.getByCriteria({}, 0, 10000)
         
         # Statistiques par partenaire
         partner_stats = _get_partner_statistics()
