@@ -22,7 +22,7 @@ jobs:
         
     - name: 🚀 Deploy to server
       run: |
-        ssh -o StrictHostKeyChecking=no root@82.112.253.137 << 'EOF'
+        ssh -o StrictHostKeyChecking=no root@82.112.253.137 << 'SCRIPT_END'
           cd /opt/Datalys_consulting_backend
           
           echo "📥 Pulling latest code..."
@@ -58,4 +58,4 @@ jobs:
           echo "✅ Deployment successful!"
           echo "🧹 Cleaning up old images..."
           docker image prune -f
-        EOF 
+        SCRIPT_END 
