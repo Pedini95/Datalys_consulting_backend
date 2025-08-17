@@ -38,11 +38,11 @@ class Incident(db.Model):
     updated_by = db.Column(db.Integer, nullable=True)
 
     # Relations améliorées
-    children = db.relationship('Incident', backref=db.backref('parent', remote_side=[id]), lazy=True)
+    children = db.relationship('Incident')
 
     # Relations avec users (spécifier les foreign_keys pour éviter l'ambiguïté)
-    creator = db.relationship('User', foreign_keys=[user_id], backref='created_incidents')
-    assignee = db.relationship('User', foreign_keys=[assigned_to], backref='assigned_incidents')
+    creator = db.relationship('User', foreign_keys=[user_id])
+    assignee = db.relationship('User', foreign_keys=[assigned_to])
 
     def as_dict(self):
         data = {}
