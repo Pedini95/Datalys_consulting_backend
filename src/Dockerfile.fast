@@ -36,9 +36,12 @@ COPY --chown=app:app src/ /app/src
 COPY --chown=app:app scripts/ /app/scripts
 
 # Permissions optimisées - APRÈS la copie du code
-RUN mkdir -p /app/src/logs /app/src/static/files && \
+RUN mkdir -p /app/src/logs \
+             /app/src/static/files \
+             /app/src/static/files/logos \
+             /app/src/static/files/projects && \
     chown -R app:app /app/src/logs /app/src/static && \
-    chmod -R 755 /app/src/logs /app/src/static
+    chmod -R 775 /app/src/logs /app/src/static
 
 USER app
 
