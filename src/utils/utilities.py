@@ -1,5 +1,4 @@
 from typing import Dict, Optional
-from app import app
 import random
 import re
 import hashlib
@@ -283,7 +282,7 @@ def save_base64_image(base64_str, file_name, extension):
         image = Image.open(BytesIO(image_data))
         # Create a secure filename
         filename = secure_filename(f"{file_name}_{datetime.now()}.{extension}")
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
         # Save the image
         image.save(file_path)
         logging.info("***** End save_base64_image %s****", file_path)
@@ -335,7 +334,7 @@ def calculate_minutes_between_dates(date1_str, date2_str, date_format="%Y-%m-%d 
     
 def allowed_file(filename):
     return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in  app.config['ALLOWED_EXTENSIONS']
+           filename.rsplit('.', 1)[1].lower() in  current_app.config['ALLOWED_EXTENSIONS']
 
 def upload_file(request):
     # Vérifie si la partie fichier est présente dans la requête
@@ -347,8 +346,8 @@ def upload_file(request):
         return 'No selected file'
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
-        app.logger.debug('***** filename %s****', filename)
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        current_app.logger.debug('***** filename %s****', filename)
+        file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
         return filename
     else:
         return 'File type not allowed'
@@ -377,7 +376,7 @@ def build_search_string(data):
 
 def encrypt_password_lite(password):
     """ Chiffre un mot de passe en utilisant AES avec un tag d'intégrité """
-    SECRET_KEY = base64.b64decode(app.config['SECRET_KEY'])  # Convertir la clé en bytes
+    SECRET_KEY = base64.b64decode(current_app.config['SECRET_KEY'])  # Convertir la clé en bytes
     cipher = AES.new(SECRET_KEY, AES.MODE_EAX)
     nonce = cipher.nonce  # Génère un nonce unique
     ciphertext, tag = cipher.encrypt_and_digest(password.encode('utf-8'))  # Chiffrement + Tag
@@ -387,7 +386,7 @@ def encrypt_password_lite(password):
 
 def decrypt_password_lite(encrypted_password):
     """ Déchiffre un mot de passe chiffré avec AES et vérifie l'intégrité """
-    SECRET_KEY = base64.b64decode(app.config['SECRET_KEY'])  # Convertir la clé en bytes
+    SECRET_KEY = base64.b64decode(current_app.config['SECRET_KEY'])  # Convertir la clé en bytes
     encrypted_data = base64.b64decode(encrypted_password)  # Décoder le Base64
     nonce = encrypted_data[:16]  # Extraire le nonce (16 bytes)
     tag = encrypted_data[16:32]  # Extraire le tag (16 bytes)
@@ -398,10 +397,10 @@ def decrypt_password_lite(encrypted_password):
 
 def save_base64_image_lite(base64_str, prefix="image"):
     # try:
-    logging.info("***** app.config['UPLOAD_FOLDER'] %s****", app.config['UPLOAD_FOLDER'])
+    logging.info("***** app.config['UPLOAD_FOLDER'] %s****", current_app.config['UPLOAD_FOLDER'])
     filename = f"{prefix}.jpg"
-    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    os.makedirs(current_app.config['UPLOAD_FOLDER'], exist_ok=True)
+    filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
 
     with open(filepath, "wb") as f:
         f.write(base64.b64decode(base64_str))
