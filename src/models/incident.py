@@ -40,6 +40,10 @@ class Incident(db.Model):
     # Relations améliorées
     children = db.relationship('Incident', backref=db.backref('parent', remote_side=[id]), lazy=True)
 
+    # Relations avec users (spécifier les foreign_keys pour éviter l'ambiguïté)
+    creator = db.relationship('User', foreign_keys=[user_id], backref='created_incidents')
+    assignee = db.relationship('User', foreign_keys=[assigned_to], backref='assigned_incidents')
+
     def as_dict(self):
         data = {}
         columns = [
