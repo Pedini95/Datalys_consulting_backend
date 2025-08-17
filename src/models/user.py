@@ -21,8 +21,12 @@ class User(db.Model):
     updated_by = db.Column(db.String(255), nullable=True)
 
     # Relations
-    user_project_permissions = db.relationship('UserProjectPermission', backref='user', lazy=True)
-    action_history = db.relationship('ActionHistory', backref='user', lazy=True)
+    # Incidents créés par l'utilisateur
+    created_incidents = db.relationship('Incident', foreign_keys='Incident.user_id', lazy=True)
+    # Incidents assignés à l'utilisateur (pour les admins)
+    assigned_incidents = db.relationship('Incident', foreign_keys='Incident.assigned_to', lazy=True)
+    user_project_permissions = db.relationship('UserProjectPermission',  lazy=True)
+    action_history = db.relationship('ActionHistory',  lazy=True)
 
     def as_dict(self):
         data = {}
