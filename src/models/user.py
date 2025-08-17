@@ -21,7 +21,6 @@ class User(db.Model):
     updated_by = db.Column(db.String(255), nullable=True)
 
     # Relations
-    incidents = db.relationship('Incident', backref='user', lazy=True)
     user_project_permissions = db.relationship('UserProjectPermission', backref='user', lazy=True)
     action_history = db.relationship('ActionHistory', backref='user', lazy=True)
 
