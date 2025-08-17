@@ -22,7 +22,7 @@ jobs:
         
     - name: 🚀 Deploy to server
       run: |
-        ssh -o StrictHostKeyChecking=no root@82.112.253.137 << 'SCRIPT_END'
+        ssh -o StrictHostKeyChecking=no root@82.112.253.137 '
           cd /opt/Datalys_consulting_backend
           
           echo "📥 Pulling latest code..."
@@ -48,14 +48,15 @@ jobs:
             sleep 10
           done
           
-          # Vérification finale
-          curl -f http://localhost:8082/health || {
-            echo "❌ Health check failed after 10 attempts, showing logs..."
+          echo "🔍 Final health check..."
+          if curl -f http://localhost:8082/health; then
+            echo "✅ Deployment successful!"
+          else
+            echo "❌ Health check failed, showing logs..."
             docker-compose -f docker-compose.deploy.yml --profile production logs datalys-api
             exit 1
-          }
+          fi
           
-          echo "✅ Deployment successful!"
           echo "🧹 Cleaning up old images..."
           docker image prune -f
-        SCRIPT_END 
+        ' 
