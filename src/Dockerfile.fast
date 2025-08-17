@@ -46,20 +46,10 @@ RUN mkdir -p /app/src/logs \
 USER app
 
 # Script de démarrage ultra-rapide (sans debug verbeux)
-RUN echo '#!/bin/bash' > /app/start.sh && \
-    echo 'set -e' >> /app/start.sh && \
-    echo 'export PORT=8082' >> /app/start.sh && \
-    echo 'export ENV=production' >> /app/start.sh && \
-    echo 'export PYTHONPATH=/app/src' >> /app/start.sh && \
-    echo 'echo "🚀 Datalys Consulting - Starting..."' >> /app/start.sh && \
-    echo 'cd /app/src' >> /app/start.sh && \
-    echo 'exec python run.py' >> /app/start.sh && \
-    chmod +x /app/start.sh
+CMD ["sh", "-c", "chown -R app:app /app/src/static /app/src/logs && chmod -R 775 /app/src/static /app/src/logs && exec python /app/src/run.py"]
 
 EXPOSE 8082
 
 # Health check rapide
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f --connect-timeout 5 --max-time 10 http://localhost:8082/health || exit 1
-
-CMD ["/app/start.sh"] 
+    CMD curl -f --connect-timeout 5 --max-time 10 http://localhost:8082/health || exit 1 
