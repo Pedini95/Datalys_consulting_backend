@@ -16,6 +16,40 @@ class PartnerService:
     
     def __init__(self):
         self.model_class = Partner
+
+    def _check_duplicates(self, email=None, phone=None, name=None, address=None, exclude_id=None):
+        """
+        Logique métier : Vérifier s'il existe des doublons pour les champs uniques
+        
+        Args:
+            email: Email à vérifier
+            phone: Téléphone à vérifier  
+            name: Nom à vérifier (avec adresse)
+            address: Adresse à vérifier (avec nom)
+            exclude_id: ID à exclure de la recherche (pour les updates)
+            
+        Returns:
+            Tuple (has_duplicates, error_message)
+        """
+        # Vérifier email unique
+        if email:
+            existing_email = self.model_class.find_by_email(email, exclude_id)
+            if existing_email:
+                return True, f"Un partenaire avec l'email '{email}' existe déjà"
+        
+        # Vérifier téléphone unique
+        if phone:
+            existing_phone = self.model_class.find_by_phone(phone, exclude_id)
+            if existing_phone:
+                return True, f"Un partenaire avec le téléphone '{phone}' existe déjà"
+        
+        # Vérifier combinaison nom + adresse
+        if name and address:
+            existing_combo = self.model_class.find_by_name_and_address(name, address, exclude_id)
+            if existing_combo:
+                return True, f"Un partenaire avec le nom '{name}' à l'adresse '{address}' existe déjà"
+        
+        return False, ""
     
     def create_with_user(self, data: Dict[str, Any], user_id: Optional[int] = None) -> Tuple[Optional[Partner], Optional[str], Optional[str], bool, str]:
         """
@@ -30,7 +64,7 @@ class PartnerService:
         """
         try:
             # Validation des doublons avant création
-            has_duplicates, error_msg = self.model_class.check_duplicates(
+            has_duplicates, error_msg = self._check_duplicates(
                 email=data.get('email'),
                 phone=data.get('phone'),
                 name=data.get('name'),
@@ -120,7 +154,7 @@ class PartnerService:
         """
         try:
             # Validation des doublons avant création
-            has_duplicates, error_msg = self.model_class.check_duplicates(
+            has_duplicates, error_msg = self._check_duplicates(
                 email=data.get('email'),
                 phone=data.get('phone'),
                 name=data.get('name'),
@@ -172,7 +206,7 @@ class PartnerService:
             partner = partners[0]
             
             # Validation des doublons avant mise à jour (exclure le partenaire actuel)
-            has_duplicates, error_msg = self.model_class.check_duplicates(
+            has_duplicates, error_msg = self._check_duplicates(
                 email=data.get('email'),
                 phone=data.get('phone'), 
                 name=data.get('name'),
