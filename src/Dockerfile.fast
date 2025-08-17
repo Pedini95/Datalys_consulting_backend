@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN groupadd -r app && useradd -r -g app -m -d /app -s /bin/bash app
 WORKDIR /app
 
-# Dossiers nécessaires
+# Créer les dossiers nécessaires
 RUN mkdir -p /app/src/logs /app/src/static/files
 
 # Copier et installer les dépendances (optimisé pour cache Docker)
@@ -35,8 +35,9 @@ RUN python -m pip install --no-cache-dir --timeout 600 \
 COPY --chown=app:app src/ /app/src
 COPY --chown=app:app scripts/ /app/scripts
 
-# Permissions optimisées
-RUN chown -R app:app /app/src/logs /app/src/static && \
+# Permissions optimisées - APRÈS la copie du code
+RUN mkdir -p /app/src/logs /app/src/static/files && \
+    chown -R app:app /app/src/logs /app/src/static && \
     chmod -R 755 /app/src/logs /app/src/static
 
 USER app

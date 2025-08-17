@@ -36,11 +36,21 @@ jobs:
           docker-compose -f docker-compose.deploy.yml --profile production up -d datalys-api
           
           echo "⏳ Waiting for service to start..."
-          sleep 30
+          sleep 60
           
           echo "🏥 Health check..."
+          for i in {1..10}; do
+            if curl -f http://localhost:8082/health > /dev/null 2>&1; then
+              echo "✅ Health check successful!"
+              break
+            fi
+            echo "⏳ Attempt $i/10 - waiting 10s..."
+            sleep 10
+          done
+          
+          # Vérification finale
           curl -f http://localhost:8082/health || {
-            echo "❌ Health check failed, showing logs..."
+            echo "❌ Health check failed after 10 attempts, showing logs..."
             docker-compose -f docker-compose.deploy.yml --profile production logs datalys-api
             exit 1
           }
