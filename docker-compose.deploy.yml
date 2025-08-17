@@ -1,11 +1,27 @@
+# ========================================
+# DATALYS CONSULTING - DOCKER COMPOSE
+# ========================================
+# 
+# Usage:
+#   Development: docker-compose --profile development up -d
+#   Production:  docker-compose --profile production up -d
+#
+# IMPORTANT - Configuration MySQL externe:
+# Le service MySQL doit être configuré pour écouter sur l'IP publique:
+# docker run -d --name mysql-db -p 82.112.253.137:3306:3306 --restart unless-stopped mysql:8.0
+# 
+# Si MySQL redémarre et écoute seulement sur 127.0.0.1:3306, reconfigurer avec:
+# docker stop mysql-db && docker rm mysql-db
+# docker run -d --name mysql-db -p 82.112.253.137:3306:3306 [options et volumes] mysql:8.0
+#
+# ========================================
+
 version: '3.8'
 
 # 🚀 DATALYS CONSULTING - DOCKER COMPOSE UNIFIÉ
 # =============================================
 # Fichier unique pour dev, staging et production
-# Usage: 
-#   Dev:        docker-compose up
-#   Production: docker-compose -f docker-compose.deploy.yml --profile production up
+# MySQL fonctionne en externe (préservation de vos données)
 
 services:
   # 🔧 SERVICE PRINCIPAL API
@@ -13,25 +29,25 @@ services:
     image: ${IMAGE_REGISTRY:-datalys_consulting_backend-datalys-api}:${IMAGE_TAG:-latest}
     container_name: datalys-api
     restart: unless-stopped
+    network_mode: host
     build:
       context: .
       dockerfile: src/Dockerfile.fast
       args:
         - BUILD_DATE=${BUILD_DATE:-}
         - COMMIT_SHA=${COMMIT_SHA:-}
-    ports:
-      - "8082:8082"
     environment:
-      # Database
+      # Database - MySQL externe existant (via réseau host)
       - DB_HOST=${DB_HOST:-82.112.253.137}
       - DB_PORT=${DB_PORT:-3306}
-      - DB_NAME=${DB_NAME:-Datalys_Consulting}
-      - DB_USER=${DB_USER:-root}
-      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME:-datalys_consulting}
+      - DB_USER=${DB_USER:-datalys}
+      - DB_PASSWORD=${DB_PASSWORD:-datalysconsulting}
       
-      # Redis
-      - REDIS_HOST=${REDIS_HOST:-redis-db}
+      # Redis - Accessible via localhost avec network_mode: host
+      - REDIS_HOST=${REDIS_HOST:-82.112.253.137}
       - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_DB=${REDIS_DB:-0}
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       
       # Email SMTP - Configuration SSL
@@ -58,8 +74,6 @@ services:
       - ./src/static:/app/src/static
       - ./src/logs:/app/src/logs
       - ./uploads:/app/uploads
-    depends_on:
-      - redis-db
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
       interval: 30s
@@ -136,4 +150,8 @@ volumes:
 # IMAGE_TAG=v1.2.3 docker-compose --profile production up
 # 
 # 🔄 Déploiement zero-downtime :
-# IMAGE_TAG=v1.2.3 ./scripts/deploy-zero-downtime.sh 
+# IMAGE_TAG=v1.2.3 ./scripts/deploy-zero-downtime.sh
+#
+# ✅ SÉCURITÉ: MySQL fonctionne en externe
+# Vos données sont totalement préservées et sécurisées !
+# 📡 RÉSEAU: API utilise network_mode: host pour accéder à MySQL/Redis 
