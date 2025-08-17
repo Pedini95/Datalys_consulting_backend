@@ -1,30 +1,40 @@
 #!/bin/bash
+set -e
 
-echo "🚀 DÉPLOIEMENT SIMPLIFIÉ - Force Update"
-echo "========================================"
+# 🚀 DÉPLOIEMENT SIMPLE - DOCKER COMPOSE UNIFIÉ
+# ==============================================
 
-# 1. Arrêter et supprimer TOUT
-echo "📦 Nettoyage complet..."
-docker-compose -f docker-compose.deploy.yml down --rmi all --volumes --remove-orphans
-docker system prune -af --volumes
+echo "🚀 DÉPLOIEMENT SIMPLE - $(date)"
 
-# 2. Pull du code le plus récent
-echo "📥 Récupération du code..."
-git fetch origin
-git reset --hard origin/develop
-git clean -fd
+# Variables
+export BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+export COMMIT_SHA=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
+export IMAGE_TAG=${IMAGE_TAG:-latest}
+export ENVIRONMENT="production"
 
-# 3. Rebuild complet sans cache
-echo "🔨 Reconstruction complète..."
-docker-compose -f docker-compose.deploy.yml build --no-cache
+echo "📦 Version: $IMAGE_TAG"
+echo "🔨 Build Date: $BUILD_DATE"
+echo "📝 Commit: $COMMIT_SHA"
 
-# 4. Démarrer les services
-echo "🚀 Démarrage des services..."
-docker-compose -f docker-compose.deploy.yml up -d
+# Arrêt propre
+echo "🛑 Arrêt des services..."
+docker-compose --profile production down || true
 
-# 5. Vérification
-echo "✅ Vérification..."
-sleep 10
-curl -f http://localhost:8082/health || echo "⚠️ Application pas encore prête"
+# Reconstruction et démarrage
+echo "🔨 Reconstruction et démarrage..."
+docker-compose --profile production up -d --build
 
-echo "🎉 Déploiement terminé !" 
+# Health check simple
+echo "🔍 Vérification de la santé..."
+sleep 15
+
+if curl -f http://localhost:8082/health > /dev/null 2>&1; then
+    echo "✅ Déploiement réussi !"
+    echo "🔗 Application: http://$(hostname -I | awk '{print $1}'):8082"
+else
+    echo "⚠️  Service en cours de démarrage..."
+    echo "📋 Logs récents:"
+    docker-compose logs --tail=10 datalys-api
+fi
+
+echo "✨ Déploiement simple terminé !" 

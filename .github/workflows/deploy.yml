@@ -1,85 +1,152 @@
-name: Build & Deploy
+name: 🚀 Deploy to Production
 
 on:
   push:
-    branches:
-      - develop
-      - main
+    branches: [ develop, main ]
+  pull_request:
+    branches: [ develop, main ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/datalys-api
 
 jobs:
-  build-and-deploy:
+  test:
+    name: 🧪 Tests automatisés
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
+    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Check Python imports
-        run: |
-          python3 scripts/check-imports.py
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🐍 Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: 📦 Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('src/requirements.txt') }}
+        
+    - name: 🔧 Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r src/requirements.txt
+        pip install pytest pytest-cov flake8
+        
+    - name: 🔍 Lint code
+      run: |
+        flake8 src --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 src --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        
+    - name: 🧪 Run tests
+      run: |
+        cd src && python -m pytest tests/ -v --cov=. --cov-report=xml
+        
+  build:
+    name: 🏗️ Build Docker Image
+    needs: test
+    runs-on: ubuntu-latest
+    outputs:
+      image-version: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🐳 Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: 🔑 Login to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: 🏷️ Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix=commit-
+          type=raw,value=latest,enable={{is_default_branch}}
           
-      - name: Check case sensitivity
-        run: |
-          python3 scripts/check-case-sensitivity-local.py
+    - name: 🏗️ Build and push
+      id: build
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: src/Dockerfile.fast
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
 
-      - name: Enable BuildKit
-        run: |
-          echo "DOCKER_BUILDKIT=1" >> $GITHUB_ENV
-          echo "COMPOSE_DOCKER_CLI_BUILD=1" >> $GITHUB_ENV
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build & Push (with cache)
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./src/Dockerfile
-          push: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          tags: ghcr.io/pedini95/datalys-consulting-backend:latest,ghcr.io/pedini95/datalys-consulting-backend:${{ github.sha }}
-
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.HOSTINGER_HOST }}
-          username: ${{ secrets.HOSTINGER_USERNAME }}
-          key: ${{ secrets.HOSTINGER_SSH_KEY }}
-          timeout: 20m
-          script: |
-            cd /opt/Datalys_consulting_backend
-            echo "📥 Pull du code le plus récent..."
-            git fetch origin
-            git reset --hard origin/develop
-            echo "🚀 Exécution du déploiement..."
-            bash scripts/deploy.sh
-
-      - name: Health Check
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.HOSTINGER_HOST }}
-          username: ${{ secrets.HOSTINGER_USERNAME }}
-          key: ${{ secrets.HOSTINGER_SSH_KEY }}
-          script: |
-            echo "🔍 Vérification rapide..."
+  deploy:
+    name: 🚀 Deploy to Production
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🔑 Setup SSH
+      uses: webfactory/ssh-agent@v0.8.0
+      with:
+        ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+        
+    - name: 🚀 Deploy to server
+      env:
+        SERVER_HOST: ${{ secrets.SERVER_HOST }}
+        SERVER_USER: ${{ secrets.SERVER_USER }}
+        SERVER_PATH: ${{ secrets.SERVER_PATH }}
+        IMAGE_TAG: ${{ needs.build.outputs.image-version }}
+      run: |
+        ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST << 'EOF'
+          set -e
+          cd ${{ secrets.SERVER_PATH }}
+          
+          echo "🚀 DÉPLOIEMENT CI/CD - $(date)"
+          echo "📦 Image: ${{ needs.build.outputs.image-version }}"
+          
+          # Mise à jour du code
+          git fetch origin develop
+          git reset --hard origin/develop
+          
+          # Mise à jour du docker-compose avec la nouvelle image
+          export IMAGE_TAG=${{ needs.build.outputs.image-version }}
+          sed -i "s|image:.*datalys-api.*|image: $IMAGE_TAG|g" docker-compose.deploy.yml
+          
+          # Rolling deployment
+          docker-compose -f docker-compose.deploy.yml pull datalys-api
+          docker-compose -f docker-compose.deploy.yml up -d --no-deps datalys-api
+          
+          # Health check
+          for i in {1..30}; do
+            if curl -f http://localhost:8082/health > /dev/null 2>&1; then
+              echo "✅ Déploiement réussi !"
+              break
+            fi
+            echo "⏳ Tentative $i/30..."
             sleep 10
-            
-            # Health check ultra-rapide
-            if curl -f --connect-timeout 5 --max-time 10 http://localhost:8082/health > /dev/null 2>&1; then
-                echo "✅ Déploiement ultra-rapide réussi ! Application en ligne"
-            else
-                echo "⚠️ Application en cours de démarrage, vérification des logs..."
-                cd /opt/Datalys_consulting_backend
-                docker-compose -f docker-compose.deploy.yml logs --tail=5 datalys-api
-            fi 
+          done
+          
+          # Nettoyage des anciennes images
+          docker image prune -f
+        EOF
+        
+    - name: 📊 Deploy status
+      run: |
+        echo "✅ Déploiement terminé"
+        echo "🔗 Application: http://${{ secrets.SERVER_HOST }}:8082"
+        echo "📊 Health: http://${{ secrets.SERVER_HOST }}:8082/health" 

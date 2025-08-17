@@ -137,14 +137,12 @@ def create_partners():
             if success and item and item.email and username and temp_password:
                 try:
                     email_service = EmailService()
-                    login_url = "https://applicationweb.datalysconsulting.com/connexion"
                     
-                    email_sent = email_service.send_partner_credentials_email(
+                    email_sent = email_service.send_partner_credentials(
                         partner_email=item.email,
                         partner_name=item.name,
                         username=username,
-                        password=temp_password,
-                        login_url=login_url
+                        password=temp_password
                     )
                     
                     if email_sent:

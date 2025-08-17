@@ -342,33 +342,33 @@ class EmailService:
         
         return self.send_email(to_email, subject, html_content)
     
-    def send_partner_credentials_email(self, partner_email: str, partner_name: str, username: str, 
-                                     password: str, login_url: str) -> bool:
+    def send_partner_credentials(self, partner_email: str, partner_name: str, username: str, password: str) -> bool:
         """
-        Envoyer un email avec les credentials aux partenaires nouvellement créés
+        Envoyer les identifiants de connexion à un nouveau partenaire
         
         Args:
             partner_email: Email du partenaire
             partner_name: Nom du partenaire
-            username: Nom d'utilisateur pour la connexion
+            username: Nom d'utilisateur généré
             password: Mot de passe temporaire
-            login_url: URL de connexion
             
         Returns:
-            True si l'email a été envoyé
+            bool: True si envoyé avec succès
         """
-        subject = f"🎉 Bienvenue chez {self.sender_name} - Vos identifiants de connexion"
+        subject = f"🚀 Bienvenue dans l'écosystème Datalys Consulting - Accès à votre espace partenaire"
         
-        # Utiliser le template Flask
-        logo_url = url_for('static', filename='image/logo.png', _external=True)
+        # URL de l'application (configurable via variable d'environnement)
+        app_url = current_app.config.get('APP_URL', 'https://applicationweb.datalysconsulting.com')
+        
+        # Utiliser le template Flask professionnel
         html_content = render_template('email_partner_credentials.html',
-            partner_email=partner_email,
+            email=partner_email,
             partner_name=partner_name,
             username=username,
             password=password,
-            login_url=login_url,
-            sender_name=self.sender_name,
-            logo_url=logo_url
+            app_url=app_url,
+            sender_email=self.smtp_username,
+            sender_name=self.sender_name
         )
         
         return self.send_email(partner_email, subject, html_content)

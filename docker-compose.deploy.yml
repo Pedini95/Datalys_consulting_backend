@@ -1,83 +1,139 @@
+version: '3.8'
+
+# 🚀 DATALYS CONSULTING - DOCKER COMPOSE UNIFIÉ
+# =============================================
+# Fichier unique pour dev, staging et production
+# Usage: 
+#   Dev:        docker-compose up
+#   Production: docker-compose -f docker-compose.deploy.yml --profile production up
+
 services:
+  # 🔧 SERVICE PRINCIPAL API
   datalys-api:
-    build:
-      context: .
-      dockerfile: ./src/Dockerfile.fast
+    image: ${IMAGE_REGISTRY:-datalys_consulting_backend-datalys-api}:${IMAGE_TAG:-latest}
     container_name: datalys-api
     restart: unless-stopped
+    build:
+      context: .
+      dockerfile: src/Dockerfile.fast
+      args:
+        - BUILD_DATE=${BUILD_DATE:-}
+        - COMMIT_SHA=${COMMIT_SHA:-}
     ports:
       - "8082:8082"
-    volumes:
-      - ./uploads:/app/src/static/files
-      - ./logs:/app/src/logs
     environment:
-      - ENV=production
-      - FLASK_ENV=production
-      - PYTHONPATH=/app/src
-      - PORT=8082
-      - SECRET_KEY=your_very_secure_secret_key_here
-      - DB_HOST=mysql-db
-      - DB_PORT=3306
-      - DB_NAME=datalys_consulting
-      - DB_USER=datalys
-      - DB_PASSWORD=datalysconsulting
-      - REDIS_HOST=redis-db
-      - REDIS_PORT=6379
-      - REDIS_DB=0
-      - TIME_OUT=60
-      - DB_CONNECT_TIMEOUT=30
-      - DB_READ_TIMEOUT=60
-      - REDIS_CONNECT_TIMEOUT=30
-      - REDIS_READ_TIMEOUT=60
-      - UPLOAD_FOLDER=/app/src/static/files
-      - LOG_FILE_PATH=/app/src/logs/datalys_consulting.log
-      # Configuration Email SMTP Hostinger - SSL sur port 465
-      - MAIL_SERVER=smtp.hostinger.com
-      - MAIL_PORT=465
-      - MAIL_USE_SSL=True
-      - MAIL_USE_TLS=False
-      - MAIL_USERNAME=datalysconsultingapp@datalysconsulting.com
-      - MAIL_PASSWORD=Nonsse@123
-      - MAIL_DEFAULT_SENDER=datalysconsultingapp@datalysconsulting.com
-      - SENDER_NAME=Datalys Consulting
-      - APP_URL=http://82.112.253.137:8082
-      - SERVER_NAME=82.112.253.137:8082
-      - APPLICATION_ROOT=/
-      - PREFERRED_URL_SCHEME=http
-      # Configuration upload et limites
-      - MAX_CONTENT_LENGTH=52428800  # 50MB en bytes
-    healthcheck:
-      test: ["CMD", "curl", "-f", "--connect-timeout", "10", "--max-time", "30", "http://localhost:8082/health"]
-      interval: 60s
-      timeout: 30s
-      retries: 5
-      start_period: 120s
+      # Database
+      - DB_HOST=${DB_HOST:-82.112.253.137}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_NAME=${DB_NAME:-Datalys_Consulting}
+      - DB_USER=${DB_USER:-root}
+      - DB_PASSWORD=${DB_PASSWORD}
+      
+      # Redis
+      - REDIS_HOST=${REDIS_HOST:-redis-db}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      
+      # Email SMTP - Configuration SSL
+      - MAIL_SERVER=${MAIL_SERVER:-smtp.hostinger.com}
+      - MAIL_PORT=${MAIL_PORT:-465}
+      - MAIL_USE_SSL=${MAIL_USE_SSL:-True}
+      - MAIL_USE_TLS=${MAIL_USE_TLS:-False}
+      - MAIL_USERNAME=${MAIL_USERNAME:-datalysconsultingapp@datalysconsulting.com}
+      - MAIL_PASSWORD=${MAIL_PASSWORD:-Nonsse@123}
+      - MAIL_DEFAULT_SENDER=${MAIL_DEFAULT_SENDER:-datalysconsultingapp@datalysconsulting.com}
+      
+      # App Config
+      - SECRET_KEY=${SECRET_KEY:-development-secret-change-in-production}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-jwt-secret-change-in-production}
+      - FLASK_ENV=${FLASK_ENV:-production}
+      - FLASK_DEBUG=${FLASK_DEBUG:-False}
+      
+      # Versioning & Monitoring
+      - APP_VERSION=${IMAGE_TAG:-latest}
+      - BUILD_DATE=${BUILD_DATE:-}
+      - COMMIT_SHA=${COMMIT_SHA:-}
+      
+    volumes:
+      - ./src/static:/app/src/static
+      - ./src/logs:/app/src/logs
+      - ./uploads:/app/uploads
     depends_on:
       - redis-db
-    external_links:
-      - mysql-db:mysql-db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    profiles:
+      - production
+      - development
+    labels:
+      - "com.datalys.service=api"
+      - "com.datalys.version=${IMAGE_TAG:-latest}"
+      - "com.datalys.environment=${ENVIRONMENT:-production}"
 
+  # 🗄️ REDIS CACHE
   redis-db:
     image: redis:7-alpine
     container_name: redis-db
     restart: unless-stopped
     ports:
-      # NE PAS exposer Redis sur l'interface publique
-      - "127.0.0.1:6379:6379"  # Seulement localhost
-    command: >
-      redis-server 
-      --bind 127.0.0.1 
-      --protected-mode yes
-      --maxmemory 256mb
-      --maxmemory-policy allkeys-lru
-      --save 300 1
+      - "${REDIS_EXTERNAL_PORT:-127.0.0.1:6379}:6379"
     volumes:
       - redis_data:/data
+    command: >
+      redis-server 
+      --appendonly yes 
+      --appendfsync everysec
+      --maxmemory ${REDIS_MAX_MEMORY:-256mb}
+      --maxmemory-policy allkeys-lru
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
+      interval: 10s
+      timeout: 5s
       retries: 3
+    profiles:
+      - production
+      - development
+    labels:
+      - "com.datalys.service=redis"
+      - "com.datalys.environment=${ENVIRONMENT:-production}"
+
+  # 🔄 AUTO-UPDATE (Production uniquement)
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_POLL_INTERVAL=${WATCHTOWER_INTERVAL:-300}
+      - WATCHTOWER_INCLUDE_STOPPED=true
+      - WATCHTOWER_LABEL_ENABLE=true
+    profiles:
+      - production
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.datalys.service=watchtower"
 
 volumes:
-  redis_data: 
+  redis_data:
+    driver: local
+
+# 📋 EXEMPLES D'UTILISATION :
+# ==========================
+# 
+# 🔧 Développement local :
+# docker-compose --profile development up
+# 
+# 🚀 Production avec image locale :
+# docker-compose --profile production up
+# 
+# 🌟 Production avec image versionnée :
+# IMAGE_TAG=v1.2.3 docker-compose --profile production up
+# 
+# 🔄 Déploiement zero-downtime :
+# IMAGE_TAG=v1.2.3 ./scripts/deploy-zero-downtime.sh 
