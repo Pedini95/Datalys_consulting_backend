@@ -68,6 +68,24 @@ def create_incidents():
             'is_active': data.get('is_active', True)
         }
         
+        # Ajouter les nouveaux champs pour la communication
+        if 'type' in data and data['type']:
+            processed_data['type'] = data.get('type')
+        if 'priority' in data and data['priority']:
+            processed_data['priority'] = data.get('priority')
+        if 'status' in data and data['status']:
+            processed_data['status'] = data.get('status')
+        if 'category' in data and data['category']:
+            processed_data['category'] = data.get('category')
+        if 'assigned_to' in data and data['assigned_to']:
+            processed_data['assigned_to'] = data.get('assigned_to')
+        if 'parent_id' in data and data['parent_id']:
+            processed_data['parent_id'] = data.get('parent_id')
+        if 'resolution_notes' in data and data['resolution_notes']:
+            processed_data['resolution_notes'] = data.get('resolution_notes')
+        if 'is_read' in data:
+            processed_data['is_read'] = data.get('is_read')
+        
         # Ajouter user_name si fourni (au lieu de user_id)
         if 'user_name' in data and data['user_name']:
             processed_data['user_name'] = data.get('user_name')
@@ -129,6 +147,24 @@ def update_incidents():
             processed_data['title'] = data.get('title')
         if utilities.not_blank(data.get('description')):
             processed_data['description'] = data.get('description')
+        
+        # Ajouter les nouveaux champs pour la communication
+        if 'type' in data and data['type']:
+            processed_data['type'] = data.get('type')
+        if 'priority' in data and data['priority']:
+            processed_data['priority'] = data.get('priority')
+        if 'status' in data and data['status']:
+            processed_data['status'] = data.get('status')
+        if 'category' in data and data['category']:
+            processed_data['category'] = data.get('category')
+        if 'assigned_to' in data and data['assigned_to']:
+            processed_data['assigned_to'] = data.get('assigned_to')
+        if 'parent_id' in data and data['parent_id']:
+            processed_data['parent_id'] = data.get('parent_id')
+        if 'resolution_notes' in data and data['resolution_notes']:
+            processed_data['resolution_notes'] = data.get('resolution_notes')
+        if 'is_read' in data:
+            processed_data['is_read'] = data.get('is_read')
         
         # Ajouter user_name si fourni (au lieu de user_id)
         if 'user_name' in data and data['user_name']:
