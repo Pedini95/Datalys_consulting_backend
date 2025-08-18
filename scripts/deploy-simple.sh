@@ -18,13 +18,17 @@ echo "📝 Commit: $COMMIT_SHA"
 
 # Vérification et configuration MySQL si nécessaire
 echo "🔍 Vérification de la configuration MySQL..."
-if netstat -tlnp | grep -q "127.0.0.1:3306"; then
+if docker ps | grep -q "mysql.*82.112.253.137:3306"; then
+    echo "✅ MySQL container actif sur l'IP publique"
+elif docker ps | grep -q "mysql"; then
+    echo "⚠️  MySQL container détecté mais configuration à vérifier"
+elif netstat -tlnp | grep -q "127.0.0.1:3306"; then
     echo "⚠️  MySQL écoute sur localhost - Reconfiguration..."
     ./scripts/configure-mysql.sh
 elif netstat -tlnp | grep -q "82.112.253.137:3306"; then
     echo "✅ MySQL déjà configuré sur l'IP publique"
 else
-    echo "❌ MySQL non détecté - Veuillez le configurer manuellement"
+    echo "⚠️  MySQL non détecté - vérification manuelle recommandée"
 fi
 
 # Arrêt propre
