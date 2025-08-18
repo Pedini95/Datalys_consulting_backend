@@ -102,7 +102,8 @@ fi
 # Étape 3: Préservation des permissions des fichiers d'upload
 log "🔐 3. Configuration des permissions pour les uploads..."
 mkdir -p ./src/static/files/logos ./src/static/files/files ./src/static/files/projects
-chown -R 1000:1000 ./src/static/files/ 2>/dev/null || warning "Impossible de changer le propriétaire (permissions insuffisantes)"
+# Utiliser l'UID correct du container (999:999)
+chown -R 999:999 ./src/static/files/ 2>/dev/null || warning "Impossible de changer le propriétaire (permissions insuffisantes)"
 chmod -R 775 ./src/static/files/ 2>/dev/null || warning "Impossible de changer les permissions"
 
 # Étape 4: Reconstruction de l'image (si nécessaire)
