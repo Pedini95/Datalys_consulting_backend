@@ -226,35 +226,7 @@ class EmailService:
         
         return self.send_email(user_email, subject, html_content)
     
-    def send_user_invitation_email(self, user_email: str, user_name: str, invitation_url: str, 
-                                  inviter_name: str, project_name: Optional[str] = None) -> bool:
-        """
-        Envoyer un email d'invitation
-        
-        Args:
-            user_email: Email de l'utilisateur invité
-            user_name: Nom de l'utilisateur invité
-            invitation_url: URL d'invitation
-            inviter_name: Nom de l'inviteur
-            project_name: Nom du projet (optionnel)
-            
-        Returns:
-            True si l'email a été envoyé
-        """
-        subject = f"Invitation à rejoindre {self.sender_name}"
-        
-        # Utiliser le template Flask
-        logo_url = url_for('static', filename='image/logo.png', _external=True)
-        html_content = render_template('email_invitation.html',
-            user_name=user_name,
-            invitation_url=invitation_url,
-            inviter_name=inviter_name,
-            project_name=project_name or "",
-            sender_name=self.sender_name,
-            logo_url=logo_url
-        )
-        
-        return self.send_email(user_email, subject, html_content)
+
     
     def send_incident_alert(self, to_email: str, partner_name: str, email_data: Dict[str, Any]) -> bool:
         """
@@ -358,7 +330,7 @@ class EmailService:
         subject = f"🚀 Bienvenue dans l'écosystème Datalys Consulting - Accès à votre espace partenaire"
         
         # URL de l'application (configurable via variable d'environnement)
-        app_url = current_app.config.get('APP_URL', 'https://applicationweb.datalysconsulting.com')
+        app_url = current_app.config.get('APP_URL', 'https://applicationweb.datalysconsulting.com/connexion')
         
         # Utiliser le template Flask professionnel
         html_content = render_template('email_partner_credentials.html',

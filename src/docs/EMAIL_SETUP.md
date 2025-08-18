@@ -6,7 +6,7 @@ Ce guide explique comment configurer l'envoi d'emails automatiques avec votre se
 
 - ✅ **Emails de bienvenue** pour les nouveaux utilisateurs
 - ✅ **Emails de réinitialisation** de mot de passe
-- ✅ **Emails d'invitation** pour rejoindre des projets
+
 - ✅ **Emails personnalisés** avec templates HTML
 - ✅ **Pièces jointes** supportées
 - ✅ **Configuration SMTP** sécurisée
@@ -84,19 +84,7 @@ email_service.send_password_reset_email(
 )
 ```
 
-### 3. Email d'Invitation
 
-Pour inviter des utilisateurs à rejoindre des projets.
-
-```python
-email_service.send_user_invitation_email(
-    user_email="invite@example.com",
-    user_name="Alice Johnson",
-    invitation_url="https://votredomaine.com/invitation?token=xyz789",
-    inviter_name="Bob Manager",
-    project_name="Projet Alpha"
-)
-```
 
 ### 4. Email Personnalisé
 
@@ -126,7 +114,7 @@ L'application utilise des templates Flask HTML pour les emails. Les templates so
 
 - **`email_welcome.html`** - Email de bienvenue pour les nouveaux utilisateurs
 - **`email_password_reset.html`** - Email de réinitialisation de mot de passe
-- **`email_invitation.html`** - Email d'invitation pour rejoindre des projets
+
 - **`email_template_identifiant.html`** - Template existant pour les identifiants
 
 ### Structure des Templates
@@ -181,7 +169,7 @@ Tous les templates suivent le même style que le template existant :
 - `{{ logo_url }}` - URL du logo (générée automatiquement)
 - `{{ login_url }}` - URL de connexion
 - `{{ reset_url }}` - URL de réinitialisation
-- `{{ invitation_url }}` - URL d'invitation
+
 - `{{ inviter_name }}` - Nom de l'inviteur
 - `{{ project_name }}` - Nom du projet (optionnel)
 - `{{ expires_in }}` - Durée de validité du lien

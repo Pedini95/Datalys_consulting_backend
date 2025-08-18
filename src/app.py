@@ -41,8 +41,8 @@ try:
     file_handler.setLevel(logging.INFO)
     logging.root.addHandler(file_handler)
 except (PermissionError, OSError) as e:
-    print(f"⚠️ Impossible de créer le fichier de log: {e}")
-    print("📝 Logs uniquement en console")
+    print(f" Impossible de créer le fichier de log: {e}")
+    print(" Logs uniquement en console")
 
 # Handler console
 console_handler = logging.StreamHandler()
@@ -67,12 +67,31 @@ try:
     from services.push_notification_service import create_push_service
     import services.push_notification_service as pns
     pns.push_service = create_push_service(app.config)
-    logging.info("✅ Service de notifications push FCM initialisé")
+    logging.info(" Service de notifications push FCM initialisé")
 except Exception as e:
-    logging.error(f"❌ Erreur initialisation service FCM: {e}")
+    logging.error(f" Erreur initialisation service FCM: {e}")
     logging.warning("🔄 Mode dégradé: notifications push désactivées")
 
-CORS(app)
+# Configuration CORS pour le frontend
+CORS(app,
+       origins=[
+           # Développement
+           "http://localhost:3000",
+           "http://localhost:3001",
+
+           # PRODUCTION - URL EXACTE
+           "https://applicationweb.datalysconsulting.com",
+       ],
+       supports_credentials=True,
+       methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+       allow_headers=[
+           "Content-Type",
+           "Authorization",
+           "X-Requested-With",
+           "Accept",
+           "Origin"
+       ]
+  )
 
 # Importer tous les modèles pour que SQLAlchemy les reconnaisse
 from models import *

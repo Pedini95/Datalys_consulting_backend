@@ -77,40 +77,7 @@ def create_user_project_permissions():
         if not success:
             return {"status": "error", "message": message}, 400
         
-        # Envoyer l'email d'invitation
-        if success and item:
-            try:
-                email_service = EmailService()
-                # Récupérer les informations de l'utilisateur et du projet
-                from services.user_service import UserService
-                from services.project_service import ProjectService
-                
-                user_service = UserService()
-                project_service = ProjectService()
-                
-                # Récupérer l'utilisateur invité
-                users, _ = user_service.model_class.get_by_criteria({'id': data['user_id']}, 0, 1)
-                invited_user = users[0] if users else None
-                
-                # Récupérer le projet
-                projects, _ = project_service.model_class.get_by_criteria({'id': data['project_id']}, 0, 1)
-                project = projects[0] if projects else None
-                
-                if invited_user and project:
-                    invitation_url = f"https://applicationweb.datalysconsulting.com/projects/{project.id}"
-                    email_sent = email_service.send_user_invitation_email(
-                        user_email=invited_user.email,
-                        user_name=invited_user.name,
-                        invitation_url=invitation_url,
-                        inviter_name=user.get('name', 'Un administrateur'),
-                        project_name=project.name
-                    )
-                    if email_sent:
-                        logging.info(f"Email d'invitation envoyé à {invited_user.email}")
-                    else:
-                        logging.warning(f"Échec de l'envoi de l'email d'invitation à {invited_user.email}")
-            except Exception as e:
-                logging.error(f"Erreur lors de l'envoi de l'email d'invitation: {str(e)}")
+
         
         items.append(item)
     

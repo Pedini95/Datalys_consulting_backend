@@ -17,12 +17,21 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 class PushNotificationService:
-    """Service pour envoyer les notifications push via Firebase"""
+    """Service pour envoyer les notifications push via Firebase avec cache Redis"""
     
     def __init__(self, config=None):
         self.config = config
         self._firebase_initialized = False
         self._initialize_firebase()
+        
+        # Initialiser le cache Redis pour FCM
+        try:
+            from utils.fcm_cache import fcm_cache
+            self.fcm_cache = fcm_cache
+            logger.info("✅ Cache Redis FCM intégré au service push")
+        except ImportError as e:
+            logger.warning(f"⚠️ Cache Redis FCM non disponible: {e}")
+            self.fcm_cache = None
     
     def _initialize_firebase(self):
         """Initialiser Firebase Admin SDK"""
@@ -154,7 +163,7 @@ class PushNotificationService:
     
     def send_to_user_by_id(self, user_id: int, title: str, body: str, data: Optional[Dict[str, str]] = None) -> bool:
         """
-        Envoyer notification push à un utilisateur par son ID
+        Envoyer notification push à un utilisateur par son ID (avec cache Redis)
         
         Args:
             user_id: ID de l'utilisateur
@@ -165,6 +174,14 @@ class PushNotificationService:
         Returns:
             bool: True si envoyé avec succès
         """
+        # Essayer d'abord le cache Redis
+        if self.fcm_cache and self.fcm_cache.is_available():
+            cached_token = self.fcm_cache.get_cached_user_token(user_id)
+            if cached_token:
+                logger.info(f"📱 Token utilisateur {user_id} récupéré du cache Redis")
+                return self.send_to_user(cached_token, title, body, data)
+        
+        # Si pas en cache, récupérer depuis la DB et mettre en cache
         try:
             from models.user import User
             
@@ -173,7 +190,13 @@ class PushNotificationService:
                 logger.warning(f" Utilisateur {user_id} sans token FCM valide")
                 return False
             
-            return self.send_to_user(users[0].fcm_token, title, body, data)
+            user_token = users[0].fcm_token
+            
+            # Mettre en cache pour la prochaine fois
+            if self.fcm_cache and self.fcm_cache.is_available():
+                self.fcm_cache.cache_user_token(user_id, user_token, ttl=3600)  # Cache 1 heure
+            
+            return self.send_to_user(user_token, title, body, data)
             
         except Exception as e:
             logger.error(f" Erreur envoi notification à utilisateur {user_id}: {e}")
@@ -181,11 +204,19 @@ class PushNotificationService:
     
     def _get_admin_tokens(self) -> List[str]:
         """
-        Récupérer les tokens FCM des administrateurs depuis la base de données
+        Récupérer les tokens FCM des administrateurs (avec cache Redis)
         
         Returns:
             List[str]: Liste des tokens FCM valides
         """
+        # Essayer d'abord le cache Redis
+        if self.fcm_cache and self.fcm_cache.is_available():
+            cached_tokens = self.fcm_cache.get_cached_admin_tokens()
+            if cached_tokens is not None:
+                logger.info(f"📱 {len(cached_tokens)} tokens admin récupérés du cache Redis")
+                return cached_tokens
+        
+        # Si pas en cache, récupérer depuis la DB et mettre en cache
         try:
             from models.user import User
             
@@ -196,7 +227,11 @@ class PushNotificationService:
             # Filtrer seulement ceux qui ont un token FCM
             tokens = [admin.fcm_token for admin in admins if hasattr(admin, 'fcm_token') and admin.fcm_token]
             
-            logger.info(f"📱 {len(tokens)} tokens d'admin trouvés")
+            # Mettre en cache pour la prochaine fois
+            if self.fcm_cache and self.fcm_cache.is_available():
+                self.fcm_cache.cache_admin_tokens(tokens, ttl=300)  # Cache 5 minutes
+            
+            logger.info(f"📱 {len(tokens)} tokens d'admin trouvés en DB et mis en cache")
             return tokens
             
         except Exception as e:
@@ -228,7 +263,7 @@ class PushNotificationService:
     
     def _remove_invalid_token(self, token: str):
         """
-        Supprimer un token invalide de la base de données
+        Supprimer un token invalide de la base de données et du cache
         
         Args:
             token: Token FCM à supprimer
@@ -241,9 +276,17 @@ class PushNotificationService:
             users, _ = User.get_by_criteria({'fcm_token': token}, 0, 1)
             if users:
                 user = users[0]
+                user_id = user.id
                 user.fcm_token = None
                 db.session.commit()
-                logger.info(f"🧹 Token invalide supprimé pour utilisateur {user.id}")
+                
+                # Invalider le cache pour cet utilisateur
+                if self.fcm_cache and self.fcm_cache.is_available():
+                    self.fcm_cache.invalidate_user_token(user_id)
+                
+                logger.info(f"🧹 Token invalide supprimé pour utilisateur {user_id} (DB + cache)")
+            else:
+                logger.warning(f"⚠️ Utilisateur avec token {token[:20]}... non trouvé")
                 
         except Exception as e:
             logger.error(f" Erreur suppression token invalide: {e}")

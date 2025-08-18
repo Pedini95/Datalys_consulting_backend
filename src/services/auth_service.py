@@ -400,7 +400,7 @@ class AuthService:
                 email_service = EmailService()
                 logger.info("EmailService créé avec succès")
                 
-                reset_url = f"https://applicationweb.datalysconsulting.com/mot-de-passe-oublie?token={reset_token}"
+                reset_url = f"https://applicationweb.datalysconsulting.com/reset-mot-de-passe?token={reset_token}"
                 logger.info(f"URL de reset générée: {reset_url}")
                 
                 email_sent = email_service.send_password_reset_email(
