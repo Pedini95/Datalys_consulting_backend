@@ -54,6 +54,16 @@ def create_users():
     user = r.get('user', {})
     datas = r.get('datas', [])
     
+    # VÉRIFICATION DE SÉCURITÉ : Seuls les admins peuvent créer des utilisateurs
+    current_user_id = user.get('id')
+    if current_user_id:
+        from models import User, Role
+        current_user = User.query.get(current_user_id)
+        if current_user and current_user.role_id:
+            current_role = Role.query.get(current_user.role_id)
+            if not current_role or current_role.name != 'admin':
+                return {"status": "error", "message": "Accès refusé : Seuls les administrateurs peuvent créer des utilisateurs"}, 403
+    
     # Préparer les données pour le service
     processed_datas = []
     for data in datas:
@@ -63,12 +73,17 @@ def create_users():
             if field not in data or not data[field]:
                 return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
         
+        # VÉRIFICATION : Cette API est dédiée uniquement aux utilisateurs admin
+        role_name = data.get('role_name')
+        if role_name != 'admin':
+            return {"status": "error", "message": "Cette API est dédiée uniquement à la création d'utilisateurs admin. Pour créer un partenaire, utilisez /partners/create"}, 400
+        
         processed_data = {
             'name': data.get('name', ''),
             'email': data.get('email'),
             'password': data.get('password'),
             'role_name': data.get('role_name'),
-            'is_active': data.get('is_active', True)
+            'is_active': True  # Toujours initialisé à true lors de la création
         }
         processed_datas.append(processed_data)
     
