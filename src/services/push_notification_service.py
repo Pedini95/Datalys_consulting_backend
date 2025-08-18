@@ -19,7 +19,9 @@ logger = logging.getLogger(__name__)
 class PushNotificationService:
     """Service pour envoyer les notifications push via Firebase"""
     
-    def __init__(self):
+    def __init__(self, config=None):
+        self.config = config
+        self._firebase_initialized = False
         self._initialize_firebase()
     
     def _initialize_firebase(self):
@@ -31,22 +33,35 @@ class PushNotificationService:
         try:
             # Vérifier si Firebase est déjà initialisé
             if not firebase_admin._apps:
-                # Chemin vers le fichier de configuration Firebase
-                config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'firebase-service-account.json')
+                # Utiliser le chemin de configuration depuis Config si disponible
+                if self.config and hasattr(self.config, 'FIREBASE_CONFIG_PATH'):
+                    config_path = self.config.FIREBASE_CONFIG_PATH
+                else:
+                    # Fallback vers l'ancien chemin
+                    config_path = os.path.join(os.path.dirname(__file__), '..', 'config', 'firebase-service-account.json')
                 
                 if os.path.exists(config_path):
                     cred = credentials.Certificate(config_path)
                     firebase_admin.initialize_app(cred)
-                    logger.info("✅ Firebase initialisé avec succès")
+                    self._firebase_initialized = True
+                    logger.info(" Firebase initialisé avec succès")
                 else:
-                    logger.error("❌ Fichier de configuration Firebase non trouvé")
+                    logger.error(f" Fichier de configuration Firebase non trouvé: {config_path}")
                     raise FileNotFoundError(f"Fichier non trouvé: {config_path}")
             else:
-                logger.info("✅ Firebase déjà initialisé")
+                self._firebase_initialized = True
+                logger.info(" Firebase déjà initialisé")
                 
         except Exception as e:
-            logger.error(f"❌ Erreur initialisation Firebase: {e}")
-            raise
+            logger.error(f" Erreur initialisation Firebase: {e}")
+            self._firebase_initialized = False
+            # Ne pas lever l'exception pour permettre le mode dégradé
+    
+    def is_enabled(self) -> bool:
+        """Vérifier si le service FCM est activé et fonctionnel"""
+        if self.config and hasattr(self.config, 'FIREBASE_ENABLED'):
+            return self.config.FIREBASE_ENABLED and FIREBASE_AVAILABLE and self._firebase_initialized
+        return FIREBASE_AVAILABLE and self._firebase_initialized
     
     def send_to_admins(self, title: str, body: str, data: Optional[Dict[str, str]] = None) -> bool:
         """
@@ -60,16 +75,16 @@ class PushNotificationService:
         Returns:
             bool: True si envoyé avec succès
         """
-        if not FIREBASE_AVAILABLE:
-            logger.warning("⚠️ Firebase non disponible - simulation envoi notification")
-            logger.info(f"📤 [SIMULATION] Push: {title} - {body}")
+        if not self.is_enabled():
+            logger.warning(" Service FCM non activé - simulation envoi notification")
+            logger.info(f" [SIMULATION] Push aux admins: {title} - {body}")
             return True
             
         try:
             admin_tokens = self._get_admin_tokens()
             
             if not admin_tokens:
-                logger.warning("⚠️ Aucun token d'admin trouvé pour notifications push")
+                logger.warning(" Aucun token d'admin trouvé pour notifications push")
                 return False
             
             # Préparer le message
@@ -89,16 +104,16 @@ class PushNotificationService:
             success_count = response.success_count
             failure_count = response.failure_count
             
-            logger.info(f"📤 Notifications envoyées: {success_count}/{len(admin_tokens)} succès")
+            logger.info(f" Notifications envoyées: {success_count}/{len(admin_tokens)} succès")
             
             if failure_count > 0:
-                logger.warning(f"⚠️ {failure_count} notifications échouées")
+                logger.warning(f" {failure_count} notifications échouées")
                 self._handle_send_failures(response.responses, admin_tokens)
             
             return success_count > 0
             
         except Exception as e:
-            logger.error(f"❌ Erreur envoi notifications push: {e}")
+            logger.error(f" Erreur envoi notifications push: {e}")
             return False
     
     def send_to_user(self, user_token: str, title: str, body: str, data: Optional[Dict[str, str]] = None) -> bool:
@@ -114,6 +129,11 @@ class PushNotificationService:
         Returns:
             bool: True si envoyé avec succès
         """
+        if not self.is_enabled():
+            logger.warning(" Service FCM non activé - simulation envoi notification")
+            logger.info(f" [SIMULATION] Push à utilisateur: {title} - {body}")
+            return True
+            
         try:
             message = messaging.Message(
                 notification=messaging.Notification(
@@ -125,11 +145,38 @@ class PushNotificationService:
             )
             
             response = messaging.send(message)
-            logger.info(f"📤 Notification envoyée à utilisateur: {response}")
+            logger.info(f" Notification envoyée à utilisateur: {response}")
             return True
             
         except Exception as e:
-            logger.error(f"❌ Erreur envoi notification utilisateur: {e}")
+            logger.error(f" Erreur envoi notification utilisateur: {e}")
+            return False
+    
+    def send_to_user_by_id(self, user_id: int, title: str, body: str, data: Optional[Dict[str, str]] = None) -> bool:
+        """
+        Envoyer notification push à un utilisateur par son ID
+        
+        Args:
+            user_id: ID de l'utilisateur
+            title: Titre de la notification
+            body: Corps de la notification
+            data: Données additionnelles (optionnel)
+            
+        Returns:
+            bool: True si envoyé avec succès
+        """
+        try:
+            from models.user import User
+            
+            users, _ = User.get_by_criteria({'id': user_id, 'is_active': True}, 0, 1)
+            if not users or not users[0].fcm_token:
+                logger.warning(f" Utilisateur {user_id} sans token FCM valide")
+                return False
+            
+            return self.send_to_user(users[0].fcm_token, title, body, data)
+            
+        except Exception as e:
+            logger.error(f" Erreur envoi notification à utilisateur {user_id}: {e}")
             return False
     
     def _get_admin_tokens(self) -> List[str]:
@@ -140,7 +187,7 @@ class PushNotificationService:
             List[str]: Liste des tokens FCM valides
         """
         try:
-            from models import User
+            from models.user import User
             
             # Récupérer les utilisateurs admin avec tokens FCM
             # Adaptez selon votre logique de rôles (ex: role_id=1 pour admin)
@@ -153,7 +200,7 @@ class PushNotificationService:
             return tokens
             
         except Exception as e:
-            logger.error(f"❌ Erreur récupération tokens admin: {e}")
+            logger.error(f" Erreur récupération tokens admin: {e}")
             return []
     
     def _handle_send_failures(self, responses: List, tokens: List[str]):
@@ -177,7 +224,7 @@ class PushNotificationService:
                         self._remove_invalid_token(token)
                         
         except Exception as e:
-            logger.error(f"❌ Erreur gestion échecs: {e}")
+            logger.error(f" Erreur gestion échecs: {e}")
     
     def _remove_invalid_token(self, token: str):
         """
@@ -187,7 +234,7 @@ class PushNotificationService:
             token: Token FCM à supprimer
         """
         try:
-            from models import User
+            from models.user import User
             from extensions import db
             
             # Trouver l'utilisateur avec ce token et le nettoyer
@@ -199,7 +246,12 @@ class PushNotificationService:
                 logger.info(f"🧹 Token invalide supprimé pour utilisateur {user.id}")
                 
         except Exception as e:
-            logger.error(f"❌ Erreur suppression token invalide: {e}")
+            logger.error(f" Erreur suppression token invalide: {e}")
 
-# Instance globale du service (singleton pattern)
-push_service = PushNotificationService() 
+# Fonction pour créer l'instance avec configuration
+def create_push_service(config=None):
+    """Créer une instance du service push avec configuration"""
+    return PushNotificationService(config)
+
+# Instance globale du service (sera initialisée par l'app)
+push_service = None 

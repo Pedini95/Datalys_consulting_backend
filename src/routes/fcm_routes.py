@@ -25,7 +25,8 @@ def register_fcm_token():
         logging.info("**** request input ****")
         logging.info(data)
         
-        fcm_token = data.get('fcm_token')
+        # Accepter à la fois 'token' et 'fcm_token' pour la compatibilité
+        fcm_token = data.get('token') or data.get('fcm_token')
         
         if not fcm_token:
             return {"status": "error", "message": "Token FCM requis"}, 400
@@ -114,34 +115,64 @@ def test_notification():
     try:
         data = request.get_json() or {}
         
-        # Vérifier si l'utilisateur est admin (adaptez selon votre logique)
-        # if g.current_user.role_id != 1:  # Supposons role_id=1 pour admin
-        #     return {"status": "error", "message": "Action non autorisée"}, 403
+        # Vérifier si l'utilisateur est admin (SÉCURISÉ POUR PRODUCTION)
+        if g.current_user.role_id != 1:  # Seuls les admins peuvent tester
+            return {"status": "error", "message": "Action non autorisée - Admin requis"}, 403
+        
+        # Optionnel: Limiter en production
+        from flask import current_app
+        if current_app.config.get('ENV') == 'production':
+            logging.warning(f"Test FCM demandé en production par admin {g.current_user.id}")
         
         title = data.get('title', 'Test Notification')
         body = data.get('body', 'Ceci est une notification de test')
+        user_id = data.get('user_id')  # Si spécifié, envoyer à un utilisateur particulier
         
         try:
             from services.push_notification_service import push_service
             
-            # Envoyer notification de test
-            success = push_service.send_to_admins(title, body, {
-                'type': 'test',
-                'timestamp': str(datetime.now())
-            })
-            
-            if success:
+            # Vérifier que le service push est disponible
+            if push_service is None:
                 response = {
-                    "code": 200,
-                    "message": functional_error.MESSAGE_SUCCESS(),
-                    "data": {"notification_sent": True}
+                    "code": 503,
+                    "message": {"type": "error", "text": "Service push non initialisé"},
+                    "data": {"notification_sent": False}
                 }
             else:
-                response = {"status": "error", "message": "Échec envoi notification"}, 500
+                # Service disponible, envoyer la notification
+                if user_id:
+                    # Envoyer à un utilisateur spécifique
+                    success = push_service.send_to_user_by_id(user_id, title, body, {
+                        'type': 'test',
+                        'timestamp': str(datetime.now())
+                    })
+                else:
+                    # Envoyer notification de test à tous les admins
+                    success = push_service.send_to_admins(title, body, {
+                        'type': 'test',
+                        'timestamp': str(datetime.now())
+                    })
+                
+                if success:
+                    response = {
+                        "code": 200,
+                        "message": functional_error.MESSAGE_SUCCESS(),
+                        "data": {"notification_sent": True}
+                    }
+                else:
+                    response = {
+                        "code": 500,
+                        "message": {"type": "error", "text": "Échec envoi notification"},
+                        "data": {"notification_sent": False}
+                    }
                 
         except ImportError:
             logging.warning("Service push non disponible")
-            response = {"status": "error", "message": "Service push non configuré"}, 503
+            response = {
+                "code": 503,
+                "message": {"type": "error", "text": "Service push non configuré"},
+                "data": {"notification_sent": False}
+            }
         
         logging.info("**** response output ****")
         logging.info(response)

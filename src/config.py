@@ -70,6 +70,15 @@ class Config:
     SERVER_NAME = os.getenv('SERVER_NAME', 'localhost:5000')
     APPLICATION_ROOT = os.getenv('APPLICATION_ROOT', '/')
     PREFERRED_URL_SCHEME = os.getenv('PREFERRED_URL_SCHEME', 'http')
+    
+    # Configuration Firebase Cloud Messaging (FCM)
+    # Le fichier firebase-service-account.json doit être présent dans src/config/
+    FIREBASE_ENABLED = os.getenv('FIREBASE_ENABLED', 'True').lower() == 'true'
+    FIREBASE_CONFIG_PATH = os.path.join(current_dir, 'config', 'firebase-service-account.json')
+    
+    # Configuration pour les notifications push automatiques
+    FCM_AUTO_NOTIFY_HIGH_PRIORITY = os.getenv('FCM_AUTO_NOTIFY_HIGH_PRIORITY', 'True').lower() == 'true'
+    FCM_AUTO_NOTIFY_CRITICAL_PRIORITY = os.getenv('FCM_AUTO_NOTIFY_CRITICAL_PRIORITY', 'True').lower() == 'true'
 
 
   

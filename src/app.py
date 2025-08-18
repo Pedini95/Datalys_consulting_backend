@@ -61,6 +61,17 @@ logging.root.addHandler(console_handler)
 db.init_app(app)
 migrate.init_app(app, db)
 mail.init_app(app)
+
+# Initialize Firebase/FCM Push Notification Service
+try:
+    from services.push_notification_service import create_push_service
+    import services.push_notification_service as pns
+    pns.push_service = create_push_service(app.config)
+    logging.info("✅ Service de notifications push FCM initialisé")
+except Exception as e:
+    logging.error(f"❌ Erreur initialisation service FCM: {e}")
+    logging.warning("🔄 Mode dégradé: notifications push désactivées")
+
 CORS(app)
 
 # Importer tous les modèles pour que SQLAlchemy les reconnaisse
