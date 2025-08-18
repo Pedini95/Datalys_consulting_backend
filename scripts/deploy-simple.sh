@@ -31,6 +31,12 @@ fi
 echo "🛑 Arrêt des services..."
 docker-compose --profile production down || true
 
+# Préservation des permissions des fichiers d'upload
+echo "🔐 Configuration des permissions pour les uploads..."
+mkdir -p ./src/static/files/logos ./src/static/files/files ./src/static/files/projects
+chown -R 1000:1000 ./src/static/files/ 2>/dev/null || true
+chmod -R 775 ./src/static/files/ 2>/dev/null || true
+
 # Reconstruction et démarrage
 echo "🔨 Reconstruction et démarrage..."
 docker-compose --profile production up -d --build

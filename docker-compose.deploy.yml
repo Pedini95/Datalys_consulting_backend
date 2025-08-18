@@ -64,6 +64,7 @@ services:
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-jwt-secret-change-in-production}
       - FLASK_ENV=${FLASK_ENV:-production}
       - FLASK_DEBUG=${FLASK_DEBUG:-False}
+      - UPLOAD_FOLDER=/app/src/static/files
       
       # Versioning & Monitoring
       - APP_VERSION=${IMAGE_TAG:-latest}
@@ -74,6 +75,8 @@ services:
       - ./src/static:/app/src/static
       - ./src/logs:/app/src/logs
       - ./uploads:/app/uploads
+      # Permissions fixes pour les uploads
+      - ./src/static/files:/app/src/static/files:Z
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
       interval: 30s

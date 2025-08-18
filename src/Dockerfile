@@ -17,7 +17,7 @@ RUN groupadd -r app && useradd -r -g app -m -d /app -s /bin/bash app
 WORKDIR /app
 
 # Dossiers nécessaires
-RUN mkdir -p /app/src/logs /app/src/static/files
+RUN mkdir -p /app/src/logs /app/src/static/files /app/src/static/files/logos /app/src/static/files/files /app/src/static/files/projects
 
 # Installer les deps Python en root (dans /usr/local)
 COPY src/requirements.txt .
@@ -37,7 +37,8 @@ COPY --chown=app:app scripts/ /app/scripts
 
 # S'assurer que l'utilisateur app a les permissions d'écriture
 RUN chown -R app:app /app/src/logs /app/src/static && \
-    chmod -R 755 /app/src/logs /app/src/static
+    chmod -R 775 /app/src/logs /app/src/static && \
+    chmod -R 775 /app/src/static/files
 
 USER app
 
