@@ -132,12 +132,14 @@ def change_temp_password():
             return {"status": "error", "message": "Mot de passe actuel incorrect"}, 401
         
         # Vérifier que c'est bien un mot de passe temporaire
-        if not user.is_temp_password:
+        is_temp_password = getattr(user, 'is_temp_password', False)
+        if not is_temp_password:
             return {"status": "error", "message": "Ce compte n'a pas de mot de passe temporaire"}, 400
         
         # Mettre à jour le mot de passe
         user.password_hash = utilities.encrypt(new_password)
-        user.is_temp_password = False  # Le mot de passe n'est plus temporaire
+        if hasattr(user, 'is_temp_password'):
+            user.is_temp_password = False  # Le mot de passe n'est plus temporaire
         
         from extensions import db
         db.session.commit()

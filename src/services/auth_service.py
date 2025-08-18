@@ -185,8 +185,9 @@ class AuthService:
             if not user.is_active:
                 return None, False, "Compte désactivé"
             
-            # Vérifier si le mot de passe est temporaire
-            if user.is_temp_password:
+            # Vérifier si le mot de passe est temporaire (avec fallback pour compatibilité)
+            is_temp_password = getattr(user, 'is_temp_password', False)
+            if is_temp_password:
                 # Retourner une réponse spéciale pour forcer le changement de mot de passe
                 return {
                     'user_id': user.id,
