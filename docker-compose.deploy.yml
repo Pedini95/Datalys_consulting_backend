@@ -72,11 +72,10 @@ services:
       - COMMIT_SHA=${COMMIT_SHA:-}
       
     volumes:
-      - ./src/static:/app/src/static
       - ./src/logs:/app/src/logs
       - ./uploads:/app/uploads
-      # Permissions fixes pour les uploads
-      - ./src/static/files:/app/src/static/files:Z
+      # Mount static avec permissions correctes pour les uploads
+      - ./src/static:/app/src/static:Z
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
       interval: 30s
