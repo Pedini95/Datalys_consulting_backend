@@ -94,6 +94,71 @@ def login():
         return {"status": "error", "message": "Erreur interne du serveur"}, 500
 
 
+@bp.route('/auth/change-temp-password', methods=['POST'])
+@cross_origin()
+def change_temp_password():
+    """
+    Route pour changer un mot de passe temporaire
+    """
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return {"status": "error", "message": "Données manquantes"}, 400
+        
+        email = data.get('email')
+        current_password = data.get('current_password')
+        new_password = data.get('new_password')
+        
+        if not all([email, current_password, new_password]):
+            return {"status": "error", "message": "Email, mot de passe actuel et nouveau mot de passe requis"}, 400
+        
+        # Valider le nouveau mot de passe
+        if len(new_password) < 8:
+            return {"status": "error", "message": "Le nouveau mot de passe doit contenir au moins 8 caractères"}, 400
+        
+        # Chercher l'utilisateur
+        from models import User
+        from utils import utilities
+        
+        users, _ = User.get_by_criteria({'email': email}, 0, 1)
+        if not users:
+            return {"status": "error", "message": "Utilisateur non trouvé"}, 404
+        
+        user = users[0]
+        
+        # Vérifier le mot de passe actuel
+        if user.password_hash != utilities.encrypt(current_password):
+            return {"status": "error", "message": "Mot de passe actuel incorrect"}, 401
+        
+        # Vérifier que c'est bien un mot de passe temporaire
+        if not user.is_temp_password:
+            return {"status": "error", "message": "Ce compte n'a pas de mot de passe temporaire"}, 400
+        
+        # Mettre à jour le mot de passe
+        user.password_hash = utilities.encrypt(new_password)
+        user.is_temp_password = False  # Le mot de passe n'est plus temporaire
+        
+        from extensions import db
+        db.session.commit()
+        
+        # Maintenant authentifier l'utilisateur normalement
+        user_data, success, message = auth_service.login(email, new_password)
+        
+        if success:
+            return {
+                "status": "success",
+                "message": "Mot de passe changé avec succès",
+                "data": user_data
+            }, 200
+        else:
+            return {"status": "error", "message": "Erreur lors de la connexion après changement"}, 500
+            
+    except Exception as e:
+        logger.error(f"Erreur lors du changement de mot de passe temporaire: {str(e)}")
+        return {"status": "error", "message": "Erreur interne du serveur"}, 500
+
+
 @bp.route('/auth/logout', methods=['POST'])
 @cross_origin()
 @require_auth

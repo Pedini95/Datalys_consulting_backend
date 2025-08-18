@@ -117,6 +117,7 @@ class PartnerService:
                 'name': data.get('name', ''),  # Utiliser name au lieu de username
                 'email': data.get('email', ''),
                 'password_hash': encrypt(temp_password),  # Utiliser password_hash
+                'is_temp_password': True,  # Marquer le mot de passe comme temporaire
                 'role_id': partner_role.id,  # Assigner le rôle 'partner'
                 'is_active': True
             }

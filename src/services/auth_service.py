@@ -185,6 +185,17 @@ class AuthService:
             if not user.is_active:
                 return None, False, "Compte désactivé"
             
+            # Vérifier si le mot de passe est temporaire
+            if user.is_temp_password:
+                # Retourner une réponse spéciale pour forcer le changement de mot de passe
+                return {
+                    'user_id': user.id,
+                    'email': user.email,
+                    'name': user.name,
+                    'requires_password_change': True,
+                    'message': 'Vous devez changer votre mot de passe temporaire'
+                }, True, "Changement de mot de passe requis"
+            
             # Générer le token JWT
             token_data = {
                 'user_id': user.id,
