@@ -10,6 +10,7 @@ class User(db.Model):
     name = db.Column(db.String(255), nullable=False)  # Changed from username to name
     email = db.Column(db.String(120), nullable=False, unique=True)
     password_hash = db.Column(db.String(255), nullable=False)
+    is_temp_password = db.Column(db.Boolean, default=False)  # Gestion des mots de passe temporaires
 
 
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=True)
@@ -31,7 +32,7 @@ class User(db.Model):
     def as_dict(self):
         data = {}
         # Utiliser les attributs de la classe directement
-        columns = ['id', 'name', 'email', 'password_hash', 'role_id', 
+        columns = ['id', 'name', 'email', 'password_hash', 'is_temp_password', 'role_id', 
                   'is_active', 'is_deleted', 'created_at', 'created_by', 'updated_at', 'updated_by']
         
         for column in columns:

@@ -1,0 +1,33 @@
+From ea1f16c050bdb5582d96d20e347af70281da43e6 Mon Sep 17 00:00:00 2001
+From: root <root@srv622104.hstgr.cloud>
+Date: Mon, 18 Aug 2025 08:05:54 +0000
+Subject: [PATCH] SERVER: Add is_temp_password field to User model
+
+---
+ src/models/user.py | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src/models/user.py b/src/models/user.py
+index 1e57387..b30a346 100644
+--- a/src/models/user.py
++++ b/src/models/user.py
+@@ -10,6 +10,7 @@ class User(db.Model):
+     name = db.Column(db.String(255), nullable=False)  # Changed from username to name
+     email = db.Column(db.String(120), nullable=False, unique=True)
+     password_hash = db.Column(db.String(255), nullable=False)
++    is_temp_password = db.Column(db.Boolean, default=False)  # Gestion des mots de passe temporaires
+ 
+ 
+     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=True)
+@@ -31,7 +32,7 @@ class User(db.Model):
+     def as_dict(self):
+         data = {}
+         # Utiliser les attributs de la classe directement
+-        columns = ['id', 'name', 'email', 'password_hash', 'role_id', 
++        columns = ['id', 'name', 'email', 'password_hash', 'is_temp_password', 'role_id', 
+                   'is_active', 'is_deleted', 'created_at', 'created_by', 'updated_at', 'updated_by']
+         
+         for column in columns:
+-- 
+2.34.1
+
