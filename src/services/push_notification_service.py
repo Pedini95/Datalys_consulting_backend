@@ -370,7 +370,7 @@ class PushNotificationService:
                     logger.warning(f"⚠️ Échec notification token {token[:20]}...: {error_code}")
                     
                     # Si le token est invalide, le supprimer de la DB
-                    if error_code in ['UNREGISTERED', 'INVALID_ARGUMENT']:
+                    if error_code in ['UNREGISTERED', 'INVALID_ARGUMENT', 'NOT_FOUND']:
                         self._remove_invalid_token(token)
                         
         except Exception as e:
