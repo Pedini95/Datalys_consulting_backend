@@ -66,6 +66,11 @@ services:
       - FLASK_DEBUG=${FLASK_DEBUG:-False}
       - UPLOAD_FOLDER=/app/src/static/files
       
+      # Firebase Cloud Messaging (FCM) - Notifications Push
+      - FIREBASE_ENABLED=${FIREBASE_ENABLED:-True}
+      - FCM_AUTO_NOTIFY_HIGH_PRIORITY=${FCM_AUTO_NOTIFY_HIGH_PRIORITY:-True}
+      - FCM_AUTO_NOTIFY_CRITICAL_PRIORITY=${FCM_AUTO_NOTIFY_CRITICAL_PRIORITY:-True}
+      
       # Versioning & Monitoring
       - APP_VERSION=${IMAGE_TAG:-latest}
       - BUILD_DATE=${BUILD_DATE:-}
