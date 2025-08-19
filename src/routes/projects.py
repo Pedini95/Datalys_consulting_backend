@@ -34,7 +34,29 @@ def get_projects():
     else:
         message = functional_error.MESSAGE_DATA_EMPTY()
     
-    response = {"items": [project.as_dict() for project in projects], "count": total_items, "message": message, "code": 200}
+    # Préparer les items avec les informations du partenaire
+    items = []
+    for project in projects:
+        project_dict = project.as_dict()
+        
+        # Ajouter les informations du partenaire si disponible
+        if project.partner_id:
+            try:
+                from models.partner import Partner
+                partner = Partner.query.filter_by(id=project.partner_id, is_deleted=False).first()
+                if partner:
+                    project_dict['partner'] = partner.as_dict()
+                else:
+                    project_dict['partner'] = None
+            except Exception as e:
+                logging.error(f"Erreur lors du chargement du partenaire {project.partner_id}: {e}")
+                project_dict['partner'] = None
+        else:
+            project_dict['partner'] = None
+        
+        items.append(project_dict)
+    
+    response = {"items": items, "count": total_items, "message": message, "code": 200}
     logging.info("**** response output ****")
     logging.info(response)
     logging.info("**** End get_projects ****")
