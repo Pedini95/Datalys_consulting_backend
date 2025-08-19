@@ -36,7 +36,19 @@ def register_fcm_token():
         current_user.fcm_token = fcm_token
         
         try:
+            # Forcer la sauvegarde avec une requête SQL directe
+            from sqlalchemy import text
+            update_query = text("UPDATE users SET fcm_token = :token, updated_at = NOW() WHERE id = :user_id")
+            db.session.execute(update_query, {"token": fcm_token, "user_id": current_user.id})
             db.session.commit()
+            
+            # Vérifier que la sauvegarde a fonctionné
+            verify_query = text("SELECT fcm_token FROM users WHERE id = :user_id")
+            result = db.session.execute(verify_query, {"user_id": current_user.id}).fetchone()
+            if result and result[0]:
+                logging.info(f"✅ Token FCM sauvegardé en DB: {result[0][:20]}...")
+            else:
+                logging.warning("⚠️ Token FCM non trouvé en DB après sauvegarde")
             
             # Mettre à jour le cache Redis
             try:
@@ -91,7 +103,13 @@ def unregister_fcm_token():
         current_user.fcm_token = None
         
         try:
+            # Forcer la suppression avec une requête SQL directe
+            from sqlalchemy import text
+            update_query = text("UPDATE users SET fcm_token = NULL, updated_at = NOW() WHERE id = :user_id")
+            db.session.execute(update_query, {"user_id": current_user.id})
             db.session.commit()
+            
+            logging.info("✅ Token FCM supprimé de la DB")
             
             # Invalider le cache Redis
             try:
