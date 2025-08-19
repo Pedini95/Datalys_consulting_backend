@@ -303,8 +303,8 @@ class PushNotificationService:
             List[str]: Liste des tokens FCM valides
         """
         # Essayer d'abord le cache Redis
-        cache_key = f"partner_tokens_{project_id}" if project_id else "partner_tokens_all"
         if self.fcm_cache and self.fcm_cache.is_available():
+            # type: ignore[attr-defined]
             cached_tokens = self.fcm_cache.get_cached_partner_tokens(project_id)
             if cached_tokens is not None:
                 logger.info(f"📱 {len(cached_tokens)} tokens partenaires récupérés du cache Redis")
@@ -343,6 +343,7 @@ class PushNotificationService:
             
             # Mettre en cache pour la prochaine fois
             if self.fcm_cache and self.fcm_cache.is_available():
+                # type: ignore[attr-defined]
                 self.fcm_cache.cache_partner_tokens(tokens, project_id, ttl=300)  # Cache 5 minutes
             
             logger.info(f"📱 {len(tokens)} tokens de partenaires trouvés en DB et mis en cache")

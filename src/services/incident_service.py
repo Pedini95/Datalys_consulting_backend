@@ -249,7 +249,7 @@ class IncidentService:
             all_messages.extend(parent_messages)
         
         # Messages enfants
-        child_messages, child_count = self.getByCriteria({
+        child_messages, _ = self.getByCriteria({
             'parent_id': parent_id,
             'is_active': True
         }, index, size)

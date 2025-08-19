@@ -1,6 +1,5 @@
 from flask import Blueprint, request
 from services import UserProjectPermissionService
-from utils.notification import EmailService
 import logging
 from utils import functional_error
 from flask_cors import cross_origin
