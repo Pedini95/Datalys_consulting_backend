@@ -44,6 +44,11 @@ def register_fcm_token():
                 if push_service and push_service.fcm_cache and push_service.fcm_cache.is_available():
                     push_service.fcm_cache.cache_user_token(current_user.id, fcm_token, ttl=3600)
                     logging.info("✅ Token FCM mis en cache Redis")
+                    
+                    # Si c'est un admin, invalider le cache des admins pour forcer la régénération
+                    if current_user.role_id == 1:
+                        push_service.fcm_cache.invalidate_admin_tokens()
+                        logging.info("✅ Cache des admins invalidé pour régénération")
             except Exception as cache_error:
                 logging.warning(f"⚠️ Erreur mise en cache: {cache_error}")
             
