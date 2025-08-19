@@ -259,14 +259,16 @@ class AuthService:
                 try:
                     from utils.session_utils import session_manager
                     if session_manager.redis_client is None:
-                        # Redis complètement down - mode dégradé temporaire
-                        logger.warning("Redis non disponible - mode dégradé temporaire activé")
+                        # Redis non disponible - rejeter le token pour la sécurité
+                        logger.warning("Redis non disponible - rejet du token pour la sécurité")
+                        return None, False, "Session invalide (Redis non disponible)"
                     else:
                         # Redis fonctionne mais session pas trouvée = token invalide (logout ou expiration)
                         logger.warning(f"Session Redis non trouvée pour le token - probablement logout ou expiration")
                         return None, False, "Session expirée ou invalide (logout effectué)"
                 except Exception as e:
-                    logger.warning(f"Erreur lors de la vérification Redis: {e} - mode dégradé temporaire activé")
+                    logger.warning(f"Erreur lors de la vérification Redis: {e} - rejet du token pour la sécurité")
+                    return None, False, "Session invalide (erreur Redis)"
             
             # Décoder le token JWT
             secret_key = Config.SECRET_KEY or 'default-secret-key'
