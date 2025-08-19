@@ -26,11 +26,11 @@ class IncidentService:
     @audit_action('CREATE', 'message')
     def create_message(self, data: Dict[str, Any], user_id: Optional[int] = None) -> Tuple[Optional[Incident], bool, str]:
         """
-        Créer un message pour communiquer avec les admins
+        Créer un message pour communiquer
         
         Args:
             data: Données du message (title, description, project_id)
-            user_id: ID de l'utilisateur qui envoie (partenaire)
+            user_id: ID de l'utilisateur qui envoie
             
         Returns:
             Tuple (message, succès, message)
@@ -45,9 +45,10 @@ class IncidentService:
         # Créer le message
         incident, success, message = self.create(data, user_id)
         
-        # 🆕 Envoyer notification push si priorité haute/critique
-        if success and incident and data.get('priority') in ['haute', 'critique']:
-            self._send_push_notification_for_message(incident, str(data.get('priority')))
+        if success and incident:
+            # 🆕 Envoyer notification push selon le type d'utilisateur
+            if data.get('priority') in ['haute', 'critique']:
+                self._send_push_notification_for_message(incident, str(data.get('priority')), user_id)
         
         return incident, success, message
     
@@ -206,7 +207,7 @@ class IncidentService:
         Récupérer tous les messages pour un utilisateur spécifique
         """
         return self.getByCriteria({
-            'user_id': user_id,
+            'created_by': user_id,  # Chercher dans created_by au lieu de user_id
             'type': 'message',
             'is_active': True
         }, index, size)
@@ -530,29 +531,60 @@ class IncidentService:
                 self._push_service = None
         return self._push_service
     
-    def _send_push_notification_for_message(self, incident: Incident, priority: str):
+    def _send_push_notification_for_message(self, incident: Incident, priority: str, user_id: Optional[int] = None):
         """Envoyer notification push pour nouveau message urgent"""
         push_service = self._get_push_service()
         if not push_service:
             logger.warning("⚠️ Service push non disponible pour message")
             return
         
-        emoji = "🚨" if priority == 'critique' else "⚠️"
-        title = f"{emoji} Message {priority.upper()}"
-        body = f"Nouveau message: {incident.title}"
+        # Déterminer le type d'utilisateur qui a envoyé le message
+        try:
+            from models.user import User
+            if user_id:
+                users, _ = User.get_by_criteria({'id': user_id}, 0, 1)
+                is_admin = users[0].role_id == 1 if users else False
+            else:
+                is_admin = False
+        except:
+            is_admin = False
         
-        data = {
-            'incident_id': str(incident.id),
-            'type': 'message',
-            'priority': priority,
-            'action': 'open_message'
-        }
-        
-        success = push_service.send_to_admins(title, body, data)
-        if success:
-            logger.info(f"✅ Notification push envoyée pour message {incident.id}")
+        if is_admin:
+            # Admin envoie un message → Notifier les partenaires du projet
+            emoji = "📢" if priority == 'critique' else "📝"
+            title = f"{emoji} Message Admin"
+            body = f"Message de l'administrateur: {incident.title}"
+            
+            data = {
+                'incident_id': str(incident.id),
+                'type': 'message',
+                'priority': priority,
+                'action': 'open_message'
+            }
+            
+            success = push_service.send_to_partners(title, body, data, incident.project_id)
+            if success:
+                logger.info(f"✅ Notification push envoyée aux partenaires pour message admin {incident.id}")
+            else:
+                logger.warning(f"⚠️ Échec notification push aux partenaires pour message admin {incident.id}")
         else:
-            logger.warning(f"⚠️ Échec notification push pour message {incident.id}")
+            # Partenaire envoie un message → Notifier les admins
+            emoji = "🚨" if priority == 'critique' else "⚠️"
+            title = f"{emoji} Message {priority.upper()}"
+            body = f"Nouveau message: {incident.title}"
+            
+            data = {
+                'incident_id': str(incident.id),
+                'type': 'message',
+                'priority': priority,
+                'action': 'open_message'
+            }
+            
+            success = push_service.send_to_admins(title, body, data)
+            if success:
+                logger.info(f"✅ Notification push envoyée aux admins pour message {incident.id}")
+            else:
+                logger.warning(f"⚠️ Échec notification push aux admins pour message {incident.id}")
     
     def _send_push_notification_for_support(self, incident: Incident, priority: str):
         """Envoyer notification push pour demande support urgente"""

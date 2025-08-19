@@ -125,6 +125,60 @@ class PushNotificationService:
             logger.error(f" Erreur envoi notifications push: {e}")
             return False
     
+    def send_to_partners(self, title: str, body: str, data: Optional[Dict[str, str]] = None, project_id: Optional[int] = None) -> bool:
+        """
+        Envoyer notification push à tous les partenaires (ou partenaires d'un projet spécifique)
+        
+        Args:
+            title: Titre de la notification
+            body: Corps de la notification  
+            data: Données additionnelles (optionnel)
+            project_id: ID du projet (optionnel - si spécifié, envoie seulement aux partenaires du projet)
+            
+        Returns:
+            bool: True si envoyé avec succès
+        """
+        if not self.is_enabled():
+            logger.warning(" Service FCM non activé - simulation envoi notification")
+            logger.info(f" [SIMULATION] Push aux partenaires: {title} - {body}")
+            return True
+            
+        try:
+            partner_tokens = self._get_partner_tokens(project_id)
+            
+            if not partner_tokens:
+                logger.warning(" Aucun token de partenaire trouvé pour notifications push")
+                return False
+            
+            # Préparer le message
+            message = messaging.MulticastMessage(
+                notification=messaging.Notification(
+                    title=title,
+                    body=body
+                ),
+                data=data or {},
+                tokens=partner_tokens
+            )
+            
+            # Envoyer la notification
+            response = messaging.send_each_for_multicast(message)
+            
+            # Logger les résultats
+            success_count = response.success_count
+            failure_count = response.failure_count
+            
+            logger.info(f" Notifications envoyées aux partenaires: {success_count}/{len(partner_tokens)} succès")
+            
+            if failure_count > 0:
+                logger.warning(f" {failure_count} notifications échouées")
+                self._handle_send_failures(response.responses, partner_tokens)
+            
+            return success_count > 0
+            
+        except Exception as e:
+            logger.error(f" Erreur envoi notifications push partenaires: {e}")
+            return False
+    
     def send_to_user(self, user_token: str, title: str, body: str, data: Optional[Dict[str, str]] = None) -> bool:
         """
         Envoyer notification push à un utilisateur spécifique
@@ -236,6 +290,66 @@ class PushNotificationService:
             
         except Exception as e:
             logger.error(f" Erreur récupération tokens admin: {e}")
+            return []
+    
+    def _get_partner_tokens(self, project_id: Optional[int] = None) -> List[str]:
+        """
+        Récupérer les tokens FCM des partenaires (avec cache Redis)
+        
+        Args:
+            project_id: ID du projet (optionnel - si spécifié, récupère seulement les partenaires du projet)
+            
+        Returns:
+            List[str]: Liste des tokens FCM valides
+        """
+        # Essayer d'abord le cache Redis
+        cache_key = f"partner_tokens_{project_id}" if project_id else "partner_tokens_all"
+        if self.fcm_cache and self.fcm_cache.is_available():
+            cached_tokens = self.fcm_cache.get_cached_partner_tokens(project_id)
+            if cached_tokens is not None:
+                logger.info(f"📱 {len(cached_tokens)} tokens partenaires récupérés du cache Redis")
+                return cached_tokens
+        
+        # Si pas en cache, récupérer depuis la DB et mettre en cache
+        try:
+            from models.user import User
+            from models.user_project_permission import UserProjectPermission
+            
+            if project_id:
+                # Récupérer les partenaires d'un projet spécifique
+                # Récupérer les permissions du projet
+                permissions, _ = UserProjectPermission.get_by_criteria({'project_id': project_id}, 0, 100)
+                user_ids = [perm.user_id for perm in permissions]
+                
+                if not user_ids:
+                    logger.info(f"📱 Aucun partenaire trouvé pour le projet {project_id}")
+                    return []
+                
+                # Récupérer les utilisateurs partenaires avec tokens FCM
+                partners, _ = User.get_by_criteria({
+                    'id': {'$in': user_ids}, 
+                    'role_id': {'$ne': 1},  # Exclure les admins
+                    'is_active': True
+                }, 0, 100)
+            else:
+                # Récupérer tous les partenaires (non-admins)
+                partners, _ = User.get_by_criteria({
+                    'role_id': {'$ne': 1},  # Exclure les admins
+                    'is_active': True
+                }, 0, 100)
+            
+            # Filtrer seulement ceux qui ont un token FCM
+            tokens = [partner.fcm_token for partner in partners if hasattr(partner, 'fcm_token') and partner.fcm_token]
+            
+            # Mettre en cache pour la prochaine fois
+            if self.fcm_cache and self.fcm_cache.is_available():
+                self.fcm_cache.cache_partner_tokens(tokens, project_id, ttl=300)  # Cache 5 minutes
+            
+            logger.info(f"📱 {len(tokens)} tokens de partenaires trouvés en DB et mis en cache")
+            return tokens
+            
+        except Exception as e:
+            logger.error(f" Erreur récupération tokens partenaires: {e}")
             return []
     
     def _handle_send_failures(self, responses: List, tokens: List[str]):

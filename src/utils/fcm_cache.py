@@ -191,6 +191,75 @@ class FCMCacheManager:
             logger.error(f" Erreur récupération cache token utilisateur {user_id}: {e}")
             return None
     
+    def cache_partner_tokens(self, tokens: List[str], project_id: Optional[int] = None, ttl: int = 300) -> bool:
+        """
+        Mettre en cache les tokens des partenaires
+        
+        Args:
+            tokens: Liste des tokens FCM des partenaires
+            project_id: ID du projet (optionnel - si spécifié, cache spécifique au projet)
+            ttl: Time to live en secondes (défaut: 5 minutes)
+            
+        Returns:
+            bool: True si mis en cache avec succès
+        """
+        if not self.is_available():
+            return False
+            
+        try:
+            cache_key = self._get_cache_key('partner_tokens', f"project_{project_id}" if project_id else "all")
+            cache_data = {
+                'tokens': tokens,
+                'count': len(tokens),
+                'project_id': project_id,
+                'cached_at': datetime.utcnow().isoformat(),
+                'ttl': ttl
+            }
+            
+            self.redis_client.setex(
+                cache_key,
+                ttl,
+                json.dumps(cache_data)
+            )
+            
+            logger.info(f" {len(tokens)} tokens partenaires mis en cache (TTL: {ttl}s)")
+            return True
+            
+        except Exception as e:
+            logger.error(f" Erreur mise en cache tokens partenaires: {e}")
+            return False
+    
+    def get_cached_partner_tokens(self, project_id: Optional[int] = None) -> Optional[List[str]]:
+        """
+        Récupérer les tokens des partenaires depuis le cache
+        
+        Args:
+            project_id: ID du projet (optionnel - si spécifié, récupère les tokens du projet)
+            
+        Returns:
+            List[str] ou None: Liste des tokens ou None si non trouvé/expiré
+        """
+        if not self.is_available():
+            return None
+            
+        try:
+            cache_key = self._get_cache_key('partner_tokens', f"project_{project_id}" if project_id else "all")
+            cached_data = self.redis_client.get(cache_key)
+            
+            if cached_data and isinstance(cached_data, str):
+                data = json.loads(cached_data)
+                tokens = data.get('tokens', [])
+                cached_at = data.get('cached_at')
+                
+                logger.info(f" {len(tokens)} tokens partenaires récupérés du cache (caché: {cached_at})")
+                return tokens
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f" Erreur récupération cache tokens partenaires: {e}")
+            return None
+    
     def invalidate_user_token(self, user_id: int) -> bool:
         """
         Invalider le cache du token d'un utilisateur
@@ -365,9 +434,9 @@ class FCMCacheManager:
             
             if fcm_keys_list:
                 deleted = self.redis_client.delete(*fcm_keys_list)
-                logger.info(f"✅ {deleted} clés FCM supprimées du cache")
+                logger.info(f" {deleted} clés FCM supprimées du cache")
             else:
-                logger.info("ℹ️ Aucune clé FCM trouvée dans le cache")
+                logger.info("ℹ Aucune clé FCM trouvée dans le cache")
             
             return True
             
