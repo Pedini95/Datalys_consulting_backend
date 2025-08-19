@@ -29,7 +29,7 @@ RUN python -m pip install --no-cache-dir --timeout 600 \
     flask_request_id_header flask_mail flask-httpauth pymysql \
     itsdangerous xlsxwriter requests python-dotenv flask-restx \
     apscheduler pycryptodome pillow redis async-timeout tomli \
-    cryptography reportlab bcrypt pycryptodomex PyJWT
+    cryptography reportlab bcrypt pycryptodomex PyJWT firebase-admin
 
 # Copier le code (cette couche changera souvent, mise en dernier pour optimiser cache)
 COPY --chown=app:app src/ /app/src
