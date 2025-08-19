@@ -74,7 +74,7 @@ def test_redis_external():
         
     except redis.AuthenticationError:
         print("❌ Erreur d'authentification Redis")
-        print("   Vérifiez le mot de passe Redis")
+        print("   Redis est configuré avec un mot de passe mais nous essayons de nous connecter sans")
         return False
         
     except redis.ConnectionError as e:
