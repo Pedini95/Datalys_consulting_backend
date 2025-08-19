@@ -1,4 +1,28 @@
-from extensions import db
+#!/usr/bin/env python3
+"""
+Script pour corriger le modèle User dans le conteneur Docker
+"""
+
+import subprocess
+import sys
+
+def run_ssh_command(command):
+    """Exécute une commande SSH"""
+    try:
+        result = subprocess.run(
+            f'ssh root@82.112.253.137 "{command}"',
+            shell=True, capture_output=True, text=True, check=True
+        )
+        return result.stdout
+    except subprocess.CalledProcessError as e:
+        print(f"Erreur SSH: {e}")
+        return None
+
+def fix_user_model():
+    """Corrige le modèle User dans le conteneur"""
+    
+    # Contenu corrigé du modèle User (sans relations problématiques)
+    corrected_content = '''from extensions import db
 from sqlalchemy import and_
 from datetime import datetime
 
@@ -71,3 +95,42 @@ class User(db.Model):
 
     def __repr__(self):
         return f'<User {self.email}>'
+'''
+    
+    # Sauvegarder le contenu dans un fichier temporaire
+    with open('user_model_fixed.py', 'w') as f:
+        f.write(corrected_content)
+    
+    # Copier le fichier corrigé dans le conteneur
+    print("📝 Copie du modèle User corrigé dans le conteneur...")
+    result = run_ssh_command("docker cp user_model_fixed.py datalys-api:/app/src/models/user.py")
+    
+    if result is not None:
+        print("✅ Modèle User corrigé avec succès")
+        
+        # Vérifier que le fichier a été copié correctement
+        print("🔍 Vérification du fichier corrigé...")
+        check_result = run_ssh_command("docker exec datalys-api grep -A 5 -B 5 'fcm_token.*None' /app/src/models/user.py")
+        
+        if check_result and 'fcm_token' in check_result:
+            print("✅ Vérification réussie - le modèle User inclut maintenant fcm_token")
+            return True
+        else:
+            print("❌ Vérification échouée")
+            return False
+    else:
+        print("❌ Échec de la copie du fichier")
+        return False
+
+if __name__ == "__main__":
+    print("🔧 CORRECTION DU MODÈLE USER")
+    print("=" * 50)
+    
+    success = fix_user_model()
+    
+    if success:
+        print("\n🎉 SUCCÈS ! Le modèle User a été corrigé")
+        print("Le champ fcm_token sera maintenant inclus dans les réponses API")
+    else:
+        print("\n❌ ÉCHEC ! Impossible de corriger le modèle User")
+        sys.exit(1)
