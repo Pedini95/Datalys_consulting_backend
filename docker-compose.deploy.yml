@@ -45,7 +45,7 @@ services:
       - DB_PASSWORD=${DB_PASSWORD:-datalysconsulting}
       
       # Redis - Accessible via localhost avec network_mode: host
-      - REDIS_HOST=${REDIS_HOST:-82.112.253.137}
+      - REDIS_HOST=${REDIS_HOST:-localhost}
       - REDIS_PORT=${REDIS_PORT:-6379}
       - REDIS_DB=${REDIS_DB:-0}
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
@@ -96,11 +96,12 @@ services:
     container_name: redis-db
     restart: unless-stopped
     ports:
-      - "${REDIS_EXTERNAL_PORT:-127.0.0.1:6379}:6379"
+      - "${REDIS_EXTERNAL_PORT:-82.112.253.137:6379}:6379"
     volumes:
       - redis_data:/data
     command: >
       redis-server 
+      --bind 0.0.0.0
       --appendonly yes 
       --appendfsync everysec
       --maxmemory ${REDIS_MAX_MEMORY:-256mb}
