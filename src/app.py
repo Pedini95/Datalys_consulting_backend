@@ -14,7 +14,7 @@ app.config.from_object(Config)
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB (augmenté de 16MB)
 
 # Configuration du dossier d'upload
-app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', './static/files')
+app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', '/app/src/static/files')
 api = Api(app, doc='/swagger/', title='Datalys Consulting API')
 
 # Determine if in development environment
