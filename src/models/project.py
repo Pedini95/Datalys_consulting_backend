@@ -17,6 +17,7 @@ class Project(db.Model):
     updated_by = db.Column(db.Integer, nullable=True)
 
     # Relations
+    partner = db.relationship('Partner', backref='projects', lazy=True)
     incidents = db.relationship('Incident', backref='project', lazy=True)
     folders = db.relationship('Folder', backref='project', lazy=True)
     user_project_permissions = db.relationship('UserProjectPermission', backref='project', lazy=True)
@@ -31,11 +32,30 @@ class Project(db.Model):
                     data[column] = value.isoformat()
                 else:
                     data[column] = value
+        
+        # Ajouter les informations du partenaire si disponible
+        if self.partner_id:
+            try:
+                from models.partner import Partner
+                partner = Partner.query.filter_by(id=self.partner_id, is_deleted=False).first()
+                if partner:
+                    data['partner'] = partner.as_dict()
+                else:
+                    data['partner'] = None
+            except Exception:
+                # En cas d'erreur, on ne met pas le partenaire
+                data['partner'] = None
+        else:
+            data['partner'] = None
+            
         return data
 
     @staticmethod
     def get_by_criteria(criteria, index, size):
-        query = Project.query
+        from models.partner import Partner
+        
+        # Construire la requête avec options pour charger le partenaire
+        query = Project.query.options(db.joinedload(Project.partner))
         conditions = [Project.is_deleted == False]
         
         if 'id' in criteria:
@@ -46,6 +66,10 @@ class Project(db.Model):
             conditions.append(Project.partner_id == criteria['partner_id'])
         if 'is_active' in criteria:
             conditions.append(Project.is_active == criteria['is_active'])
+        if 'partner_name' in criteria:
+            # Pour le filtrage par nom de partenaire, on fait un JOIN
+            query = query.join(Partner, Project.partner_id == Partner.id)
+            conditions.append(Partner.name.like(f"%{criteria['partner_name']}%"))
 
         query = query.filter(and_(*conditions))
         query = query.order_by(Project.id.desc())
