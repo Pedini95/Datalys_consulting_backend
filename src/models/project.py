@@ -17,7 +17,7 @@ class Project(db.Model):
     updated_by = db.Column(db.Integer, nullable=True)
 
     # Relations
-    partner = db.relationship('Partner', backref='projects', lazy=True)
+    partner = db.relationship('Partner', lazy=True)
     incidents = db.relationship('Incident', backref='project', lazy=True)
     folders = db.relationship('Folder', backref='project', lazy=True)
     user_project_permissions = db.relationship('UserProjectPermission', backref='project', lazy=True)

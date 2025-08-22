@@ -8,9 +8,7 @@ class Partner(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(255), nullable=False)
-    # Supprimer unique=True - validation seulement côté application
     email = db.Column(db.String(255), nullable=True, index=True)
-    # Supprimer unique=True - validation seulement côté application  
     phone = db.Column(db.String(50), nullable=True, index=True)
     address = db.Column(db.Text, nullable=True)
     logo_url = db.Column(db.String(255), nullable=True)
@@ -21,10 +19,8 @@ class Partner(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     updated_by = db.Column(db.Integer, nullable=True)
 
-    # Relations
-    projects = db.relationship('Project', backref='partner', lazy=True)
-    
-    # Index seulement pour les performances (pas de contraintes)
+    projects = db.relationship('Project', lazy=True)
+
     __table_args__ = (
         Index('idx_partner_name_address', 'name', 'address'),
     )
@@ -45,7 +41,7 @@ class Partner(db.Model):
     def get_by_criteria(cls, criteria, index, size):
         query = cls.query
         conditions = [cls.is_deleted == False]
-        
+
         if 'id' in criteria:
             conditions.append(cls.id == criteria['id'])
         if 'name' in criteria:
@@ -59,7 +55,7 @@ class Partner(db.Model):
 
         query = query.filter(and_(*conditions))
         query = query.order_by(cls.id.desc())
-        
+
         total_items = query.count()
         query = query.offset(index * size).limit(size)
         return query.all(), total_items
@@ -84,8 +80,8 @@ class Partner(db.Model):
     def find_by_name_and_address(cls, name, address, exclude_id=None):
         """Méthode d'accès aux données - rechercher par nom et adresse"""
         query = cls.query.filter(
-            cls.is_deleted == False, 
-            cls.name == name, 
+            cls.is_deleted == False,
+            cls.name == name,
             cls.address == address
         )
         if exclude_id:
@@ -93,4 +89,4 @@ class Partner(db.Model):
         return query.first()
 
     def __repr__(self):
-        return f'<Partner {self.name}>'
+        return f'<Partner {self.name}>' 
