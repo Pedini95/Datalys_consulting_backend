@@ -38,8 +38,8 @@ class Incident(db.Model):
     updated_by = db.Column(db.Integer, nullable=True)
 
     # Relations améliorées
-    children = db.relationship('Incident')
-
+    children = db.relationship('Incident', backref=db.backref('parent', remote_side=[id]), lazy=True)
+    
     # Relations avec users (spécifier les foreign_keys pour éviter l'ambiguïté)
     creator = db.relationship('User', foreign_keys=[user_id])
     assignee = db.relationship('User', foreign_keys=[assigned_to])
@@ -101,4 +101,4 @@ class Incident(db.Model):
         return query.all(), total_items
 
     def __repr__(self):
-        return f'<Incident {self.title}>'
+        return f'<Incident {self.title}>' 

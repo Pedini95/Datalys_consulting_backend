@@ -1,5 +1,6 @@
-from flask import jsonify, render_template, url_for, current_app
+from flask import jsonify, render_template, current_app
 import smtplib
+import ssl
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
@@ -37,21 +38,17 @@ def send_email(to_email, subject, body):
 
 
 def send_mail_registration(datas, emails):
-    logo_url = url_for('static', filename='image/logo.png', _external=True)
     msg = Message("REGISTRATION FIBER",
                   sender=current_app.config['MAIL_USERNAME'],
                   recipients=emails)
-    msg.html = render_template('email_template.html', datas=datas, logo_url=logo_url)
     # Définir l'encodage UTF-8 pour Flask-Mail
     msg.charset = 'utf-8'
     current_app.extensions['mail'].send(msg)
 
 def send_mail_login(emails, password):
-    logo_url = url_for('static', filename='image/logo.png', _external=True)
     msg = Message("IDENTIFIER",
                   sender=current_app.config['MAIL_USERNAME'],
                   recipients=emails)
-    msg.html = render_template('email_template_identifiant.html', emails=emails,  password=password, logo_url=logo_url)
     # Définir l'encodage UTF-8 pour Flask-Mail
     msg.charset = 'utf-8'
     current_app.extensions['mail'].send(msg)
@@ -145,7 +142,7 @@ class EmailService:
     
     def _send_smtp(self, message: MIMEMultipart) -> bool:
         """
-        Envoyer l'email via SMTP avec SSL sur le port 465
+        Envoyer l'email via SMTP avec TLS sur le port 587
         
         Args:
             message: Message MIME à envoyer
@@ -154,8 +151,9 @@ class EmailService:
             True si l'envoi a réussi
         """
         try:
-            # Utiliser SMTP_SSL pour le port 465
-            with smtplib.SMTP_SSL(self.smtp_server, self.smtp_port) as server:
+            # Utiliser SMTP avec TLS pour le port 587
+            with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
+                server.starttls(context=ssl.create_default_context())
                 server.login(self.smtp_username, self.smtp_password)
                 
                 # Envoyer l'email avec encodage UTF-8 explicite
@@ -169,7 +167,7 @@ class EmailService:
                 return True
                 
         except Exception as e:
-            logger.error(f"Erreur SMTP SSL: {str(e)}")
+            logger.error(f"Erreur SMTP TLS: {str(e)}")
             return False
     
     def send_welcome_email(self, user_email: str, user_name: str, login_url: str) -> bool:
@@ -187,12 +185,11 @@ class EmailService:
         subject = f"Bienvenue sur {self.sender_name}"
         
         # Utiliser le template Flask
-        logo_url = url_for('static', filename='image/logo.png', _external=True)
+        #         logo_url = "https://datalysconsulting.com/static/image/logo.png"  # URL absolue
         html_content = render_template('email_welcome.html',
             user_name=user_name,
             login_url=login_url,
             sender_name=self.sender_name,
-            logo_url=logo_url
         )
         
         return self.send_email(user_email, subject, html_content)
@@ -214,16 +211,45 @@ class EmailService:
         subject = f"Réinitialisation de votre mot de passe - {self.sender_name}"
         
         # Utiliser le template Flask
-        logo_url = url_for('static', filename='image/logo.png', _external=True)
+        #         logo_url = "https://datalysconsulting.com/static/image/logo.png"  # URL absolue
         html_content = render_template('email_password_reset.html',
             user_name=user_name,
             reset_url=reset_url,
             expires_in=expires_in,
             sender_name=self.sender_name,
-            logo_url=logo_url
         )
         
         return self.send_email(user_email, subject, html_content)
+    
+    def send_partner_credentials_email(self, partner_email: str, partner_name: str, email: str, 
+                                     password: str, app_url: str) -> bool:
+        """
+        Envoyer un email avec les credentials d'un partenaire
+        
+        Args:
+            partner_email: Email du partenaire
+            partner_name: Nom du partenaire
+            email: Email de connexion
+            password: Mot de passe temporaire
+            app_url: URL de l'application
+            
+        Returns:
+            True si l'email a été envoyé
+        """
+        subject = f"Vos identifiants de connexion - {self.sender_name}"
+        
+        # Utiliser le template Flask
+        #         logo_url = "https://datalysconsulting.com/static/image/logo.png"  # URL absolue
+        html_content = render_template('email_partner_credentials.html',
+            partner_name=partner_name,
+            email=email,
+            password=password,
+            app_url=app_url,
+            sender_name=self.sender_name,
+            sender_email=self.sender_email,
+        )
+        
+        return self.send_email(partner_email, subject, html_content)
     
 
     

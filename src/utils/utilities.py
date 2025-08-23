@@ -4,8 +4,7 @@ import re
 import hashlib
 import secrets
 import string
-from datetime import datetime, timedelta, date
-import jwt
+from datetime import datetime, date
 from flask import current_app
 import unicodedata
 import base64
@@ -90,6 +89,253 @@ def is_valid_email(email):
     pattern = re.compile(regex)
     matcher = pattern.match(email)
     return matcher is not None
+
+def is_valid_phone(phone, country_code='+33'):
+    """
+    Valide un numéro de téléphone selon le pays
+    
+    Args:
+        phone (str): Numéro de téléphone à valider
+        country_code (str): Code pays (+33, +1, +237, etc.)
+    
+    Returns:
+        bool: True si le numéro est valide
+    """
+    if not phone:
+        return False
+    
+    # Nettoyer le numéro
+    clean_phone = re.sub(r'[^\d+]', '', phone)
+    
+    # Règles par pays
+    phone_rules = {
+        '+33': {
+            'pattern': r'^(\+33|0)[1-9](\d{8})$',
+            'min_length': 10,
+            'max_length': 13
+        },
+        '+1': {
+            'pattern': r'^(\+1|1)?[2-9]\d{2}[2-9]\d{6}$',
+            'min_length': 10,
+            'max_length': 11
+        },
+        '+32': {
+            'pattern': r'^\+32[0-9]{9}$',
+            'min_length': 11,
+            'max_length': 11
+        },
+        '+41': {
+            'pattern': r'^(\+41|0)[1-9]\d{8}$',
+            'min_length': 9,
+            'max_length': 12
+        },
+        '+49': {
+            'pattern': r'^(\+49|0)[1-9]\d{10}$',
+            'min_length': 11,
+            'max_length': 14
+        },
+        '+225': {
+            'pattern': r'^(\+225|0)[0-9]{10}$',
+            'min_length': 11,
+            'max_length': 13
+        },
+        '+226': {
+            'pattern': r'^(\+226|0)[0-9]{8}$',
+            'min_length': 9,
+            'max_length': 11
+        },
+        '+223': {
+            'pattern': r'^(\+223|0)[0-9]{8}$',
+            'min_length': 9,
+            'max_length': 11
+        },
+        '+224': {
+            'pattern': r'^(\+224|0)[0-9]{9}$',
+            'min_length': 10,
+            'max_length': 12
+        },
+        '+242': {
+            'pattern': r'^(\+242|0)[0-9]{9}$',
+            'min_length': 10,
+            'max_length': 12
+        },
+        '+237': {
+            'pattern': r'^(\+237|0)[0-9]{9}$',
+            'min_length': 10,
+            'max_length': 12
+        }
+    }
+    
+    rule = phone_rules.get(country_code, phone_rules['+33'])
+    
+    # Vérifier la longueur
+    digits_only = re.sub(r'[^\d]', '', clean_phone)
+    if len(digits_only) < rule['min_length'] or len(digits_only) > rule['max_length']:
+        return False
+    
+    # Vérifier le pattern
+    pattern = re.compile(rule['pattern'])
+    return pattern.match(clean_phone) is not None
+
+def standardize_phone(phone, country_code='+33'):
+    """
+    Standardise un numéro de téléphone selon le pays
+    
+    Args:
+        phone (str): Numéro de téléphone à standardiser
+        country_code (str): Code pays (+33, +1, +237, etc.)
+    
+    Returns:
+        str: Numéro standardisé ou None si invalide
+    """
+    if not phone:
+        return None
+    
+    # Nettoyer le numéro
+    clean_phone = re.sub(r'[^\d+]', '', phone)
+    
+    # Standardisation par pays
+    if country_code == '+33':
+        # France: +33 X XX XX XX XX
+        digits = re.sub(r'[^\d]', '', clean_phone)
+        if digits.startswith('33') and len(digits) == 11:
+            return f"+{digits}"
+        elif digits.startswith('0') and len(digits) == 10:
+            return f"+33{digits[1:]}"
+        elif len(digits) == 9:
+            return f"+33{digits}"
+    
+    elif country_code == '+1':
+        # US/Canada: +1 XXX XXX XXXX
+        digits = re.sub(r'[^\d]', '', clean_phone)
+        if digits.startswith('1') and len(digits) == 11:
+            return f"+{digits}"
+        elif len(digits) == 10:
+            return f"+1{digits}"
+    
+    elif country_code == '+32':
+        # Belgique: +32 XXX XXX XXX (9 chiffres après +32)
+        digits = re.sub(r'[^\d]', '', clean_phone)
+        if digits.startswith('32') and len(digits) == 11:
+            return f"+{digits}"
+        elif digits.startswith('0') and len(digits) == 10:
+            return f"+32{digits[1:]}"
+        elif len(digits) == 9:
+            return f"+32{digits}"
+    
+    elif country_code == '+41':
+        # Suisse: +41 XX XXX XX XX
+        digits = re.sub(r'[^\d]', '', clean_phone)
+        if digits.startswith('41') and len(digits) == 11:
+            return f"+{digits}"
+        elif digits.startswith('0') and len(digits) == 9:
+            return f"+41{digits[1:]}"
+        elif len(digits) == 8:
+            return f"+41{digits}"
+    
+    elif country_code == '+49':
+        # Allemagne: +49 XXX XXX XXXX
+        digits = re.sub(r'[^\d]', '', clean_phone)
+        if digits.startswith('49') and len(digits) == 12:
+            return f"+{digits}"
+        elif digits.startswith('0') and len(digits) == 11:
+            return f"+49{digits[1:]}"
+        elif len(digits) == 10:
+            return f"+49{digits}"
+    
+    elif country_code == '+225':
+        # Côte d'Ivoire: +225 0X XX XX XX XX (10 chiffres)
+        digits = re.sub(r'[^\d]', '', clean_phone)
+        if digits.startswith('225') and len(digits) == 13:
+            return f"+{digits}"
+        elif digits.startswith('0') and len(digits) == 11:
+            return f"+225{digits}"
+        elif len(digits) == 10:
+            return f"+225{digits}"
+    
+    elif country_code == '+226':
+        # Burkina Faso: +226 XX XX XX XX
+        digits = re.sub(r'[^\d]', '', clean_phone)
+        if digits.startswith('226') and len(digits) == 11:
+            return f"+{digits}"
+        elif digits.startswith('0') and len(digits) == 9:
+            return f"+226{digits[1:]}"
+        elif len(digits) == 8:
+            return f"+226{digits}"
+    
+    elif country_code == '+223':
+        # Mali: +223 XX XX XX XX
+        digits = re.sub(r'[^\d]', '', clean_phone)
+        if digits.startswith('223') and len(digits) == 11:
+            return f"+{digits}"
+        elif digits.startswith('0') and len(digits) == 9:
+            return f"+223{digits[1:]}"
+        elif len(digits) == 8:
+            return f"+223{digits}"
+    
+    elif country_code == '+224':
+        # Guinée: +224 XXX XXX XXX
+        digits = re.sub(r'[^\d]', '', clean_phone)
+        if digits.startswith('224') and len(digits) == 12:
+            return f"+{digits}"
+        elif digits.startswith('0') and len(digits) == 10:
+            return f"+224{digits[1:]}"
+        elif len(digits) == 9:
+            return f"+224{digits}"
+    
+    elif country_code == '+242':
+        # Congo: +242 XXX XXX XXX
+        digits = re.sub(r'[^\d]', '', clean_phone)
+        if digits.startswith('242') and len(digits) == 12:
+            return f"+{digits}"
+        elif digits.startswith('0') and len(digits) == 10:
+            return f"+242{digits[1:]}"
+        elif len(digits) == 9:
+            return f"+242{digits}"
+    
+    elif country_code == '+237':
+        # Cameroun: +237 XXX XXX XXX
+        digits = re.sub(r'[^\d]', '', clean_phone)
+        if digits.startswith('237') and len(digits) == 12:
+            return f"+{digits}"
+        elif digits.startswith('0') and len(digits) == 10:
+            return f"+237{digits[1:]}"
+        elif len(digits) == 9:
+            return f"+237{digits}"
+    
+    # Format générique si le pays n'est pas reconnu
+    digits = re.sub(r'[^\d]', '', clean_phone)
+    if digits.startswith('00'):
+        return f"+{digits[2:]}"
+    elif digits.startswith('0'):
+        return f"+33{digits[1:]}"  # Par défaut France
+    
+    return None
+
+def validate_and_standardize_phone(phone, country_code='+33'):
+    """
+    Valide et standardise un numéro de téléphone
+    
+    Args:
+        phone (str): Numéro de téléphone
+        country_code (str): Code pays (+33, +1, +237, etc.)
+    
+    Returns:
+        tuple: (is_valid, standardized_phone, error_message)
+    """
+    if not phone:
+        return True, None, ""
+    
+    # Standardiser d'abord
+    standardized = standardize_phone(phone, country_code)
+    if not standardized:
+        return False, None, f"Format de numéro de téléphone invalide pour {country_code}"
+    
+    # Valider le format standardisé
+    if not is_valid_phone(standardized, country_code):
+        return False, None, f"Numéro de téléphone invalide pour {country_code}"
+    
+    return True, standardized, ""
 
 def convert_byte_array_to_hex_string(byte_array):
     return ''.join(['{:02x}'.format(byte) for byte in byte_array])

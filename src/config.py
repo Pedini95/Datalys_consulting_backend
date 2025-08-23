@@ -9,13 +9,13 @@ env_path = os.path.join(current_dir, '.env.local')
 is_production = os.getenv('ENV') == 'production' or os.getenv('FLASK_ENV') == 'production'
 
 if is_production:
-    print("✅ Mode production: utilisation des variables d'environnement système")
+    print(" Mode production: utilisation des variables d'environnement système")
     # En production, ne pas charger de fichier .env pour éviter les conflits
 elif os.path.exists(env_path):
     load_dotenv(env_path, override=True)
-    print(f"✅ Variables d'environnement chargées depuis: {env_path}")
+    print(f" Variables d'environnement chargées depuis: {env_path}")
 else:
-    print(f"⚠️  Fichier .env.local non trouvé: {env_path}")
+    print(f"  Fichier .env.local non trouvé: {env_path}")
 
 class Config:
     SECRET_KEY=os.getenv('SECRET_KEY')
@@ -49,11 +49,11 @@ class Config:
     # LOG_FILE_PATH=os.getenv('LOG_FILE_PATH')
     LOG_FILE_PATH = os.getenv("LOG_FILE_PATH", "logs/datalys_consulting.log")
     
-    # Configuration des emails (SMTP Hostinger - SSL sur port 465)
+    # Configuration des emails (SMTP Hostinger - TLS sur port 587)
     MAIL_SERVER = os.getenv('MAIL_SERVER', 'smtp.hostinger.com')
-    MAIL_PORT = int(os.getenv('MAIL_PORT', '465'))  # Port SSL au lieu de 587 TLS
-    MAIL_USE_SSL = os.getenv('MAIL_USE_SSL', 'True').lower() == 'true'  # SSL au lieu de TLS
-    MAIL_USE_TLS = os.getenv('MAIL_USE_TLS', 'False').lower() == 'true'  # TLS désactivé par défaut
+    MAIL_PORT = int(os.getenv('MAIL_PORT', '587'))  # Port TLS au lieu de 465 SSL
+    MAIL_USE_SSL = os.getenv('MAIL_USE_SSL', 'False').lower() == 'true'  # SSL désactivé par défaut
+    MAIL_USE_TLS = os.getenv('MAIL_USE_TLS', 'True').lower() == 'true'  # TLS activé par défaut
     MAIL_USERNAME = os.getenv('MAIL_USERNAME', 'datalysconsultingapp@datalysconsulting.com')
     MAIL_PASSWORD = os.getenv('MAIL_PASSWORD', '')
     MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER', 'datalysconsultingapp@datalysconsulting.com')

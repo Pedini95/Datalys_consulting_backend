@@ -1,337 +1,232 @@
-from flask import Blueprint, request, g
+from flask import Blueprint, request, jsonify
+from models.partner import Partner
 from services.partner_service import PartnerService
-from utils.file_upload import file_upload_manager
+from utils.phone_validator import PhoneValidator, validate_phone_number
+from routes.auth import require_auth
 import logging
-from utils import functional_error, utilities
-from flask_cors import cross_origin
-from .auth import require_auth
-import json
-from utils.notification import EmailService
-from middleware.role_security import _get_user_role
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG)
-
-# Créer le blueprint
 bp = Blueprint('partners', __name__)
-
-
-
 partner_service = PartnerService()
 
 @bp.route('/partners/getByCriteria', methods=['POST'])
-@cross_origin()
-def get_partners():
-    logging.info("**** Begin get_partners ****")
-    logging.info("/partners/getByCriteria")
-    r = request.get_json() or {}
-    logging.info("**** request input ****")
-    logging.info(r)
-    index = r.get('index', 0)
-    size = r.get('size', 10)
-    criteria = r.get('data', {})
-    
-    partners, total_items = partner_service.model_class.get_by_criteria(criteria, index, size)
-    if partners:
-        message = functional_error.MESSAGE_SUCCESS()
-    else:
-        message = functional_error.MESSAGE_DATA_EMPTY()
-    
-    response = {"items": [partner.as_dict() for partner in partners], "count": total_items, "message": message, "code": 200}
-    logging.info("**** response output ****")
-    logging.info(response)
-    logging.info("**** End get_partners ****")
-    return response
-
-@bp.route('/partners/create', methods=['POST'])
-@cross_origin()
 @require_auth
-def create_partners():
-    """
-    Création de partenaires (mode JSON seulement)
-    L'upload de logo se fait via l'API dédiée /partners/upload-logo/{id}
-    """
+def get_partners(current_user):
+    """Récupérer les partenaires selon des critères"""
     try:
-        logging.info("**** Begin create_partners ****")
-        logging.info("/partners/create")
+        data = request.get_json()
+        index = data.get('index', 0)
+        size = data.get('size', 10)
+        criteria = data.get('data', {})
         
-        r = request.get_json() or {}
-        logging.info("**** request input ****")
-        logging.info(r)
-        
-        user = r.get('user', {})
-        datas = r.get('datas', [])
-        
-        # Validation de la structure de base
-        if not user or not user.get('id'):
-            return {"status": "error", "message": "L'ID de l'utilisateur est requis"}, 400
-        
-        if not datas or not isinstance(datas, list):
-            return {"status": "error", "message": "Le champ 'datas' doit être une liste non vide"}, 400
-        
-        # Préparer les données pour le service
-        processed_datas = []
-        for i, data in enumerate(datas):
-            # Validation des champs obligatoires
-            required_fields = ['name']
-            for field in required_fields:
-                if field not in data or not data[field]:
-                    return {"status": "error", "message": f"Le champ '{field}' est obligatoire pour l'élément {i+1}"}, 400
-            
-            # Validation du nom
-            name = data.get('name', '').strip()
-            if len(name) < 2:
-                return {"status": "error", "message": f"Le nom doit contenir au moins 2 caractères pour l'élément {i+1}"}, 400
-            if len(name) > 255:
-                return {"status": "error", "message": f"Le nom ne peut pas dépasser 255 caractères pour l'élément {i+1}"}, 400
-            
-            # Validation de l'email
-            email = data.get('email', '').strip()
-            if email:
-                if not utilities.is_valid_email(email):
-                    return {"status": "error", "message": f"L'email '{email}' n'est pas valide pour l'élément {i+1}"}, 400
-                if len(email) > 255:
-                    return {"status": "error", "message": f"L'email ne peut pas dépasser 255 caractères pour l'élément {i+1}"}, 400
-            
-            # Validation du téléphone
-            phone = data.get('phone', '').strip()
-            if phone:
-                # Vérifier que le téléphone contient au moins 10 chiffres
-                digits_only = ''.join(filter(str.isdigit, phone))
-                if len(digits_only) < 10:
-                    return {"status": "error", "message": f"Le téléphone doit contenir au moins 10 chiffres pour l'élément {i+1}"}, 400
-                if len(phone) > 50:
-                    return {"status": "error", "message": f"Le téléphone ne peut pas dépasser 50 caractères pour l'élément {i+1}"}, 400
-            
-            # Validation de l'adresse
-            address = data.get('address', '').strip()
-            if address:
-                if len(address) < 5:
-                    return {"status": "error", "message": f"L'adresse doit contenir au moins 5 caractères pour l'élément {i+1}"}, 400
-                if len(address) > 1000:
-                    return {"status": "error", "message": f"L'adresse ne peut pas dépasser 1000 caractères pour l'élément {i+1}"}, 400
-            
-            processed_data = {
-                'name': name,
-                'is_active': True  # Toujours initialisé à True lors de la création
-            }
-            
-            # Ajouter les champs optionnels validés
-            if email:
-                processed_data['email'] = email
-            if phone:
-                processed_data['phone'] = phone
-            if address:
-                processed_data['address'] = address
-            
-            processed_datas.append(processed_data)
+        partners, total = Partner.get_by_criteria(criteria, index, size)
         
         items = []
-        for data in processed_datas:
-            # Utiliser la nouvelle méthode qui crée aussi l'utilisateur
-            item, username, temp_password, success, message = partner_service.create_with_user(data, user.get('id'))
-            if not success:
-                return {"status": "error", "message": message}, 400
-            
-            # Envoyer l'email avec les credentials
-            if success and item and item.email and username and temp_password:
-                try:
-                    email_service = EmailService()
-                    
-                    email_sent = email_service.send_partner_credentials(
-                        partner_email=item.email,
-                        partner_name=item.name,
-                        username=username,
-                        password=temp_password
-                    )
-                    
-                    if email_sent:
-                        logging.info(f"Email avec credentials envoyé au partenaire {item.email}")
-                    else:
-                        logging.warning(f"Échec de l'envoi de l'email avec credentials à {item.email}")
-                except Exception as e:
-                    logging.error(f"Erreur lors de l'envoi de l'email avec credentials: {str(e)}")
-            
-            items.append(item)
+        for partner in partners:
+            partner_dict = partner.as_dict()
+            items.append(partner_dict)
         
-        response = {
-            "items": [partner.as_dict() for partner in items], 
-            "message": functional_error.MESSAGE_SUCCESS(), 
-            "code": 200
-        }
-        
-        logging.info("**** response output ****")
-        logging.info(response)
-        logging.info("**** End create_partners ****")
-        return response
-        
+        return jsonify({
+            'items': items,
+            'count': total,
+            'message': {'message': 'OPERATION SUCCESSFULLY', 'code': 200},
+            'code': 200
+        })
     except Exception as e:
-        logger.error(f"Erreur dans create_partners: {str(e)}")
-        return {"status": "error", "message": "Erreur interne du serveur"}, 500
+        logging.error(f"Erreur lors de la récupération des partenaires: {str(e)}")
+        return jsonify({
+            'message': {'message': 'Erreur lors de la récupération des partenaires', 'code': 500},
+            'code': 500
+        }), 500
 
-@bp.route('/partners/update', methods=['POST'])
-@cross_origin()
-def update_partners():
-    logging.info("**** Begin update_partners ****")
-    logging.info("/partners/update")
-    r = request.get_json() or {}
-    logging.info("**** request input ****")
-    logging.info(r)
-    
-    user = r.get('user', {})
-    datas = r.get('datas', [])
-    
-    # Préparer les données pour le service
-    processed_datas = []
-    for data in datas:
-        # Champs obligatoires
-        required_fields = ['id']
-        for field in required_fields:
-            if field not in data or not data[field]:
-                return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
-        
-        processed_data = {'id': data.get('id')}
-        
-        if utilities.not_blank(data.get('name')):
-            processed_data['name'] = data.get('name')
-        if utilities.not_blank(data.get('email')):
-            processed_data['email'] = data.get('email')
-        if utilities.not_blank(data.get('phone')):
-            processed_data['phone'] = data.get('phone')
-        if utilities.not_blank(data.get('address')):
-            processed_data['address'] = data.get('address')
-        if utilities.not_blank(data.get('logo_url')):
-            processed_data['logo_url'] = data.get('logo_url')
-        if 'is_active' in data:
-            processed_data['is_active'] = data.get('is_active')
-        
-        processed_datas.append(processed_data)
-    
-    items = []
-    all_success = True
-    for data in processed_datas:
-        item, success, message = partner_service.update(data['id'], data, user.get('id'))
-        if not success:
-            return {"status": "error", "message": message}, 400
-        items.append(item)
-    
-    if all_success and items:
-        response = {"items": [partner.as_dict() for partner in items], "message": functional_error.MESSAGE_SUCCESS(), "code": 200}
-    else:
-        response = {"status": "error", "message": "Erreur lors de la mise à jour"}, 400
-    
-    logging.info("**** response output ****")
-    logging.info(response)
-    logging.info("**** End update_partners ****")
-    return response
-
-
-
-@bp.route('/partners/delete', methods=['POST'])
-@cross_origin()
-def delete_partners():
-    logging.info("**** Begin delete_partners ****")
-    logging.info("/partners/delete")
-    r = request.get_json() or {}
-    logging.info("**** request input ****")
-    logging.info(r)
-    
-    datas = r.get('datas', [])
-    
-    # Préparer les données pour le service
-    processed_datas = []
-    for data in datas:
-        if 'id' not in data:
-            return {"status": "error", "message": "Field id is missing"}, 400
-        processed_datas.append({'id': data.get('id')})
-    
-    for data in processed_datas:
-        success, message = partner_service.delete(data['id'])
-        if not success:
-            return {"status": "error", "message": message}, 400
-    
-    response = {"message": functional_error.MESSAGE_SUCCESS(), "code": 200}
-    
-    logging.info("**** response output ****")
-    logging.info(response)
-    logging.info("**** End delete_partners ****")
-    return response 
-
-@bp.route('/partners/upload-logo/<int:partner_id>', methods=['POST'])
-@cross_origin()
+@bp.route('/partners/create', methods=['POST'])
 @require_auth
-def upload_partner_logo(partner_id):
-    """
-    Upload du logo pour un partenaire existant
-    Permet aux admins et partenaires de changer le logo
-    """
+def create_partner(current_user):
+    """Créer un nouveau partenaire"""
     try:
-        logging.info(f"**** Begin upload_partner_logo for partner {partner_id} ****")
+        data = request.get_json()
         
-        # Vérifier que le partenaire existe
-        partners, _ = partner_service.model_class.get_by_criteria({'id': partner_id}, 0, 1)
-        if not partners:
-            return {"status": "error", "message": "Partenaire non trouvé"}, 404
+        # Validation du numéro de téléphone
+        phone = data.get('phone')
+        country_code = data.get('country_code', '+237')
         
-        partner = partners[0]
+        if phone:
+            is_valid, error_message = validate_phone_number(phone, country_code)
+            if not is_valid:
+                return jsonify({
+                    'message': {'message': f'Numéro de téléphone invalide: {error_message}', 'code': 400},
+                    'code': 400
+                }), 400
         
-        # Vérifier les permissions (admin ou le partenaire lui-même)
-        user_role = _get_user_role(g.current_user)
-        if user_role != 'admin' and g.current_user.email != partner.email:
-            return {"status": "error", "message": "Accès non autorisé"}, 403
+        # Normaliser le numéro de téléphone
+        if phone:
+            from utils.phone_validator import PhoneValidator
+            normalized_phone, detected_country = PhoneValidator.normalize_phone(phone, country_code)
+            data['phone'] = normalized_phone
+            data['country_code'] = detected_country
         
-        # Récupérer le fichier logo
-        logo_file = request.files.get('logo')
-        if not logo_file or not logo_file.filename:
-            return {"status": "error", "message": "Aucun fichier logo fourni"}, 400
-        
-        # Upload du logo
-        try:
-            success, message, file_path = file_upload_manager.save_file(logo_file, subfolder='logos', image_only=True)
-            if not success:
-                return {"status": "error", "message": message}, 400
-            
-            # Générer l'URL d'accès
-            logo_url = file_upload_manager.get_file_url(file_path)
-            logging.info(f"Logo uploadé avec succès: {logo_url}")
-        except Exception as e:
-            logger.error(f"Erreur upload logo: {str(e)}")
-            return {"status": "error", "message": f"Erreur upload logo: {str(e)}"}, 400
-        
-        # Supprimer l'ancien logo si il existe
-        old_logo_url = partner.logo_url
-        if old_logo_url:
-            try:
-                file_upload_manager.delete_file(old_logo_url)
-                logging.info(f"Ancien logo supprimé: {old_logo_url}")
-            except Exception as e:
-                logger.warning(f"Impossible de supprimer l'ancien logo: {str(e)}")
-        
-        # Mettre à jour le partenaire avec le nouveau logo
-        update_data = {'logo_url': logo_url}
-        updated_partner, success, message = partner_service.update(partner_id, update_data, g.current_user.id)
-        
+        partner, success, message = partner_service.create(data, current_user['user_id'])
         if not success:
-            # En cas d'échec, supprimer le nouveau logo uploadé
-            try:
-                file_upload_manager.delete_file(logo_url)
-                logging.info(f"Nouveau logo supprimé après échec mise à jour: {logo_url}")
-            except Exception as e:
-                logger.error(f"Erreur suppression nouveau logo: {str(e)}")
-            
-            return {"status": "error", "message": message}, 400
+            return jsonify({
+                'message': {'message': message, 'code': 400},
+                'code': 400
+            }), 400
         
-        response = {
-            "partner": updated_partner.as_dict(),
-            "message": "Logo mis à jour avec succès",
-            "code": 200
-        }
-        
-        logging.info(f"**** Logo uploadé avec succès pour le partenaire {partner_id} ****")
-        return response
-        
+        return jsonify({
+            'data': partner.as_dict(),
+            'message': {'message': 'Partenaire créé avec succès', 'code': 201},
+            'code': 201
+        }), 201
     except Exception as e:
-        logger.error(f"Erreur dans upload_partner_logo: {str(e)}")
-        return {"status": "error", "message": "Erreur interne du serveur"}, 500 
+        logging.error(f"Erreur lors de la création du partenaire: {str(e)}")
+        return jsonify({
+            'message': {'message': 'Erreur lors de la création du partenaire', 'code': 500},
+            'code': 500
+        }), 500
+
+@bp.route('/partners/update', methods=['PUT'])
+@require_auth
+def update_partner(current_user):
+    """Mettre à jour un partenaire"""
+    try:
+        data = request.get_json()
+        partner_id = data.get('id')
+        
+        if not partner_id:
+            return jsonify({
+                'message': {'message': 'ID du partenaire requis', 'code': 400},
+                'code': 400
+            }), 400
+        
+        # Validation du numéro de téléphone
+        phone = data.get('phone')
+        country_code = data.get('country_code', '+237')
+        
+        if phone:
+            is_valid, error_message = validate_phone_number(phone, country_code)
+            if not is_valid:
+                return jsonify({
+                    'message': {'message': f'Numéro de téléphone invalide: {error_message}', 'code': 400},
+                    'code': 400
+                }), 400
+        
+        # Normaliser le numéro de téléphone
+        if phone:
+            from utils.phone_validator import PhoneValidator
+            normalized_phone, detected_country = PhoneValidator.normalize_phone(phone, country_code)
+            data['phone'] = normalized_phone
+            data['country_code'] = detected_country
+        
+        partner, success, message = partner_service.update(partner_id, data, current_user['user_id'])
+        if not success:
+            return jsonify({
+                'message': {'message': message, 'code': 400},
+                'code': 400
+            }), 400
+        
+        return jsonify({
+            'data': partner.as_dict(),
+            'message': {'message': 'Partenaire mis à jour avec succès', 'code': 200},
+            'code': 200
+        })
+    except Exception as e:
+        logging.error(f"Erreur lors de la mise à jour du partenaire: {str(e)}")
+        return jsonify({
+            'message': {'message': 'Erreur lors de la mise à jour du partenaire', 'code': 500},
+            'code': 500
+        }), 500
+
+@bp.route('/partners/delete', methods=['DELETE'])
+@require_auth
+def delete_partner(current_user):
+    """Supprimer un partenaire"""
+    try:
+        data = request.get_json()
+        partner_id = data.get('id')
+        
+        if not partner_id:
+            return jsonify({
+                'message': {'message': 'ID du partenaire requis', 'code': 400},
+                'code': 400
+            }), 400
+        
+        success, message = partner_service.delete(partner_id, current_user['user_id'])
+        if not success:
+            return jsonify({
+                'message': {'message': message, 'code': 400},
+                'code': 400
+            }), 400
+        
+        return jsonify({
+            'message': {'message': 'Partenaire supprimé avec succès', 'code': 200},
+            'code': 200
+        })
+    except Exception as e:
+        logging.error(f"Erreur lors de la suppression du partenaire: {str(e)}")
+        return jsonify({
+            'message': {'message': 'Erreur lors de la suppression du partenaire', 'code': 500},
+            'code': 500
+        }), 500
+
+@bp.route('/partners/countries', methods=['GET'])
+@require_auth
+def get_supported_countries(current_user):
+    """Obtenir la liste des pays supportés pour les numéros de téléphone"""
+    try:
+        countries = PhoneValidator.get_supported_countries()
+        
+        # Formater la réponse
+        countries_list = []
+        for code, info in countries.items():
+            countries_list.append({
+                'code': code,
+                'name': info['name'],
+                'description': info['description'],
+                'example': info['example']
+            })
+        
+        return jsonify({
+            'data': countries_list,
+            'message': {'message': 'Pays supportés récupérés avec succès', 'code': 200},
+            'code': 200
+        })
+    except Exception as e:
+        logging.error(f"Erreur lors de la récupération des pays supportés: {str(e)}")
+        return jsonify({
+            'message': {'message': 'Erreur lors de la récupération des pays supportés', 'code': 500},
+            'code': 500
+        }), 500
+
+@bp.route('/partners/validate-phone', methods=['POST'])
+@require_auth
+def validate_phone_number_route(current_user):
+    """Valider un numéro de téléphone"""
+    try:
+        data = request.get_json()
+        phone = data.get('phone')
+        country_code = data.get('country_code', '+237')
+        
+        if not phone:
+            return jsonify({
+                'message': {'message': 'Numéro de téléphone requis', 'code': 400},
+                'code': 400
+            }), 400
+        
+        is_valid, message = validate_phone_number(phone, country_code)
+        
+        return jsonify({
+            'data': {
+                'is_valid': is_valid,
+                'message': message,
+                'formatted_phone': PhoneValidator.format_phone(phone, country_code) if is_valid else None
+            },
+            'message': {'message': 'Validation terminée', 'code': 200},
+            'code': 200
+        })
+    except Exception as e:
+        logging.error(f"Erreur lors de la validation du numéro: {str(e)}")
+        return jsonify({
+            'message': {'message': 'Erreur lors de la validation du numéro', 'code': 500},
+            'code': 500
+        }), 500 
 
  

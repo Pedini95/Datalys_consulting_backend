@@ -46,21 +46,21 @@ def register_fcm_token():
             verify_query = text("SELECT fcm_token FROM users WHERE id = :user_id")
             result = db.session.execute(verify_query, {"user_id": current_user.id}).fetchone()
             if result and result[0]:
-                logging.info(f"✅ Token FCM sauvegardé en DB: {result[0][:20]}...")
+                logging.info(f" Token FCM sauvegardé en DB: {result[0][:20]}...")
             else:
-                logging.warning("⚠️ Token FCM non trouvé en DB après sauvegarde")
+                logging.warning(" Token FCM non trouvé en DB après sauvegarde")
             
             # Mettre à jour le cache Redis
             try:
                 from services.push_notification_service import push_service
                 if push_service and push_service.fcm_cache and push_service.fcm_cache.is_available():
                     push_service.fcm_cache.cache_user_token(current_user.id, fcm_token, ttl=3600)
-                    logging.info("✅ Token FCM mis en cache Redis")
+                    logging.info(" Token FCM mis en cache Redis")
                     
                     # Si c'est un admin, invalider le cache des admins pour forcer la régénération
                     if current_user.role_id == 1:
                         push_service.fcm_cache.invalidate_admin_tokens()
-                        logging.info("✅ Cache des admins invalidé pour régénération")
+                        logging.info(" Cache des admins invalidé pour régénération")
             except Exception as cache_error:
                 logging.warning(f"⚠️ Erreur mise en cache: {cache_error}")
             
@@ -129,7 +129,7 @@ def unregister_fcm_token():
                 }
             }
             
-            logging.info("✅ Token FCM supprimé avec succès")
+            logging.info(" Token FCM supprimé avec succès")
             
         except Exception as e:
             db.session.rollback()
@@ -349,7 +349,7 @@ def validate_fcm_token():
             if push_service and push_service.is_enabled():
                 # Envoyer une notification de test
                 success = push_service.send_to_user(fcm_token, 
-                    "✅ Token Validé", 
+                    " Token Validé", 
                     "Votre token FCM fonctionne correctement",
                     {'type': 'validation', 'timestamp': str(datetime.now())}
                 )

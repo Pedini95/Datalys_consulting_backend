@@ -5,6 +5,7 @@ from extensions import db
 import logging
 from utils import utilities
 from utils import session_utils
+from utils.audit_utils import set_audit_fields, update_audit_field
 import jwt
 import datetime
 from config import Config
@@ -33,9 +34,7 @@ class AuthService:
         """
         try:
             # Ajouter les champs d'audit
-            if user_id:
-                data['created_by'] = user_id
-                data['updated_by'] = user_id
+            set_audit_fields(data, user_id)
             
             user = self.model_class(**data)
             db.session.add(user)
@@ -78,8 +77,7 @@ class AuthService:
                     setattr(user, key, value)
             
             # Mettre à jour les champs d'audit
-            if current_user_id and hasattr(user, 'updated_by'):
-                user.updated_by = current_user_id
+            update_audit_field(user, current_user_id)
             
             db.session.commit()
             
@@ -121,8 +119,7 @@ class AuthService:
                 # Soft delete
                 if hasattr(user, 'is_deleted'):
                     user.is_deleted = True
-                    if current_user_id and hasattr(user, 'updated_by'):
-                        user.updated_by = current_user_id
+                    update_audit_field(user, current_user_id)
                 else:
                     # Si pas de soft delete, faire une suppression définitive
                     db.session.delete(user)

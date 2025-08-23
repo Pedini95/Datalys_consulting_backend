@@ -1,11 +1,11 @@
 from models import Partner
 from typing import Dict, Any, Optional, Tuple
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import text
 from extensions import db
 import logging
 from utils.file_upload import file_upload_manager
 from utils.utilities import generate_temp_password
+from utils.audit_utils import set_audit_fields, update_audit_field
 
 logger = logging.getLogger(__name__)
 
@@ -85,9 +85,7 @@ class PartnerService:
             
             # Créer le partenaire
             partner_data = data.copy()
-            if user_id:
-                partner_data['created_by'] = user_id
-                partner_data['updated_by'] = user_id
+            set_audit_fields(partner_data, user_id)
             
             partner = self.model_class(**partner_data)
             db.session.add(partner)
@@ -105,8 +103,7 @@ class PartnerService:
                 partner_role.name = 'partner'
                 partner_role.is_active = True
                 if user_id:
-                    partner_role.created_by = user_id
-                    partner_role.updated_by = user_id
+                    set_audit_fields(partner_role.__dict__, user_id)
                 db.session.add(partner_role)
                 db.session.flush()
             
@@ -124,8 +121,7 @@ class PartnerService:
             }
             
             if user_id:
-                user_data['created_by'] = str(user_id)  # Convertir en string
-                user_data['updated_by'] = str(user_id)  # Convertir en string
+                set_audit_fields(user_data, user_id)
             
             user = User(**user_data)
             db.session.add(user)
@@ -168,9 +164,7 @@ class PartnerService:
                 return None, False, error_msg
             
             # Ajouter les champs d'audit
-            if user_id:
-                data['created_by'] = user_id
-                data['updated_by'] = user_id
+            set_audit_fields(data, user_id)
             
             partner = self.model_class(**data)
             db.session.add(partner)
@@ -232,8 +226,7 @@ class PartnerService:
                     setattr(partner, key, value)
             
             # Mettre à jour les champs d'audit
-            if user_id and hasattr(partner, 'updated_by'):
-                partner.updated_by = user_id
+            update_audit_field(partner, user_id)
             
             db.session.commit()
             
@@ -281,7 +274,7 @@ class PartnerService:
                 if hasattr(partner, 'is_deleted'):
                     partner.is_deleted = True
                     if user_id and hasattr(partner, 'updated_by'):
-                        partner.updated_by = user_id
+                        update_audit_field(partner, user_id)
                 else:
                     # Si pas de soft delete, faire une suppression définitive
                     db.session.delete(partner)

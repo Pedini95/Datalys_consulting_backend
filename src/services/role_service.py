@@ -3,6 +3,7 @@ from typing import Dict, Any, Optional, Tuple
 from sqlalchemy.exc import SQLAlchemyError
 from extensions import db
 import logging
+from utils.audit_utils import set_audit_fields, update_audit_field
 
 logger = logging.getLogger(__name__)
 
@@ -28,9 +29,7 @@ class RoleService:
         """
         try:
             # Ajouter les champs d'audit
-            if user_id:
-                data['created_by'] = user_id
-                data['updated_by'] = user_id
+            set_audit_fields(data, user_id)
             
             role = self.model_class(**data)
             db.session.add(role)
@@ -73,8 +72,7 @@ class RoleService:
                     setattr(role, key, value)
             
             # Mettre à jour les champs d'audit
-            if user_id and hasattr(role, 'updated_by'):
-                role.updated_by = user_id
+            update_audit_field(role, user_id)
             
             db.session.commit()
             
@@ -116,8 +114,7 @@ class RoleService:
                 # Soft delete
                 if hasattr(role, 'is_deleted'):
                     role.is_deleted = True
-                    if user_id and hasattr(role, 'updated_by'):
-                        role.updated_by = user_id
+                    update_audit_field(role, user_id)
                 else:
                     # Si pas de soft delete, faire une suppression définitive
                     db.session.delete(role)

@@ -5,6 +5,7 @@ from extensions import db
 import logging
 from datetime import datetime
 from utils.audit_decorator import audit_action
+from utils.audit_utils import set_audit_fields, update_audit_field
 
 logger = logging.getLogger(__name__)
 
@@ -298,9 +299,7 @@ class IncidentService:
                 del data['project_name']
             
             # Ajouter les champs d'audit
-            if user_id:
-                data['created_by'] = user_id
-                data['updated_by'] = user_id
+            set_audit_fields(data, user_id)
             
             incident = self.model_class(**data)
             db.session.add(incident)
@@ -454,8 +453,7 @@ class IncidentService:
                     setattr(incident, key, value)
             
             # Mettre à jour les champs d'audit
-            if user_id and hasattr(incident, 'updated_by'):
-                incident.updated_by = user_id
+            update_audit_field(incident, user_id)
             
             db.session.commit()
             
@@ -497,8 +495,7 @@ class IncidentService:
                 # Soft delete
                 if hasattr(incident, 'is_deleted'):
                     incident.is_deleted = True
-                    if user_id and hasattr(incident, 'updated_by'):
-                        incident.updated_by = user_id
+                    update_audit_field(incident, user_id)
                 else:
                     # Si pas de soft delete, faire une suppression définitive
                     db.session.delete(incident)

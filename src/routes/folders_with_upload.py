@@ -1,7 +1,6 @@
 from flask import Blueprint, request
 from services.folder_service import FolderService
 import logging
-from utils import functional_error, utilities
 import json
 import os
 from extensions import db
