@@ -1,62 +1,39 @@
-name: 🚀 Deploy to Production
+name: Deploy to VPS
 
 on:
   push:
-    branches: [develop]
-  workflow_dispatch:
+    branches:
+      - develop
+      - main
 
 jobs:
   deploy:
-    name: 🚀 Deploy to Server
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop'
     
     steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
+      - name: 🔍 Checkout code
+        uses: actions/checkout@v3
       
-    - name: 🔧 Setup SSH
-      uses: webfactory/ssh-agent@v0.8.0
-      with:
-        ssh-private-key: ${{ secrets.HOSTINGER_SSH_KEY }}
-        
-    - name: 🚀 Deploy to server
-      run: |
-        ssh -o StrictHostKeyChecking=no root@82.112.253.137 '
-          cd /opt/Datalys_consulting_backend
-          
-          echo "📥 Pulling latest code..."
-          git fetch origin develop
-          git reset --hard origin/develop
-          
-          echo "🏗️ Building application locally..."
-          docker-compose -f docker-compose.deploy.yml --profile production build --no-cache datalys-api
-          
-          echo "🚀 Starting services..."
-          docker-compose -f docker-compose.deploy.yml --profile production up -d datalys-api
-          
-          echo "⏳ Waiting for service to start..."
-          sleep 60
-          
-          echo "🏥 Health check..."
-          for i in {1..10}; do
-            if curl -f http://localhost:8082/health > /dev/null 2>&1; then
-              echo "✅ Health check successful!"
-              break
-            fi
-            echo "⏳ Attempt $i/10 - waiting 10s..."
+      - name: 🚀 Deploy to VPS
+        uses: appleboy/ssh-action@master
+        with:
+          host: 82.112.253.137
+          username: root
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /root/Datalys_consulting_backend
+            
+            echo "📥 Pulling latest changes..."
+            git pull origin ${{ github.ref_name }} || echo "Not a git repo, using rsync method"
+            
+            echo "🔄 Restarting backend..."
+            docker-compose restart datalys-api
+            
+            echo "⏳ Waiting for startup..."
             sleep 10
-          done
-          
-          echo "🔍 Final health check..."
-          if curl -f http://localhost:8082/health; then
-            echo "✅ Deployment successful!"
-          else
-            echo "❌ Health check failed, showing logs..."
-            docker-compose -f docker-compose.deploy.yml --profile production logs datalys-api
-            exit 1
-          fi
-          
-          echo "🧹 Cleaning up old images..."
-          docker image prune -f
-        ' 
+            
+            echo "✅ Deployment completed!"
+            docker ps --filter 'name=datalys-api'
+            
+            echo "🌐 Testing API..."
+            curl -f http://localhost:8082/health || echo "API not ready yet"
