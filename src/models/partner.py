@@ -24,7 +24,7 @@ class Partner(db.Model):
     projects = db.relationship('Project', lazy=True)
 
     __table_args__ = (
-        Index('idx_partner_name_address', 'name', 'address'),
+        Index('idx_partner_name_address', 'name', db.text('address(255)')),
         Index('idx_partner_phone_country', 'phone', 'country_code'),
     )
 
