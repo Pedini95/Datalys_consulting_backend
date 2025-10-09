@@ -306,7 +306,8 @@ def logout():
     """
     try:
         logging.info("**** logout input ****")
-        data = request.get_json()
+        # Pas besoin de body JSON pour le logout
+        data = request.get_json(silent=True) or {}
         logging.info(data)
         
         # Récupérer l'utilisateur depuis le décorateur
