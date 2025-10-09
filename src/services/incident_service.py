@@ -310,13 +310,37 @@ class IncidentService:
             db.session.add(incident)
             db.session.flush()  # Pour obtenir l'ID de l'incident
             
-            # Envoyer des alertes par email si l'incident est lié à un projet
-            if incident.project_id and incident.type == 'incident':
-                # 1. Envoyer email au partenaire/client
-                self._send_incident_alerts(incident, user_id)
+            # ✅ BIDIRECTIONNALITÉ : Détecter le rôle de l'utilisateur qui crée l'incident
+            creator_role = None
+            if user_id:
+                from models import User, Role
+                creator = User.query.get(user_id)
+                if creator and creator.role_id:
+                    role = Role.query.get(creator.role_id)
+                    if role:
+                        creator_role = role.name
+                        logger.info(f"Incident créé par: {creator.name} (Rôle: {creator_role})")
+            
+            # Envoyer des notifications selon le rôle du créateur
+            if incident.type == 'incident':
+                if creator_role in ['Admin', 'Manager']:
+                    # SCÉNARIO 1: Admin/Manager → Partenaire
+                    # Envoyer notification au partenaire si l'incident est lié à un projet
+                    if incident.project_id:
+                        logger.info("📧 Notification: Admin/Manager → Partenaire")
+                        self._send_incident_alerts(incident, user_id)
+                        # Aussi notifier les autres experts
+                        self._send_expert_notifications(incident, user_id)
                 
-                # 2. ✅ NOUVEAU : Envoyer email à tous les experts (Admin/Manager)
-                self._send_expert_notifications(incident, user_id)
+                elif creator_role == 'User':
+                    # SCÉNARIO 2: Partenaire → Experts (BIDIRECTIONNEL)
+                    logger.info("📧 Notification BIDIRECTIONNELLE: Partenaire → Experts")
+                    self._send_expert_notifications(incident, user_id)
+                
+                else:
+                    # Rôle inconnu ou non défini, notifier les experts par défaut
+                    logger.warning(f"Rôle inconnu pour user_id={user_id}, notification aux experts par défaut")
+                    self._send_expert_notifications(incident, user_id)
             
             db.session.commit()
             
