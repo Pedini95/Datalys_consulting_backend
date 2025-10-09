@@ -24,7 +24,7 @@ def get_user_name_from_id(user_id: int) -> str:
 
 def set_audit_fields(data: dict, user_id: Optional[int], created_by_key: str = 'created_by', updated_by_key: str = 'updated_by') -> None:
     """
-    Définir les champs d'audit avec les noms d'utilisateur
+    Définir les champs d'audit avec l'ID de l'utilisateur (integer)
     
     Args:
         data: Dictionnaire des données
@@ -33,14 +33,14 @@ def set_audit_fields(data: dict, user_id: Optional[int], created_by_key: str = '
         updated_by_key: Clé pour le champ updated_by
     """
     if user_id:
-        user_name = get_user_name_from_id(user_id)
-        data[created_by_key] = user_name
-        data[updated_by_key] = user_name
+        # ✅ CORRECTION: Utiliser l'ID (integer) au lieu du nom (string)
+        data[created_by_key] = str(user_id)  # Convertir en string pour compatibilité
+        data[updated_by_key] = str(user_id)
 
 
 def update_audit_field(obj, user_id: Optional[int], field_name: str = 'updated_by') -> None:
     """
-    Mettre à jour un champ d'audit avec le nom d'utilisateur
+    Mettre à jour un champ d'audit avec l'ID de l'utilisateur (integer)
     
     Args:
         obj: Objet à mettre à jour
@@ -48,5 +48,5 @@ def update_audit_field(obj, user_id: Optional[int], field_name: str = 'updated_b
         field_name: Nom du champ à mettre à jour
     """
     if user_id and hasattr(obj, field_name):
-        user_name = get_user_name_from_id(user_id)
-        setattr(obj, field_name, user_name)
+        # ✅ CORRECTION: Utiliser l'ID (integer) au lieu du nom (string)
+        setattr(obj, field_name, str(user_id))
