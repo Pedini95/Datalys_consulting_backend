@@ -393,9 +393,10 @@ class EmailService:
             from config import Config
             
             # Préparer le sujet avec le numéro d'incident et la priorité
+            # ⚠️ IMPORTANT: Pas d'emoji dans le sujet pour éviter le blocage par Gmail
             priority = incident_data.get('priority', 'P3')
             incident_number = incident_data.get('incident_number', 'N/A')
-            subject = f"🚨 Nouvel incident : {incident_number} [{priority}]"
+            subject = f"Nouvel incident {priority} - {incident_number} - Datalys Consulting"
             
             # Mapper les labels
             priority_labels = {
