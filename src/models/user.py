@@ -83,32 +83,31 @@ class User(db.Model):
     @classmethod
     def generate_client_code(cls):
         """
-        Génère un code client unique au format DATALYS-YYYY-NNN
-        Exemple: DATALYS-2025-001, DATALYS-2025-002, etc.
+        Génère un code client unique au format DTLSXXXXXX (8 caractères alphanumériques)
+        Exemple: DTLSA3K9M2, DTLS7BX4P1, DTLSQ8N5R6
         
         Returns:
             str: Code client unique
         """
-        year = datetime.now().year
+        import random
+        import string
         
-        # Trouver le dernier code client de l'année en cours avec verrouillage
-        last_user = cls.query.filter(
-            cls.client_code.like(f'DATALYS-{year}-%')
-        ).order_by(cls.id.desc()).with_for_update().first()
+        # Caractères autorisés : lettres majuscules et chiffres (sans 0, O, I, 1 pour éviter confusion)
+        chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
         
-        if last_user and last_user.client_code:
-            # Extraire le numéro du dernier code (ex: DATALYS-2025-001 -> 1)
-            try:
-                last_num = int(last_user.client_code.split('-')[-1])
-                new_num = last_num + 1
-            except (ValueError, IndexError):
-                # En cas d'erreur de parsing, recommencer à 1
-                new_num = 1
-        else:
-            # Premier code de l'année
-            new_num = 1
+        max_attempts = 100
+        for _ in range(max_attempts):
+            # Générer 6 caractères aléatoires
+            random_part = ''.join(random.choices(chars, k=6))
+            code = f'DTLS{random_part}'
+            
+            # Vérifier que ce code n'existe pas déjà
+            existing = cls.query.filter(cls.client_code == code).first()
+            if not existing:
+                return code
         
-        return f'DATALYS-{year}-{new_num:03d}'
+        # Si après 100 tentatives on n'a pas trouvé de code unique, lever une exception
+        raise Exception("Impossible de générer un code client unique après 100 tentatives")
 
     def __repr__(self):
         return f'<User {self.email}>'

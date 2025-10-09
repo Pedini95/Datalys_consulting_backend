@@ -160,6 +160,15 @@ def update_users():
             processed_data['role_name'] = data.get('role_name')
         if 'is_active' in data:
             processed_data['is_active'] = data.get('is_active')
+        if 'fcm_token' in data:
+            processed_data['fcm_token'] = data.get('fcm_token')
+        if 'mfa_enabled' in data:
+            processed_data['mfa_enabled'] = data.get('mfa_enabled')
+        
+        # ⚠️ SÉCURITÉ : Le client_code ne peut PAS être modifié (identifiant unique)
+        if 'client_code' in data:
+            logging.warning(f"⚠️  Tentative de modification du client_code refusée pour l'utilisateur {data.get('id')}")
+            # On ignore silencieusement la tentative de modification
         
         processed_datas.append(processed_data)
     

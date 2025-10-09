@@ -455,29 +455,67 @@ Content-Type: application/json
 **Body** :
 ```json
 {
-  "id": 6,
-  "name": "Nom Modifié",
-  "is_active": false
+  "user": {
+    "id": 5
+  },
+  "datas": [
+    {
+      "id": 6,
+      "name": "Nom Modifié",
+      "email": "nouveau.email@example.com",
+      "password": "NouveauMotDePasse123",
+      "role_name": "Manager",
+      "is_active": true,
+      "fcm_token": "nouveau_token_fcm",
+      "mfa_enabled": false
+    }
+  ]
 }
 ```
 
 **Paramètres** :
-- `id` (integer, requis) : ID de l'utilisateur
-- Tous les autres champs sont optionnels
+- `user.id` (integer, requis) : ID de l'utilisateur qui fait la modification
+- `datas` (array, requis) : Tableau d'utilisateurs à modifier
+- `datas[].id` (integer, requis) : ID de l'utilisateur à modifier
+
+**Champs modifiables (tous optionnels)** :
+- `name` (string) : Nom complet de l'utilisateur
+- `email` (string) : Adresse email (doit être unique)
+- `password` (string) : Nouveau mot de passe (sera automatiquement hashé)
+- `role_name` (string) : Nom du rôle ("Admin", "Manager", "User")
+- `is_active` (boolean) : Activer/désactiver l'utilisateur
+- `fcm_token` (string) : Token Firebase pour notifications push
+- `mfa_enabled` (boolean) : Activer/désactiver le MFA
+
+**⚠️ Champs NON modifiables** :
+- `client_code` : Code client unique (généré automatiquement, non modifiable)
+- `is_temp_password` : Géré automatiquement par le système
+- `created_at`, `created_by` : Champs d'audit en lecture seule
 
 **Réponse** :
 ```json
 {
-  "code": 200,
-  "message": "User modifié avec succès",
-  "data": {
-    "id": 6,
-    "name": "Nom Modifié",
-    "email": "nouveau.partenaire@example.com",
-    "client_code": "DATALYS-2025-006",
-    "is_active": false,
-    "updated_at": "2025-10-09T16:00:00Z"
-  }
+  "items": [
+    {
+      "id": 6,
+      "name": "Nom Modifié",
+      "email": "nouveau.email@example.com",
+      "password_hash": "hash_du_nouveau_mot_de_passe",
+      "is_temp_password": false,
+      "fcm_token": "nouveau_token_fcm",
+      "client_code": "DTLSA3K9M2",
+      "role_id": 2,
+      "is_active": true,
+      "is_deleted": false,
+      "created_at": "2025-10-09T14:30:00",
+      "created_by": "5",
+      "updated_at": "2025-10-09T18:15:00",
+      "updated_by": "5",
+      "username": "Nom Modifié"
+    }
+  ],
+  "message": "Opération effectuée avec succès",
+  "code": 200
 }
 ```
 
@@ -489,9 +527,12 @@ curl -X POST http://82.112.253.137:8082/users/update \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "id": 6,
-    "name": "Nom Modifié",
-    "is_active": false
+    "user": {"id": 5},
+    "datas": [{
+      "id": 6,
+      "name": "Nom Modifié",
+      "is_active": false
+    }]
   }'
 ```
 
