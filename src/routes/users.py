@@ -61,7 +61,7 @@ def create_users():
         current_user = User.query.get(current_user_id)
         if current_user and current_user.role_id:
             current_role = Role.query.get(current_user.role_id)
-            if not current_role or current_role.name != 'admin':
+            if not current_role or current_role.name.lower() != 'admin':
                 return {"status": "error", "message": "Accès refusé : Seuls les administrateurs peuvent créer des utilisateurs"}, 403
     
     # Préparer les données pour le service
@@ -73,10 +73,10 @@ def create_users():
             if field not in data or not data[field]:
                 return {"status": "error", "message": f"Field {field} is missing or empty"}, 400
         
-        # VÉRIFICATION : Cette API est dédiée uniquement aux utilisateurs admin
+        # VÉRIFICATION : Cette API est dédiée uniquement aux utilisateurs admin/manager
         role_name = data.get('role_name')
-        if role_name != 'admin':
-            return {"status": "error", "message": "Cette API est dédiée uniquement à la création d'utilisateurs admin. Pour créer un partenaire, utilisez /partners/create"}, 400
+        if role_name.lower() not in ['admin', 'manager', 'user']:
+            return {"status": "error", "message": f"Rôle invalide: {role_name}"}, 400
         
         processed_data = {
             'name': data.get('name', ''),
