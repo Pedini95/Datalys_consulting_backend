@@ -1,39 +1,69 @@
-name: Deploy to VPS
+name: 🚀 Déploiement automatique
 
 on:
   push:
     branches:
-      - develop
       - main
+      - develop
+  workflow_dispatch:  # Permet de déclencher manuellement
 
 jobs:
   deploy:
+    name: 📦 Déployer sur VPS
     runs-on: ubuntu-latest
     
     steps:
-      - name: 🔍 Checkout code
+      - name: 📥 Checkout du code
         uses: actions/checkout@v3
       
-      - name: 🚀 Deploy to VPS
+      - name: 🚀 Déploiement via SSH
         uses: appleboy/ssh-action@master
         with:
-          host: 82.112.253.137
-          username: root
-          key: ${{ secrets.VPS_SSH_KEY }}
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: 22
           script: |
+            echo "🔄 Début du déploiement..."
+            
+            # Aller dans le dossier du projet
             cd /root/Datalys_consulting_backend
             
-            echo "📥 Pulling latest changes..."
-            git pull origin ${{ github.ref_name }} || echo "Not a git repo, using rsync method"
+            # Sauvegarder les fichiers sensibles
+            echo "💾 Sauvegarde des fichiers sensibles..."
+            cp src/.env /tmp/.env.backup 2>/dev/null || true
             
-            echo "🔄 Restarting backend..."
+            # Pull les dernières modifications
+            echo "📥 Récupération des modifications..."
+            git fetch origin
+            git reset --hard origin/${{ github.ref_name }}
+            
+            # Restaurer les fichiers sensibles
+            echo "♻️ Restauration des fichiers sensibles..."
+            cp /tmp/.env.backup src/.env 2>/dev/null || true
+            
+            # Redémarrer le backend
+            echo "🔄 Redémarrage du backend..."
             docker-compose restart datalys-api
             
-            echo "⏳ Waiting for startup..."
-            sleep 10
+            # Attendre le démarrage
+            echo "⏳ Attente du démarrage..."
+            sleep 15
             
-            echo "✅ Deployment completed!"
-            docker ps --filter 'name=datalys-api'
+            # Vérifier la santé de l'API
+            echo "🏥 Vérification de la santé de l'API..."
+            curl -f http://localhost:8082/health || exit 1
             
-            echo "🌐 Testing API..."
-            curl -f http://localhost:8082/health || echo "API not ready yet"
+            echo "✅ Déploiement terminé avec succès !"
+      
+      - name: ✅ Notification de succès
+        if: success()
+        run: |
+          echo "🎉 Déploiement réussi sur ${{ secrets.SSH_HOST }}"
+          echo "🌐 API: http://${{ secrets.SSH_HOST }}:8082"
+      
+      - name: ❌ Notification d'échec
+        if: failure()
+        run: |
+          echo "❌ Le déploiement a échoué"
+          echo "📝 Vérifiez les logs ci-dessus"

@@ -116,7 +116,6 @@ def verify_mfa():
         
         # Récupérer l'utilisateur
         from models import User
-        from utils import utilities
         from extensions import db
         from config import Config
         import jwt
@@ -262,7 +261,7 @@ def change_temp_password():
         db.session.commit()
         
         # Maintenant authentifier l'utilisateur normalement
-        user_data, success, message = auth_service.login(email, new_password)
+        user_data, success, _ = auth_service.login(email, new_password)
         
         if success:
             return {

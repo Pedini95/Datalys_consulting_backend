@@ -265,7 +265,6 @@ class EmailService:
         """
         try:
             from flask import render_template
-            from config import Config
             from datetime import datetime
             
             subject = f"🔐 Code de vérification - Datalys Consulting"
