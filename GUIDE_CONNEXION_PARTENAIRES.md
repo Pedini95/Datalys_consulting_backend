@@ -124,10 +124,18 @@ Si vous n'avez pas demandé ce code, ignorez cet email.
 
 **Endpoint** : `POST /auth/verify-mfa`
 
-**Body** :
+**Body (Format recommandé)** :
 ```json
 {
-  "user_id": 3,
+  "identifier": "marie.martin@datalys.com",
+  "mfa_code": "123456"
+}
+```
+
+**OU avec code client** :
+```json
+{
+  "identifier": "DATALYS-2025-003",
   "mfa_code": "123456"
 }
 ```
@@ -238,11 +246,11 @@ curl -X POST http://82.112.253.137:8082/auth/login \
 
 # Étape 2 : Vérifier l'email (marie.martin@datalys.com)
 
-# Étape 3 : Vérifier le code MFA (identique à l'exemple 1)
+# Étape 3 : Vérifier le code MFA avec identifier (email ou code client)
 curl -X POST http://82.112.253.137:8082/auth/verify-mfa \
   -H "Content-Type: application/json" \
   -d '{
-    "user_id": 3,
+    "identifier": "marie.martin@datalys.com",
     "mfa_code": "123456"
   }'
 ```
@@ -390,11 +398,11 @@ async function login(identifier, password) {
 }
 
 // Étape 2 : Vérifier MFA
-async function verifyMFA(userId, mfaCode) {
+async function verifyMFA(identifier, mfaCode) {
   const response = await fetch('http://82.112.253.137:8082/auth/verify-mfa', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: userId, mfa_code: mfaCode })
+    body: JSON.stringify({ identifier: identifier, mfa_code: mfaCode })
   });
   
   const data = await response.json();
@@ -415,7 +423,7 @@ const loginResult = await login('DATALYS-2025-003', 'Test@123');
 if (loginResult.requiresMFA) {
   // Afficher le formulaire de saisie du code MFA
   const mfaCode = prompt('Entrez le code reçu par email:');
-  const verifyResult = await verifyMFA(loginResult.userId, mfaCode);
+  const verifyResult = await verifyMFA(loginResult.email, mfaCode);
   
   if (verifyResult.success) {
     console.log('Connexion réussie !');

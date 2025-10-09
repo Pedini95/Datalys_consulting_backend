@@ -130,7 +130,23 @@ curl -X POST http://82.112.253.137:8082/auth/login \
 
 **Description** : Vérifier le code MFA à 6 chiffres reçu par email.
 
-**Body** :
+**Body (Format recommandé avec identifier)** :
+```json
+{
+  "identifier": "marie.martin@datalys.com",
+  "mfa_code": "123456"
+}
+```
+
+**OU avec code client** :
+```json
+{
+  "identifier": "DATALYS-2025-003",
+  "mfa_code": "123456"
+}
+```
+
+**OU ancien format (rétrocompatible)** :
 ```json
 {
   "user_id": 3,
@@ -161,6 +177,23 @@ curl -X POST http://82.112.253.137:8082/auth/login \
 
 **Exemple cURL** :
 ```bash
+# Format recommandé avec email
+curl -X POST http://82.112.253.137:8082/auth/verify-mfa \
+  -H "Content-Type: application/json" \
+  -d '{
+    "identifier": "marie.martin@datalys.com",
+    "mfa_code": "123456"
+  }'
+
+# Avec code client
+curl -X POST http://82.112.253.137:8082/auth/verify-mfa \
+  -H "Content-Type: application/json" \
+  -d '{
+    "identifier": "DATALYS-2025-003",
+    "mfa_code": "123456"
+  }'
+
+# Ancien format (toujours supporté)
 curl -X POST http://82.112.253.137:8082/auth/verify-mfa \
   -H "Content-Type: application/json" \
   -d '{
