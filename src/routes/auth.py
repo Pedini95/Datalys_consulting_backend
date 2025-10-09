@@ -109,11 +109,16 @@ def verify_mfa():
         if not data:
             return {"status": "error", "message": "Données manquantes"}, 400
         
+        # Support de l'ancien format (user_id) et du nouveau format (identifier)
         user_id = data.get('user_id')
+        identifier = data.get('identifier')
         mfa_code = data.get('mfa_code')
         
-        if not all([user_id, mfa_code]):
-            return {"status": "error", "message": "user_id et mfa_code requis"}, 400
+        if not mfa_code:
+            return {"status": "error", "message": "mfa_code requis"}, 400
+        
+        if not user_id and not identifier:
+            return {"status": "error", "message": "identifier (email ou code client) requis"}, 400
         
         # Récupérer l'utilisateur
         from models import User
@@ -122,8 +127,22 @@ def verify_mfa():
         import jwt
         import datetime
         from utils import session_utils
+        from sqlalchemy import or_
         
-        user = User.query.get(user_id)
+        # Récupérer l'utilisateur par user_id (ancien format) ou identifier (nouveau format)
+        if user_id:
+            logger.info(f"Vérification MFA avec user_id: {user_id}")
+            user = User.query.get(user_id)
+        else:
+            logger.info(f"Vérification MFA avec identifier: {identifier}")
+            user = User.query.filter(
+                or_(
+                    User.email == identifier,
+                    User.client_code == identifier
+                ),
+                User.is_deleted == False
+            ).first()
+        
         if not user:
             return {"status": "error", "message": "Utilisateur non trouvé"}, 404
         
