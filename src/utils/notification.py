@@ -8,6 +8,8 @@ from email import encoders
 import logging
 from flask_mail import Message
 from typing import List, Optional, Dict, Any
+import threading
+import time
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -120,6 +122,65 @@ class EmailService:
             logger.error(f"Erreur lors de l'envoi de l'email à {to_email}: {str(e)}")
             return False
     
+    def send_email_async(self, to_email: str, subject: str, html_content: str, 
+                        text_content: Optional[str] = None, attachments: Optional[List[Dict]] = None):
+        """
+        Envoyer un email de manière asynchrone (non-bloquante)
+        
+        Cette méthode lance l'envoi de l'email dans un thread séparé et retourne immédiatement.
+        Idéal pour les emails MFA, notifications, etc. où on ne veut pas bloquer la réponse HTTP.
+        
+        Args:
+            to_email: Email du destinataire
+            subject: Sujet de l'email
+            html_content: Contenu HTML
+            text_content: Contenu texte (optionnel)
+            attachments: Liste des pièces jointes (optionnel)
+        """
+        def _send_in_background():
+            """Fonction exécutée dans le thread en arrière-plan"""
+            try:
+                start_time = time.time()
+                logger.info(f"📧 [Thread] Envoi asynchrone d'email à {to_email} - Sujet: {subject[:50]}...")
+                
+                # Créer le message MIME directement (pas besoin du contexte Flask)
+                message = MIMEMultipart('alternative')
+                message['From'] = f"{self.sender_name} <{self.sender_email}>"
+                message['To'] = to_email
+                message['Subject'] = subject
+                message['Content-Type'] = 'text/html; charset=UTF-8'
+                
+                # Ajouter le contenu texte si fourni
+                if text_content:
+                    text_part = MIMEText(text_content, 'plain', 'utf-8')
+                    message.attach(text_part)
+                
+                # Ajouter le contenu HTML
+                html_part = MIMEText(html_content, 'html', 'utf-8')
+                message.attach(html_part)
+                
+                # Ajouter les pièces jointes si fournies
+                if attachments:
+                    for attachment in attachments:
+                        self._add_attachment(message, attachment)
+                
+                # Envoyer via SMTP
+                success = self._send_smtp(message)
+                
+                elapsed_time = time.time() - start_time
+                if success:
+                    logger.info(f"✅ [Thread] Email envoyé avec succès à {to_email} en {elapsed_time:.2f}s")
+                else:
+                    logger.error(f"❌ [Thread] Échec de l'envoi de l'email à {to_email} après {elapsed_time:.2f}s")
+                    
+            except Exception as e:
+                logger.error(f"❌ [Thread] Erreur dans le thread d'envoi d'email à {to_email}: {str(e)}")
+        
+        # Lancer l'envoi dans un thread séparé (daemon=True pour qu'il se termine avec l'app)
+        thread = threading.Thread(target=_send_in_background, daemon=True)
+        thread.start()
+        logger.info(f"⚡ Thread d'envoi d'email lancé pour {to_email} (non-bloquant)")
+    
     def _add_attachment(self, message: MIMEMultipart, attachment: Dict[str, Any]):
         """
         Ajouter une pièce jointe au message
@@ -142,7 +203,7 @@ class EmailService:
     
     def _send_smtp(self, message: MIMEMultipart) -> bool:
         """
-        Envoyer l'email via SMTP avec TLS sur le port 587
+        Envoyer l'email via SMTP avec SSL (port 465) ou TLS (port 587)
         
         Args:
             message: Message MIME à envoyer
@@ -151,23 +212,43 @@ class EmailService:
             True si l'envoi a réussi
         """
         try:
-            # Utiliser SMTP avec TLS pour le port 587
-            with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
-                server.starttls(context=ssl.create_default_context())
-                server.login(self.smtp_username, self.smtp_password)
-                
-                # Envoyer l'email avec encodage UTF-8 explicite
-                text = message.as_string()
-                # Convertir en bytes UTF-8 si nécessaire
-                if isinstance(text, str):
-                    text = text.encode('utf-8')
-                server.sendmail(self.sender_email, message['To'], text)
-                
-                logger.info(f"Email envoyé avec succès à {message['To']}")
-                return True
+            # Utiliser SMTP_SSL pour le port 465 (Hostinger)
+            if self.smtp_port == 465:
+                logger.info(f"📧 Connexion SMTP_SSL au serveur {self.smtp_server}:{self.smtp_port}")
+                with smtplib.SMTP_SSL(self.smtp_server, self.smtp_port, context=ssl.create_default_context()) as server:
+                    server.login(self.smtp_username, self.smtp_password)
+                    logger.info(f"✅ Authentification SMTP réussie")
+                    
+                    # Envoyer l'email avec encodage UTF-8 explicite
+                    text = message.as_string()
+                    if isinstance(text, str):
+                        text = text.encode('utf-8')
+                    server.sendmail(self.sender_email, message['To'], text)
+                    
+                    logger.info(f"✅ Email envoyé avec succès à {message['To']}")
+                    return True
+            
+            # Utiliser SMTP avec STARTTLS pour le port 587
+            else:
+                logger.info(f"📧 Connexion SMTP+STARTTLS au serveur {self.smtp_server}:{self.smtp_port}")
+                with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
+                    server.starttls(context=ssl.create_default_context())
+                    server.login(self.smtp_username, self.smtp_password)
+                    logger.info(f"✅ Authentification SMTP réussie")
+                    
+                    # Envoyer l'email avec encodage UTF-8 explicite
+                    text = message.as_string()
+                    if isinstance(text, str):
+                        text = text.encode('utf-8')
+                    server.sendmail(self.sender_email, message['To'], text)
+                    
+                    logger.info(f"✅ Email envoyé avec succès à {message['To']}")
+                    return True
                 
         except Exception as e:
-            logger.error(f"Erreur SMTP TLS: {str(e)}")
+            logger.error(f"❌ Erreur SMTP lors de l'envoi à {message['To']}: {str(e)}")
+            import traceback
+            logger.error(f"❌ Traceback: {traceback.format_exc()}")
             return False
     
     def send_welcome_email(self, user_email: str, user_name: str, login_url: str) -> bool:
@@ -283,11 +364,16 @@ class EmailService:
             # Rendre le template HTML
             html_content = render_template('email_mfa_code.html', **template_data)
             
-            # Envoyer l'email
-            return self.send_email(user_email, subject, html_content)
+            # ⚡ Envoyer l'email de manière ASYNCHRONE (non-bloquante)
+            # Cela permet de retourner la réponse HTTP immédiatement sans attendre l'envoi de l'email
+            self.send_email_async(user_email, subject, html_content)
+            
+            # Retourner True immédiatement (l'email sera envoyé en arrière-plan)
+            logger.info(f"⚡ Email MFA programmé pour envoi asynchrone à {user_email}")
+            return True
             
         except Exception as e:
-            logger.error(f"Erreur lors de l'envoi du code MFA à {user_email}: {str(e)}")
+            logger.error(f"Erreur lors de la préparation de l'email MFA pour {user_email}: {str(e)}")
             return False
     
     def send_incident_notification_to_experts(self, expert_email: str, expert_name: str, incident_data: Dict[str, Any]) -> bool:
@@ -356,11 +442,15 @@ class EmailService:
             # Rendre le template HTML
             html_content = render_template('email_incident_notification_experts.html', **template_data)
             
-            # Envoyer l'email
-            return self.send_email(expert_email, subject, html_content)
+            # ⚡ Envoyer l'email de manière ASYNCHRONE (non-bloquante)
+            self.send_email_async(expert_email, subject, html_content)
+            
+            # Retourner True immédiatement (l'email sera envoyé en arrière-plan)
+            logger.info(f"⚡ Email de notification d'incident programmé pour envoi asynchrone à {expert_email}")
+            return True
             
         except Exception as e:
-            logger.error(f"Erreur lors de l'envoi de l'email de notification à l'expert {expert_email}: {str(e)}")
+            logger.error(f"Erreur lors de la préparation de l'email de notification pour {expert_email}: {str(e)}")
             return False
     
     def send_incident_alert(self, to_email: str, partner_name: str, email_data: Dict[str, Any]) -> bool:

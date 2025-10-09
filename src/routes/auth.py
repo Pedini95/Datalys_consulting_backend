@@ -58,7 +58,7 @@ def require_auth(f):
 @login_rate_limit()
 def login():
     """
-    Route pour la connexion utilisateur
+    Route pour la connexion utilisateur avec email ou code client
     """
     try:
         logging.info("**** login input ****")
@@ -68,14 +68,15 @@ def login():
         if not data:
             return {"status": "error", "message": "Données manquantes"}, 400
         
-        email = data.get('email')
+        # Accepter 'email' ou 'identifier' (pour rétrocompatibilité)
+        identifier = data.get('identifier') or data.get('email')
         password = data.get('password')
         
-        if not email or not password:
-            return {"status": "error", "message": "Email et mot de passe requis"}, 400
+        if not identifier or not password:
+            return {"status": "error", "message": "Identifiant (email ou code client) et mot de passe requis"}, 400
         
-        # Authentifier l'utilisateur
-        user_data, success, message = auth_service.login(email, password)
+        # Authentifier l'utilisateur (avec email OU code client)
+        user_data, success, message = auth_service.login(identifier, password)
         
         if success:
             response = {

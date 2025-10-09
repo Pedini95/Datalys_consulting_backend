@@ -172,19 +172,20 @@ def login_rate_limit():
             if not data:
                 return {"status": "error", "message": "Données manquantes"}, 400
             
-            email = data.get('email')
+            # Accepter 'identifier' ou 'email' (pour rétrocompatibilité)
+            identifier = data.get('identifier') or data.get('email')
             ip_address = request.remote_addr
             
-            # Vérifier si l'email est valide
-            if not email:
-                return {"status": "error", "message": "Email manquant"}, 400
+            # Vérifier si l'identifiant est valide
+            if not identifier:
+                return {"status": "error", "message": "Identifiant (email ou code client) manquant"}, 400
             
             # Vérifier si l'IP est valide
             if not ip_address:
                 return {"status": "error", "message": "Impossible de déterminer l'adresse IP."}, 400
             
-            # Vérifier si l'email ou l'IP est bloqué
-            if rate_limiter.is_login_blocked(email) or rate_limiter.is_login_blocked(ip_address):
+            # Vérifier si l'identifiant ou l'IP est bloqué
+            if rate_limiter.is_login_blocked(identifier) or rate_limiter.is_login_blocked(ip_address):
                 remaining_time = rate_limiter.block_duration
                 return {
                     "status": "error",
@@ -196,12 +197,12 @@ def login_rate_limit():
             
             # Enregistrer la tentative
             success = response[1] == 200  # Vérifier le code de statut
-            rate_limiter.record_login_attempt(email, success)
+            rate_limiter.record_login_attempt(identifier, success)
             rate_limiter.record_login_attempt(ip_address, success)
             
             # Ajouter le nombre de tentatives restantes à la réponse
             if not success and response[1] == 401:
-                remaining_attempts = rate_limiter.get_remaining_attempts(email)
+                remaining_attempts = rate_limiter.get_remaining_attempts(identifier)
                 if isinstance(response[0], dict):
                     response[0]["remaining_attempts"] = remaining_attempts
             

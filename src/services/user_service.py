@@ -59,14 +59,41 @@ class UserService:
             if 'password' in data:
                 password = data.pop('password')
                 data['password_hash'] = utilities.encrypt(password)
+                # Définir automatiquement is_temp_password à True lors de la création
+                # L'utilisateur devra changer son mot de passe à la première connexion
+                data['is_temp_password'] = True
+                logger.info("🔐 Mot de passe temporaire défini automatiquement")
+            
+            # Générer automatiquement un code client unique UNIQUEMENT pour les partenaires (rôle "User")
+            # Les Admin et Manager n'ont pas besoin de code client car ce sont des employés Datalys
+            if 'client_code' not in data or not data['client_code']:
+                # Vérifier si c'est un partenaire (rôle "User")
+                if 'role_id' in data:
+                    role = Role.query.get(data['role_id'])
+                    if role and role.name == 'User':
+                        data['client_code'] = self.model_class.generate_client_code()
+                        logger.info(f"✅ Code client généré pour le partenaire: {data['client_code']}")
+                    else:
+                        logger.info(f"ℹ️  Pas de code client pour le rôle '{role.name if role else 'inconnu'}' (réservé aux partenaires)")
+                        data['client_code'] = None
+            
+            # MFA activé par défaut pour tous les utilisateurs (sécurité)
+            if 'mfa_enabled' not in data:
+                data['mfa_enabled'] = True
+                logger.info("🔐 MFA activé par défaut")
             
             # Ajouter les champs d'audit
             set_audit_fields(data, user_id)
             
             user = self.model_class(**data)
             db.session.add(user)
+            db.session.flush()  # Pour obtenir l'ID avant commit
             db.session.commit()
             
+            if user.client_code:
+                logger.info(f"Utilisateur créé avec succès - Email: {user.email}, Code client: {user.client_code}")
+            else:
+                logger.info(f"Utilisateur créé avec succès - Email: {user.email} (pas de code client)")
             return user, True, f"{self.model_class.__name__} créé avec succès"
             
         except SQLAlchemyError as e:

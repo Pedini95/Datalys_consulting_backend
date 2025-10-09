@@ -282,29 +282,32 @@ def verify_mfa():
 
 ---
 
-### 🚨 **8. COMPTES UTILISATEURS - Code Client Unique** ❌
+### ✅ **8. COMPTES UTILISATEURS - Code Client Unique** ✅
 
 **Cahier des charges** :
 > "La génération d'un code client comme login unique. En effet compte tenu de la contrainte qu'il peut avoir sur la mobilité coté client, l'utilisation d'un email coté client peut s'avérer problématique à un certain moment. La génération d'un code client unique pour chaque client permet de s'affranchir d'un changement de mail ou d'une mobilité éventuelle."
 
 **État actuel** :
 - ✅ Login par email
-- ❌ **Pas de code client unique** (ex: `DATALYS-2025-001`)
+- ✅ **Code client unique** (ex: `DATALYS-2025-001`)
+- ✅ Génération automatique lors de la création
+- ✅ Login avec email OU code client
+- ✅ Migration SQL pour utilisateurs existants
 
-**Action requise** :
+**Implémentation** :
 ```python
-# 1. Ajouter dans models/user.py
-client_code = db.Column(db.String(50), unique=True, nullable=True)
-# Format : DATALYS-2025-001, DATALYS-2025-002, etc.
+# ✅ Ajouté dans models/user.py
+client_code = db.Column(db.String(50), unique=True, nullable=True, index=True)
 
-# 2. Générer automatiquement lors de la création
-def generate_client_code():
+# ✅ Méthode de génération automatique
+@classmethod
+def generate_client_code(cls):
     year = datetime.now().year
-    last_user = User.query.filter(
-        User.client_code.like(f'DATALYS-{year}-%')
-    ).order_by(User.id.desc()).first()
+    last_user = cls.query.filter(
+        cls.client_code.like(f'DATALYS-{year}-%')
+    ).order_by(cls.id.desc()).with_for_update().first()
     
-    if last_user:
+    if last_user and last_user.client_code:
         last_num = int(last_user.client_code.split('-')[-1])
         new_num = last_num + 1
     else:
@@ -312,15 +315,22 @@ def generate_client_code():
     
     return f'DATALYS-{year}-{new_num:03d}'
 
-# 3. Modifier auth_service.py pour accepter email OU client_code
-def login(self, identifier, password):
-    # Rechercher par email OU client_code
+# ✅ Modifié auth_service.py pour accepter email OU client_code
+def login(self, identifier: str, password: str):
+    from sqlalchemy import or_
     user = User.query.filter(
-        (User.email == identifier) | (User.client_code == identifier),
+        or_(
+            User.email == identifier,
+            User.client_code == identifier
+        ),
         User.is_deleted == False
     ).first()
     # ...
 ```
+
+**Documentation** : `/docs/CLIENT_CODE_UNIQUE.md`  
+**Migration SQL** : `/src/migrations/add_client_code_to_users.sql`  
+**Date d'implémentation** : 9 Octobre 2025
 
 ---
 
@@ -469,17 +479,17 @@ def upload_incident_file(incident_id):
 
 ### 🔴 **CRITIQUE (À faire immédiatement)**
 
-1. ❌ **Système de criticité P0-P4** (au lieu de basse/moyenne/haute/critique)
-2. ❌ **Numéro d'incident auto-généré** (INC-2025-00001)
-3. ❌ **Champs obligatoires incidents** : déclarant, domaine, impact
-4. ❌ **Authentification Multi-Facteur (MFA)** par email
-5. ❌ **Code client unique** pour login
+1. ✅ **Système de criticité P0-P4** (au lieu de basse/moyenne/haute/critique) - **FAIT**
+2. ✅ **Numéro d'incident auto-généré** (INC-2025-00001) - **FAIT**
+3. ✅ **Champs obligatoires incidents** : déclarant, domaine, impact - **FAIT**
+4. ✅ **Authentification Multi-Facteur (MFA)** par email - **FAIT**
+5. ✅ **Code client unique** pour login - **FAIT**
 
 ### 🟠 **IMPORTANT (À faire rapidement)**
 
 6. ❌ **SLA avec compteurs** (délais, deadlines, vert/rouge)
-7. ❌ **Statuts spécifiques** : nouveau, en_attente, en_arbitrage
-8. ❌ **Email automatique aux experts** lors création incident
+7. ✅ **Statuts spécifiques** : nouveau, en_attente, en_arbitrage - **FAIT**
+8. ✅ **Email automatique aux experts** lors création incident - **FAIT**
 9. ❌ **Refus de solution** et réouverture incident
 10. ❌ **Upload fichiers dans incidents**
 

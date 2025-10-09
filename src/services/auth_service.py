@@ -155,28 +155,34 @@ class AuthService:
             logger.error(f"Erreur lors de la récupération des {self.model_class.__name__}: {str(e)}")
             return [], 0
 
-    def login(self, email: str, password: str) -> Tuple[Optional[Dict], bool, str]:
+    def login(self, identifier: str, password: str) -> Tuple[Optional[Dict], bool, str]:
         """
-        Authentifier un utilisateur
+        Authentifier un utilisateur avec email/code client et mot de passe
         
         Args:
-            email: Email de l'utilisateur
+            identifier: Email OU code client de l'utilisateur (ex: "user@example.com" ou "DATALYS-2025-001")
             password: Mot de passe en clair
             
         Returns:
             Tuple (données utilisateur avec token, succès, message)
         """
         try:
-            # Rechercher l'utilisateur par email
-            users, _ = self.model_class.get_by_criteria({'email': email}, 0, 1)
-            if not users:
-                return None, False, "Email ou mot de passe incorrect"
+            # Rechercher l'utilisateur par email OU code client
+            from sqlalchemy import or_
+            user = self.model_class.query.filter(
+                or_(
+                    self.model_class.email == identifier,
+                    self.model_class.client_code == identifier
+                ),
+                self.model_class.is_deleted == False
+            ).first()
             
-            user = users[0]
+            if not user:
+                return None, False, "Identifiant ou mot de passe incorrect"
             
             # Vérifier le mot de passe
             if user.password_hash != utilities.encrypt(password):
-                return None, False, "Email ou mot de passe incorrect"
+                return None, False, "Identifiant ou mot de passe incorrect"
             
             # Vérifier si l'utilisateur est actif
             if not user.is_active:
