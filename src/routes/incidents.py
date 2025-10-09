@@ -86,6 +86,16 @@ def create_incidents():
         if 'is_read' in data:
             processed_data['is_read'] = data.get('is_read')
         
+        # ✅ NOUVEAUX CHAMPS P0-P4
+        if 'impact' in data and data['impact']:
+            processed_data['impact'] = data.get('impact')
+        if 'domain' in data and data['domain']:
+            processed_data['domain'] = data.get('domain')
+        if 'declarant_name' in data and data['declarant_name']:
+            processed_data['declarant_name'] = data.get('declarant_name')
+        if 'motif_attente' in data and data['motif_attente']:
+            processed_data['motif_attente'] = data.get('motif_attente')
+        
         # Ajouter user_name si fourni (au lieu de user_id)
         if 'user_name' in data and data['user_name']:
             processed_data['user_name'] = data.get('user_name')
@@ -166,6 +176,16 @@ def update_incidents():
         if 'is_read' in data:
             processed_data['is_read'] = data.get('is_read')
         
+        # ✅ NOUVEAUX CHAMPS P0-P4
+        if 'impact' in data and data['impact']:
+            processed_data['impact'] = data.get('impact')
+        if 'domain' in data and data['domain']:
+            processed_data['domain'] = data.get('domain')
+        if 'declarant_name' in data and data['declarant_name']:
+            processed_data['declarant_name'] = data.get('declarant_name')
+        if 'motif_attente' in data and data['motif_attente']:
+            processed_data['motif_attente'] = data.get('motif_attente')
+        
         # Ajouter user_name si fourni (au lieu de user_id)
         if 'user_name' in data and data['user_name']:
             processed_data['user_name'] = data.get('user_name')
@@ -232,4 +252,63 @@ def delete_incidents():
     logging.info("**** response output ****")
     logging.info(response)
     logging.info("**** End delete_incidents ****")
+    return response
+
+# ✅ NOUVELLE ROUTE : Obtenir les métadonnées des incidents (P0-P4, domaines, etc.)
+@bp.route('/incidents/metadata', methods=['GET'])
+@cross_origin()
+@require_auth
+def get_incidents_metadata():
+    """
+    Retourne les métadonnées pour les incidents :
+    - Priorités valides (P0-P4)
+    - Statuts valides
+    - Impacts valides
+    - Domaines valides
+    - Mapping impact → priorité recommandée
+    """
+    logging.info("**** Begin get_incidents_metadata ****")
+    
+    from models.incident import Incident
+    
+    metadata = {
+        "priorities": [
+            {"value": "P0", "label": "Arrêt de service (immédiat)", "color": "red"},
+            {"value": "P1", "label": "Forte dégradation de service", "color": "orange"},
+            {"value": "P2", "label": "Dégradation de service", "color": "yellow"},
+            {"value": "P3", "label": "Incident ordinaire", "color": "blue"},
+            {"value": "P4", "label": "Incident mineur", "color": "green"}
+        ],
+        "statuses": [
+            {"value": "nouveau", "label": "Nouveau", "color": "blue"},
+            {"value": "en_cours", "label": "En cours", "color": "orange"},
+            {"value": "en_attente", "label": "En attente", "color": "gray"},
+            {"value": "en_arbitrage", "label": "En arbitrage", "color": "purple"},
+            {"value": "resolu", "label": "Résolu", "color": "green"},
+            {"value": "ferme", "label": "Fermé", "color": "black"}
+        ],
+        "impacts": [
+            {"value": "arret_service", "label": "Arrêt de service", "recommended_priority": "P0"},
+            {"value": "service_degrade", "label": "Service dégradé", "recommended_priority": "P1"},
+            {"value": "majeur", "label": "Impact majeur", "recommended_priority": "P2"},
+            {"value": "mineur", "label": "Impact mineur", "recommended_priority": "P3"}
+        ],
+        "domains": [
+            {"value": "reseau", "label": "Réseau"},
+            {"value": "infrastructure", "label": "Infrastructure système"},
+            {"value": "cloud", "label": "Cloud"},
+            {"value": "energie", "label": "Énergie"}
+        ],
+        "priority_mapping": Incident.get_priority_mapping()
+    }
+    
+    response = {
+        "code": 200,
+        "message": functional_error.MESSAGE_SUCCESS(),
+        "data": metadata
+    }
+    
+    logging.info("**** response output ****")
+    logging.info(response)
+    logging.info("**** End get_incidents_metadata ****")
     return response 

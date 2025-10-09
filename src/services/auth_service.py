@@ -194,7 +194,41 @@ class AuthService:
                     'message': 'Vous devez changer votre mot de passe temporaire'
                 }, True, "Changement de mot de passe requis"
             
-            # Générer le token JWT
+            # ✅ NOUVEAU : Vérifier si MFA est activé
+            mfa_enabled = getattr(user, 'mfa_enabled', True)  # Par défaut activé
+            if mfa_enabled:
+                # Générer un code MFA à 6 chiffres
+                mfa_code = utilities.generate_numeric_code(6)
+                
+                # Sauvegarder le code et sa date d'expiration (5 minutes)
+                user.mfa_code = mfa_code
+                user.mfa_code_expiry = datetime.datetime.utcnow() + datetime.timedelta(minutes=5)
+                user.mfa_code_attempts = 0
+                db.session.commit()
+                
+                # Envoyer le code par email
+                from utils.notification import EmailService
+                email_service = EmailService()
+                email_sent = email_service.send_mfa_code_email(
+                    user_email=user.email,
+                    user_name=user.name,
+                    mfa_code=mfa_code
+                )
+                
+                if email_sent:
+                    logger.info(f"Code MFA envoyé à {user.email}")
+                else:
+                    logger.error(f"Échec de l'envoi du code MFA à {user.email}")
+                
+                # Retourner une réponse indiquant que le MFA est requis
+                return {
+                    'requires_mfa': True,
+                    'user_id': user.id,
+                    'email': user.email,
+                    'message': 'Code de vérification envoyé par email'
+                }, True, "MFA requis"
+            
+            # Si MFA désactivé, générer le token JWT directement
             token_data = {
                 'user_id': user.id,
                 'email': user.email,

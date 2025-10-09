@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nouvel Incident Créé</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        .email-container {
+            max-width: 650px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        .alert-icon {
+            font-size: 64px;
+            margin-bottom: 15px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            font-size: 16px;
+            opacity: 0.95;
+        }
+        .content {
+            padding: 35px 30px;
+        }
+        .incident-number {
+            background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 30px;
+            font-family: 'Courier New', monospace;
+        }
+        .incident-number-label {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-bottom: 8px;
+        }
+        .incident-number-value {
+            font-size: 32px;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+        .priority-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .priority-P0 {
+            background-color: #dc2626;
+            color: white;
+        }
+        .priority-P1 {
+            background-color: #f97316;
+            color: white;
+        }
+        .priority-P2 {
+            background-color: #eab308;
+            color: #000;
+        }
+        .priority-P3 {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .priority-P4 {
+            background-color: #22c55e;
+            color: white;
+        }
+        .info-section {
+            background-color: #f9fafb;
+            border-left: 4px solid #4FB5B9;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 6px;
+        }
+        .info-row {
+            display: flex;
+            padding: 12px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #4b5563;
+            min-width: 140px;
+            font-size: 14px;
+        }
+        .info-value {
+            color: #1f2937;
+            flex: 1;
+            font-size: 14px;
+        }
+        .description-box {
+            background-color: #ffffff;
+            border: 2px solid #e5e7eb;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 25px 0;
+        }
+        .description-title {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+        .description-text {
+            color: #4b5563;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+        .action-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #4FB5B9 0%, #2980B9 100%);
+            color: white;
+            padding: 16px 40px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            margin: 25px 0;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(79, 181, 185, 0.3);
+            transition: transform 0.2s;
+        }
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(79, 181, 185, 0.4);
+        }
+        .urgency-notice {
+            background-color: #fef2f2;
+            border-left: 4px solid #dc2626;
+            padding: 16px;
+            margin: 25px 0;
+            border-radius: 6px;
+        }
+        .urgency-notice p {
+            margin: 0;
+            color: #991b1b;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .footer {
+            background-color: #f9fafb;
+            padding: 25px 30px;
+            text-align: center;
+            border-top: 1px solid #e5e7eb;
+        }
+        .footer p {
+            margin: 8px 0;
+            color: #6b7280;
+            font-size: 13px;
+        }
+        .logo {
+            max-width: 150px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="alert-icon">🚨</div>
+            <h1>NOUVEL INCIDENT CRÉÉ</h1>
+            <p>Une intervention est requise</p>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <!-- Incident Number -->
+            <div class="incident-number">
+                <div class="incident-number-label">Numéro d'incident</div>
+                <div class="incident-number-value">{{ incident_number }}</div>
+                <span class="priority-badge priority-{{ priority }}">{{ priority }} - {{ priority_label }}</span>
+            </div>
+
+            <!-- Incident Details -->
+            <div class="info-section">
+                <div class="info-row">
+                    <span class="info-label">📋 Titre :</span>
+                    <span class="info-value">{{ incident_title }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">⚠️ Impact :</span>
+                    <span class="info-value">{{ impact_label }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">🔧 Domaine :</span>
+                    <span class="info-value">{{ domain_label }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">👤 Déclarant :</span>
+                    <span class="info-value">{{ declarant_name }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">🏢 Client :</span>
+                    <span class="info-value">{{ partner_name }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">📁 Projet :</span>
+                    <span class="info-value">{{ project_title }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">🕐 Créé le :</span>
+                    <span class="info-value">{{ created_at }}</span>
+                </div>
+            </div>
+
+            <!-- Description -->
+            <div class="description-box">
+                <div class="description-title">📝 Description de l'incident :</div>
+                <div class="description-text">{{ incident_description }}</div>
+            </div>
+
+            <!-- Urgency Notice for P0/P1 -->
+            {% if priority in ['P0', 'P1'] %}
+            <div class="urgency-notice">
+                <p>⚠️ Cet incident nécessite une prise en charge immédiate !</p>
+            </div>
+            {% endif %}
+
+            <!-- Action Button -->
+            <center>
+                <a href="{{ app_url }}/incidents/{{ incident_id }}" class="action-button">
+                    🔍 Accéder à l'incident
+                </a>
+            </center>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <img src="{{ logo_url }}" alt="Datalys Consulting" class="logo">
+            <p><strong>Datalys Consulting</strong></p>
+            <p>Excellence en Solutions Informatiques</p>
+            <p style="margin-top: 15px; font-size: 12px;">
+                Cet email a été envoyé automatiquement. Merci de ne pas y répondre.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
+

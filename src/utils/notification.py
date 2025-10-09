@@ -251,7 +251,118 @@ class EmailService:
         
         return self.send_email(partner_email, subject, html_content)
     
-
+    def send_mfa_code_email(self, user_email: str, user_name: str, mfa_code: str) -> bool:
+        """
+        Envoyer un email avec le code MFA (Multi-Factor Authentication)
+        
+        Args:
+            user_email: Email de l'utilisateur
+            user_name: Nom de l'utilisateur
+            mfa_code: Code MFA à 6 chiffres
+            
+        Returns:
+            True si l'email a été envoyé avec succès
+        """
+        try:
+            from flask import render_template
+            from config import Config
+            from datetime import datetime
+            
+            subject = f"🔐 Code de vérification - Datalys Consulting"
+            
+            # Préparer les données pour le template
+            now = datetime.now()
+            template_data = {
+                'user_name': user_name,
+                'user_email': user_email,
+                'mfa_code': mfa_code,
+                'login_date': now.strftime('%d/%m/%Y'),
+                'login_time': now.strftime('%H:%M:%S'),
+                'logo_url': 'https://datalysconsulting.com/logo.png'
+            }
+            
+            # Rendre le template HTML
+            html_content = render_template('email_mfa_code.html', **template_data)
+            
+            # Envoyer l'email
+            return self.send_email(user_email, subject, html_content)
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de l'envoi du code MFA à {user_email}: {str(e)}")
+            return False
+    
+    def send_incident_notification_to_experts(self, expert_email: str, expert_name: str, incident_data: Dict[str, Any]) -> bool:
+        """
+        Envoyer un email de notification aux experts (Admin/Manager) lors de la création d'un incident
+        
+        Args:
+            expert_email: Email de l'expert
+            expert_name: Nom de l'expert
+            incident_data: Données de l'incident (incident_number, title, priority, etc.)
+            
+        Returns:
+            True si l'email a été envoyé avec succès
+        """
+        try:
+            from flask import render_template
+            from config import Config
+            
+            # Préparer le sujet avec le numéro d'incident et la priorité
+            priority = incident_data.get('priority', 'P3')
+            incident_number = incident_data.get('incident_number', 'N/A')
+            subject = f"🚨 Nouvel incident : {incident_number} [{priority}]"
+            
+            # Mapper les labels
+            priority_labels = {
+                'P0': 'Arrêt de service (immédiat)',
+                'P1': 'Forte dégradation de service',
+                'P2': 'Dégradation de service',
+                'P3': 'Incident ordinaire',
+                'P4': 'Incident mineur'
+            }
+            
+            impact_labels = {
+                'arret_service': 'Arrêt de service',
+                'service_degrade': 'Service dégradé',
+                'majeur': 'Impact majeur',
+                'mineur': 'Impact mineur'
+            }
+            
+            domain_labels = {
+                'reseau': 'Réseau',
+                'infrastructure': 'Infrastructure système',
+                'cloud': 'Cloud',
+                'energie': 'Énergie'
+            }
+            
+            # Préparer les données pour le template
+            template_data = {
+                'expert_name': expert_name,
+                'incident_number': incident_number,
+                'incident_title': incident_data.get('incident_title', 'N/A'),
+                'incident_description': incident_data.get('incident_description', 'Aucune description'),
+                'priority': priority,
+                'priority_label': priority_labels.get(priority, priority),
+                'impact_label': impact_labels.get(incident_data.get('impact', ''), 'Non spécifié'),
+                'domain_label': domain_labels.get(incident_data.get('domain', ''), 'Non spécifié'),
+                'declarant_name': incident_data.get('declarant_name', 'Non spécifié'),
+                'partner_name': incident_data.get('partner_name', 'N/A'),
+                'project_title': incident_data.get('project_title', 'N/A'),
+                'created_at': incident_data.get('created_at', 'Maintenant'),
+                'incident_id': incident_data.get('incident_id', ''),
+                'app_url': Config.APP_URL or 'https://app.datalysconsulting.com',
+                'logo_url': 'https://datalysconsulting.com/logo.png'
+            }
+            
+            # Rendre le template HTML
+            html_content = render_template('email_incident_notification_experts.html', **template_data)
+            
+            # Envoyer l'email
+            return self.send_email(expert_email, subject, html_content)
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de l'envoi de l'email de notification à l'expert {expert_email}: {str(e)}")
+            return False
     
     def send_incident_alert(self, to_email: str, partner_name: str, email_data: Dict[str, Any]) -> bool:
         """

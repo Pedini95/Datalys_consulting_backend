@@ -7,13 +7,36 @@ class Incident(db.Model):
     __tablename__ = 'incidents'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    
+    # ✅ NOUVEAU : Numéro d'incident auto-généré (INC-2025-00001)
+    incident_number = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
     
     # Amélioration : Ajouter des champs pour la communication
     type = db.Column(db.String(50), default='incident')  # 'incident', 'message', 'support', 'notification'
-    priority = db.Column(db.String(20), default='moyenne')  # 'basse', 'moyenne', 'haute', 'critique'
-    status = db.Column(db.String(20), default='ouvert')  # 'ouvert', 'en_cours', 'resolu', 'ferme'
+    
+    priority = db.Column(db.String(20), default='P3')  # 'P0', 'P1', 'P2', 'P3', 'P4'
+    # P0 : Arrêt de service (prise en charge immédiate)
+    # P1 : Forte dégradation de service
+    # P2 : Dégradation de service
+    # P3 : Incident ordinaire sans impact
+    # P4 : Incident mineur
+    
+    # ✅ NOUVEAU : Impact de l'incident
+    impact = db.Column(db.String(50), nullable=True)  # 'arret_service', 'service_degrade', 'majeur', 'mineur'
+    
+    # ✅ NOUVEAU : Domaine concerné
+    domain = db.Column(db.String(50), nullable=True)  # 'reseau', 'infrastructure', 'cloud', 'energie'
+    
+    # ✅ NOUVEAU : Nom du déclarant
+    declarant_name = db.Column(db.String(255), nullable=True)
+    
+    status = db.Column(db.String(20), default='nouveau')  # 'nouveau', 'en_cours', 'en_attente', 'en_arbitrage', 'resolu', 'ferme'
+    
+    motif_attente = db.Column(db.Text, nullable=True)
+    
     category = db.Column(db.String(50), nullable=True)  # 'technique', 'fonctionnel', 'support', 'question'
     
     # Relations existantes
@@ -47,7 +70,8 @@ class Incident(db.Model):
     def as_dict(self):
         data = {}
         columns = [
-            'id', 'title', 'description', 'type', 'priority', 'status', 'category',
+            'id', 'incident_number', 'title', 'description', 'type', 'priority', 'status', 'category',
+            'impact', 'domain', 'declarant_name', 'motif_attente', 
             'user_id', 'project_id', 'assigned_to', 'parent_id', 
             'resolution_notes', 'is_read', 'read_at',
             'is_active', 'is_deleted', 'created_at', 'created_by', 'updated_at', 'updated_by'
@@ -59,7 +83,49 @@ class Incident(db.Model):
                     data[column] = value.isoformat()
                 else:
                     data[column] = value
+        
+        # ✅ Ajouter des métadonnées utiles
+        if self.priority:
+            data['priority_label'] = self.get_priority_label()
+        if self.status:
+            data['status_color'] = self.get_status_color()
+        if self.impact:
+            data['impact_label'] = self.get_impact_label()
+        
         return data
+    
+    def get_priority_label(self):
+        """Retourne le label descriptif de la priorité"""
+        labels = {
+            'P0': 'Arrêt de service (immédiat)',
+            'P1': 'Forte dégradation de service',
+            'P2': 'Dégradation de service',
+            'P3': 'Incident ordinaire',
+            'P4': 'Incident mineur'
+        }
+        return labels.get(self.priority, self.priority)
+    
+    def get_status_color(self):
+        """Retourne la couleur associée au statut"""
+        colors = {
+            'nouveau': 'blue',
+            'en_cours': 'orange',
+            'en_attente': 'gray',
+            'en_arbitrage': 'purple',
+            'resolu': 'green',
+            'ferme': 'black'
+        }
+        return colors.get(self.status, 'gray')
+    
+    def get_impact_label(self):
+        """Retourne le label descriptif de l'impact"""
+        labels = {
+            'arret_service': 'Arrêt de service',
+            'service_degrade': 'Service dégradé',
+            'majeur': 'Impact majeur',
+            'mineur': 'Impact mineur'
+        }
+        return labels.get(self.impact, self.impact)
 
     @staticmethod
     def get_by_criteria(criteria, index, size):
@@ -80,6 +146,15 @@ class Incident(db.Model):
             conditions.append(Incident.status == criteria['status'])
         if 'category' in criteria:
             conditions.append(Incident.category == criteria['category'])
+        
+        # ✅ Nouveaux critères de recherche
+        if 'impact' in criteria:
+            conditions.append(Incident.impact == criteria['impact'])
+        if 'domain' in criteria:
+            conditions.append(Incident.domain == criteria['domain'])
+        if 'declarant_name' in criteria:
+            conditions.append(Incident.declarant_name.like(f"%{criteria['declarant_name']}%"))
+        
         if 'user_id' in criteria:
             conditions.append(Incident.user_id == criteria['user_id'])
         if 'project_id' in criteria:
@@ -99,6 +174,62 @@ class Incident(db.Model):
         total_items = query.count()
         query = query.offset(index * size).limit(size)
         return query.all(), total_items
+    
+    @classmethod
+    def get_priority_mapping(cls):
+        """Retourne le mapping entre impact et priorité recommandée"""
+        return {
+            'arret_service': 'P0',
+            'service_degrade': 'P1',
+            'majeur': 'P2',
+            'mineur': 'P3'
+        }
+    
+    @classmethod
+    def get_valid_priorities(cls):
+        """Retourne la liste des priorités valides"""
+        return ['P0', 'P1', 'P2', 'P3', 'P4']
+    
+    @classmethod
+    def get_valid_statuses(cls):
+        """Retourne la liste des statuts valides"""
+        return ['nouveau', 'en_cours', 'en_attente', 'en_arbitrage', 'resolu', 'ferme']
+    
+    @classmethod
+    def get_valid_impacts(cls):
+        """Retourne la liste des impacts valides"""
+        return ['arret_service', 'service_degrade', 'majeur', 'mineur']
+    
+    @classmethod
+    def get_valid_domains(cls):
+        """Retourne la liste des domaines valides"""
+        return ['reseau', 'infrastructure', 'cloud', 'energie']
+    
+    @classmethod
+    def generate_incident_number(cls):
+        """
+        Génère un numéro d'incident unique et séquentiel
+        Format : INC-YYYY-NNNNN (ex: INC-2025-00001)
+        
+        Utilise un verrouillage de ligne pour garantir l'unicité
+        même en cas de créations simultanées
+        """
+        year = datetime.now().year
+        
+        # Verrouiller la dernière ligne pour éviter les doublons (FOR UPDATE)
+        last_incident = cls.query.filter(
+            cls.incident_number.like(f'INC-{year}-%')
+        ).order_by(cls.id.desc()).with_for_update().first()
+        
+        if last_incident:
+            # Extraire le numéro de la dernière entrée
+            last_num = int(last_incident.incident_number.split('-')[-1])
+            new_num = last_num + 1
+        else:
+            # Premier incident de l'année
+            new_num = 1
+        
+        return f'INC-{year}-{new_num:05d}'
 
     def __repr__(self):
-        return f'<Incident {self.title}>' 
+        return f'<Incident {self.incident_number}: {self.title}>' 

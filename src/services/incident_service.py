@@ -274,6 +274,11 @@ class IncidentService:
             Tuple (incident, succès, message)
         """
         try:
+            # ✅ NOUVEAU : Générer automatiquement le numéro d'incident
+            if 'incident_number' not in data or not data['incident_number']:
+                data['incident_number'] = self.model_class.generate_incident_number()
+                logger.info(f"Numéro d'incident généré automatiquement: {data['incident_number']}")
+            
             # Traiter le user_name si fourni (au lieu de user_id)
             if 'user_name' in data and data['user_name']:
                 from models import User
@@ -307,7 +312,11 @@ class IncidentService:
             
             # Envoyer des alertes par email si l'incident est lié à un projet
             if incident.project_id and incident.type == 'incident':
+                # 1. Envoyer email au partenaire/client
                 self._send_incident_alerts(incident, user_id)
+                
+                # 2. ✅ NOUVEAU : Envoyer email à tous les experts (Admin/Manager)
+                self._send_expert_notifications(incident, user_id)
             
             db.session.commit()
             
@@ -322,9 +331,93 @@ class IncidentService:
             logger.error(f"Erreur inattendue lors de la création de {self.model_class.__name__}: {str(e)}")
             return None, False, f"Erreur inattendue: {str(e)}"
     
+    def _send_expert_notifications(self, incident: Incident, user_id: Optional[int] = None):
+        """
+        Envoyer des notifications par email à tous les experts (Admin/Manager)
+        lors de la création d'un nouvel incident
+        
+        Args:
+            incident: L'incident créé
+            user_id: ID de l'utilisateur qui a créé l'incident
+        """
+        try:
+            from models import Project, Partner, User, Role
+            from utils.notification import EmailService
+            
+            # Récupérer tous les experts (Admin + Manager)
+            experts = User.query.join(Role).filter(
+                Role.name.in_(['Admin', 'Manager']),
+                User.is_active == True,
+                User.is_deleted == False,
+                User.email.isnot(None)
+            ).all()
+            
+            if not experts:
+                logger.warning("Aucun expert trouvé pour envoyer les notifications")
+                return
+            
+            logger.info(f"Envoi de notifications à {len(experts)} expert(s)")
+            
+            # Récupérer les informations du projet et du partenaire
+            project_title = "N/A"
+            partner_name = "N/A"
+            
+            if incident.project_id:
+                projects, _ = Project.get_by_criteria({'id': incident.project_id}, 0, 1)
+                if projects:
+                    project = projects[0]
+                    project_title = project.title
+                    
+                    if project.partner_id:
+                        partners, _ = Partner.get_by_criteria({'id': project.partner_id}, 0, 1)
+                        if partners:
+                            partner_name = partners[0].name
+            
+            # Préparer les données de l'incident
+            incident_data = {
+                'incident_number': incident.incident_number,
+                'incident_title': incident.title,
+                'incident_description': incident.description or "Aucune description",
+                'priority': incident.priority,
+                'impact': incident.impact,
+                'domain': incident.domain,
+                'declarant_name': incident.declarant_name or "Non spécifié",
+                'partner_name': partner_name,
+                'project_title': project_title,
+                'incident_id': incident.id,
+                'created_at': incident.created_at.strftime('%d/%m/%Y à %H:%M') if incident.created_at else "Maintenant"
+            }
+            
+            # Envoyer l'email à chaque expert
+            email_service = EmailService()
+            success_count = 0
+            
+            for expert in experts:
+                try:
+                    success = email_service.send_incident_notification_to_experts(
+                        expert_email=expert.email,
+                        expert_name=expert.name or expert.email,
+                        incident_data=incident_data
+                    )
+                    
+                    if success:
+                        success_count += 1
+                        logger.info(f"✅ Email envoyé à l'expert {expert.name} ({expert.email})")
+                    else:
+                        logger.error(f"❌ Échec de l'envoi à l'expert {expert.name} ({expert.email})")
+                        
+                except Exception as e:
+                    logger.error(f"❌ Erreur lors de l'envoi à l'expert {expert.name}: {str(e)}")
+            
+            logger.info(f"📧 Notifications envoyées : {success_count}/{len(experts)} experts")
+            
+        except Exception as e:
+            logger.error(f"Erreur lors de l'envoi des notifications aux experts: {str(e)}")
+            # Ne pas faire échouer la création de l'incident si l'email échoue
+    
     def _send_incident_alerts(self, incident: Incident, user_id: Optional[int] = None):
         """
-        Envoyer des alertes par email pour un incident
+        Envoyer des alertes par email pour un incident (au partenaire/client)
         
         Args:
             incident: L'incident créé

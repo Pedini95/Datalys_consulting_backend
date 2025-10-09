@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code de Vérification</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 30px auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #4FB5B9 0%, #2980B9 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        .lock-icon {
+            font-size: 64px;
+            margin-bottom: 15px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            font-size: 16px;
+            opacity: 0.95;
+        }
+        .content {
+            padding: 40px 30px;
+        }
+        .greeting {
+            font-size: 18px;
+            color: #1f2937;
+            margin-bottom: 20px;
+        }
+        .message {
+            color: #4b5563;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            font-size: 15px;
+        }
+        .code-container {
+            background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            margin: 30px 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .code-label {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .code {
+            font-size: 48px;
+            font-weight: bold;
+            color: #FFD059;
+            letter-spacing: 8px;
+            font-family: 'Courier New', monospace;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .expiry-notice {
+            background-color: #fef2f2;
+            border-left: 4px solid #dc2626;
+            padding: 16px;
+            margin: 25px 0;
+            border-radius: 6px;
+        }
+        .expiry-notice p {
+            margin: 0;
+            color: #991b1b;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .security-notice {
+            background-color: #eff6ff;
+            border-left: 4px solid #2563eb;
+            padding: 16px;
+            margin: 25px 0;
+            border-radius: 6px;
+        }
+        .security-notice p {
+            margin: 0;
+            color: #1e40af;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .info-box {
+            background-color: #f9fafb;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 25px 0;
+        }
+        .info-row {
+            display: flex;
+            padding: 10px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #4b5563;
+            min-width: 120px;
+            font-size: 14px;
+        }
+        .info-value {
+            color: #1f2937;
+            font-size: 14px;
+        }
+        .footer {
+            background-color: #f9fafb;
+            padding: 25px 30px;
+            text-align: center;
+            border-top: 1px solid #e5e7eb;
+        }
+        .footer p {
+            margin: 8px 0;
+            color: #6b7280;
+            font-size: 13px;
+        }
+        .logo {
+            max-width: 150px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="lock-icon">🔐</div>
+            <h1>CODE DE VÉRIFICATION</h1>
+            <p>Authentification Multi-Facteurs</p>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <div class="greeting">
+                Bonjour <strong>{{ user_name }}</strong>,
+            </div>
+
+            <div class="message">
+                Quelqu'un tente de se connecter à votre compte <strong>Datalys Consulting</strong>.
+                <br><br>
+                Pour compléter votre connexion, veuillez utiliser le code de vérification ci-dessous :
+            </div>
+
+            <!-- Code Container -->
+            <div class="code-container">
+                <div class="code-label">Votre code de vérification</div>
+                <div class="code">{{ mfa_code }}</div>
+            </div>
+
+            <!-- Expiry Notice -->
+            <div class="expiry-notice">
+                <p>⏱️ Ce code expire dans <strong>5 minutes</strong></p>
+            </div>
+
+            <!-- Connection Info -->
+            <div class="info-box">
+                <div class="info-row">
+                    <span class="info-label">📅 Date :</span>
+                    <span class="info-value">{{ login_date }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">🕐 Heure :</span>
+                    <span class="info-value">{{ login_time }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">📧 Email :</span>
+                    <span class="info-value">{{ user_email }}</span>
+                </div>
+            </div>
+
+            <!-- Security Notice -->
+            <div class="security-notice">
+                <p>
+                    🛡️ <strong>Si ce n'est pas vous :</strong><br>
+                    Ignorez cet email et changez immédiatement votre mot de passe.
+                    Quelqu'un pourrait avoir accès à vos identifiants.
+                </p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <img src="{{ logo_url }}" alt="Datalys Consulting" class="logo">
+            <p><strong>Datalys Consulting</strong></p>
+            <p>Excellence en Solutions Informatiques</p>
+            <p style="margin-top: 15px; font-size: 12px;">
+                Cet email a été envoyé automatiquement. Merci de ne pas y répondre.
+            </p>
+            <p style="font-size: 11px; color: #9ca3af; margin-top: 10px;">
+                Pour des raisons de sécurité, ne partagez jamais ce code avec qui que ce soit.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
+
