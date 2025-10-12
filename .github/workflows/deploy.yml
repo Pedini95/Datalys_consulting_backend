@@ -42,22 +42,33 @@ jobs:
             APP_DIR="/root/datalys-backend"
             BACKUP_DIR="/backup/deployments"
             TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+            REPO_URL="https://github.com/Pedini95/Datalys_consulting_backend.git"
             
             # Créer le répertoire de backup si nécessaire
             mkdir -p $BACKUP_DIR
             
-            # Aller dans le répertoire de l'application
-            cd $APP_DIR
-            
             echo "📋 Étape 1/7: Sauvegarde de la configuration actuelle..."
-            cp -r . $BACKUP_DIR/backup_$TIMESTAMP || true
-            echo "✅ Backup créé: $BACKUP_DIR/backup_$TIMESTAMP"
+            if [ -d "$APP_DIR" ]; then
+              cp -r $APP_DIR $BACKUP_DIR/backup_$TIMESTAMP || true
+              echo "✅ Backup créé: $BACKUP_DIR/backup_$TIMESTAMP"
+            else
+              echo "ℹ️  Pas de backup (première installation)"
+            fi
             echo ""
             
             echo "📥 Étape 2/7: Récupération du code depuis Git..."
-            git fetch origin
-            git reset --hard origin/develop
-            echo "✅ Code mis à jour"
+            if [ -d "$APP_DIR/.git" ]; then
+              cd $APP_DIR
+              git fetch origin
+              git reset --hard origin/develop
+              echo "✅ Code mis à jour via git pull"
+            else
+              echo "ℹ️  Clonage du repository..."
+              rm -rf $APP_DIR
+              git clone -b develop $REPO_URL $APP_DIR
+              cd $APP_DIR
+              echo "✅ Repository cloné"
+            fi
             echo ""
             
             echo "🔒 Étape 3/7: Vérification du fichier .env..."
