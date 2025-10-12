@@ -80,6 +80,7 @@ jobs:
             echo ""
             
             echo "🐳 Étape 4/7: Reconstruction de l'image Docker..."
+            export DOCKER_BUILDKIT=0
             docker build -t datalys_consulting_backend-datalys-api:latest -f src/Dockerfile .
             echo "✅ Image Docker construite"
             echo ""
