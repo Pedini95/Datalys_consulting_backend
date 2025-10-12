@@ -235,8 +235,8 @@ class FileUploadManager:
     def get_file_url(self, file_path: str) -> str:
         """Générer l'URL d'accès au fichier"""
         try:
-            # Construire l'URL de base
-            base_url = current_app.config.get('BASE_URL', 'http://localhost:5000')
+            # Construire l'URL de base (utiliser APP_URL de la config)
+            base_url = current_app.config.get('APP_URL', 'http://localhost:5000')
             
             # Nettoyer le chemin
             relative_path = file_path.replace('\\', '/').lstrip('/')
