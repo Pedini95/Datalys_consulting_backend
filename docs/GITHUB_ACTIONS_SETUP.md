@@ -1,471 +1,320 @@
-# 🚀 Configuration du déploiement automatique avec GitHub Actions
+# 🚀 Configuration du Déploiement Automatique avec GitHub Actions
 
-## 📋 Vue d'ensemble
-
-Ce guide explique comment configurer le déploiement automatique de votre backend sur le VPS via GitHub Actions.
-
----
-
-## 🎯 Fonctionnement
-
-```
-┌─────────────────┐
-│   DÉVELOPPEUR   │
-│                 │
-│  git push       │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  GITHUB REPO    │
-│                 │
-│  Détecte push   │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ GITHUB ACTIONS  │
-│                 │
-│  Exécute        │
-│  workflow       │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│   VPS SERVER    │
-│ 82.112.253.137  │
-│                 │
-│  1. git pull    │
-│  2. restart     │
-│  3. verify      │
-└─────────────────┘
-         │
-         ▼
-┌─────────────────┐
-│  ✅ DÉPLOYÉ     │
-└─────────────────┘
-```
+**Date:** 12 octobre 2025  
+**Objectif:** Déployer automatiquement sur le VPS à chaque push sur `main`
 
 ---
 
-## ⚙️ Étape 1 : Configurer les secrets GitHub
+## 📋 Prérequis
 
-### 1.1 Aller sur GitHub
+- [x] Compte GitHub avec accès au repository
+- [x] Accès SSH au serveur VPS (82.112.253.137)
+- [x] Droits administrateur sur le repository GitHub
 
-1. Ouvrez votre repository sur GitHub
-2. Cliquez sur **Settings** (⚙️)
-3. Dans le menu de gauche, cliquez sur **Secrets and variables** → **Actions**
-4. Cliquez sur **New repository secret**
+---
 
-### 1.2 Ajouter les secrets
+## 🔐 Étape 1: Générer une Clé SSH pour GitHub Actions
 
-Ajoutez les 3 secrets suivants :
+### Sur votre machine locale ou le serveur :
 
-#### Secret 1 : `SSH_HOST`
+```bash
+# Générer une nouvelle paire de clés SSH (sans passphrase)
+ssh-keygen -t ed25519 -C "github-actions@datalysconsulting.com" -f ~/.ssh/github_actions_deploy
+
+# Afficher la clé PUBLIQUE
+cat ~/.ssh/github_actions_deploy.pub
+
+# Afficher la clé PRIVÉE (à copier dans GitHub Secrets)
+cat ~/.ssh/github_actions_deploy
 ```
+
+### Ajouter la clé publique au serveur :
+
+```bash
+# Se connecter au serveur
+ssh root@82.112.253.137
+
+# Ajouter la clé publique aux clés autorisées
+cat >> ~/.ssh/authorized_keys << 'EOF'
+# Coller ici la clé PUBLIQUE (github_actions_deploy.pub)
+EOF
+
+# Sécuriser les permissions
+chmod 600 ~/.ssh/authorized_keys
+chmod 700 ~/.ssh
+
+# Tester la connexion depuis votre machine
+ssh -i ~/.ssh/github_actions_deploy root@82.112.253.137
+```
+
+---
+
+## 🔧 Étape 2: Configurer les Secrets GitHub
+
+### Aller sur GitHub :
+
+1. Ouvrir votre repository sur GitHub
+2. Aller dans **Settings** → **Secrets and variables** → **Actions**
+3. Cliquer sur **New repository secret**
+
+### Créer 3 secrets :
+
+#### Secret 1: `SSH_HOST`
+```
+Nom: SSH_HOST
+Valeur: 82.112.253.137
+```
+
+#### Secret 2: `SSH_USER`
+```
+Nom: SSH_USER
+Valeur: root
+```
+
+#### Secret 3: `SSH_PRIVATE_KEY`
+```
+Nom: SSH_PRIVATE_KEY
+Valeur: [Copier TOUT le contenu de ~/.ssh/github_actions_deploy]
+```
+
+**Format de la clé privée :**
+```
+-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+...
+(plusieurs lignes)
+...
+-----END OPENSSH PRIVATE KEY-----
+```
+
+⚠️ **IMPORTANT:** Copiez TOUTE la clé, y compris les lignes BEGIN et END !
+
+---
+
+## 📸 Captures d'écran du processus
+
+### 1. Accéder aux Secrets
+```
+GitHub Repository → Settings → Secrets and variables → Actions
+```
+
+### 2. Ajouter un Secret
+```
+Click "New repository secret"
 Name: SSH_HOST
-Value: 82.112.253.137
+Secret: 82.112.253.137
+Click "Add secret"
 ```
 
-#### Secret 2 : `SSH_USER`
-```
-Name: SSH_USER
-Value: root
-```
-
-#### Secret 3 : `SSH_PASSWORD`
-```
-Name: SSH_PASSWORD
-Value: [Votre mot de passe root du VPS]
-```
-
-> ⚠️ **Important** : Ne partagez JAMAIS ces secrets publiquement !
+### 3. Vérifier les Secrets
+Vous devriez voir 3 secrets :
+- ✅ SSH_HOST
+- ✅ SSH_USER  
+- ✅ SSH_PRIVATE_KEY
 
 ---
 
-## 🔐 Alternative : Utiliser une clé SSH (Plus sécurisé)
+## 🧪 Étape 3: Tester le Déploiement
 
-### Option A : Clé SSH existante
-
-Si vous avez déjà une clé SSH configurée :
+### Option 1: Push sur main
 
 ```bash
-# Afficher votre clé privée
-cat ~/.ssh/id_rsa
-```
-
-Copiez tout le contenu (y compris `-----BEGIN` et `-----END`)
-
-### Option B : Créer une nouvelle clé SSH
-
-```bash
-# Générer une nouvelle clé SSH
-ssh-keygen -t rsa -b 4096 -C "github-actions" -f ~/.ssh/github_actions_key -N ""
-
-# Afficher la clé privée
-cat ~/.ssh/github_actions_key
-
-# Afficher la clé publique
-cat ~/.ssh/github_actions_key.pub
-```
-
-### Ajouter la clé publique au VPS
-
-```bash
-# Sur votre machine locale
-ssh-copy-id -i ~/.ssh/github_actions_key.pub root@82.112.253.137
-
-# Ou manuellement sur le VPS
-ssh root@82.112.253.137
-echo "VOTRE_CLE_PUBLIQUE" >> ~/.ssh/authorized_keys
-```
-
-### Ajouter la clé privée comme secret GitHub
-
-```
-Name: SSH_PRIVATE_KEY
-Value: [Contenu complet de la clé privée]
-```
-
-### Modifier le workflow pour utiliser la clé SSH
-
-Remplacez dans `.github/workflows/deploy.yml` :
-
-```yaml
-# Remplacer cette ligne :
-password: ${{ secrets.SSH_PASSWORD }}
-
-# Par :
-key: ${{ secrets.SSH_PRIVATE_KEY }}
-```
-
----
-
-## 📝 Étape 2 : Configurer Git sur le VPS
-
-Sur le VPS, assurez-vous que le projet est un repository Git :
-
-```bash
-# Se connecter au VPS
-ssh root@82.112.253.137
-
-# Aller dans le dossier du projet
-cd /root/Datalys_consulting_backend
-
-# Vérifier que c'est un repo Git
-git status
-
-# Si ce n'est pas un repo Git, l'initialiser
-git init
-git remote add origin https://github.com/VOTRE_USERNAME/VOTRE_REPO.git
-git fetch origin
-git checkout -b develop origin/develop
-```
-
-### Configuration Git pour éviter les conflits
-
-```bash
-# Sur le VPS
-cd /root/Datalys_consulting_backend
-
-# Configurer Git pour accepter les reset
-git config --local receive.denyCurrentBranch ignore
-
-# Ignorer les modifications locales lors du pull
-git config --local pull.rebase false
-```
-
----
-
-## 🚀 Étape 3 : Tester le déploiement automatique
-
-### 3.1 Déclenchement automatique
-
-Le déploiement se déclenche automatiquement lors d'un push sur :
-- `main`
-- `master`
-- `develop`
-
-```bash
-# Sur votre machine locale
-cd /Users/pkone/Documents/workspace_flask_python/Datalys_consulting_backend
-
-# Faire une modification
-echo "# Test déploiement automatique" >> README.md
-
-# Commit et push
+# Faire un commit et push
 git add .
-git commit -m "Test: déploiement automatique"
-git push origin develop
+git commit -m "test: déploiement automatique"
+git push origin main
 ```
 
-### 3.2 Déclenchement manuel
+### Option 2: Déclenchement manuel
 
-Vous pouvez aussi déclencher manuellement le déploiement :
-
-1. Allez sur GitHub → **Actions**
-2. Sélectionnez le workflow **🚀 Déploiement automatique**
-3. Cliquez sur **Run workflow**
-4. Sélectionnez la branche
-5. Cliquez sur **Run workflow**
+1. Aller sur GitHub → **Actions**
+2. Sélectionner le workflow **"🚀 Deploy to Production"**
+3. Cliquer sur **"Run workflow"**
+4. Sélectionner la branche `main`
+5. Cliquer sur **"Run workflow"**
 
 ---
 
-## 📊 Étape 4 : Surveiller le déploiement
+## 📊 Étape 4: Suivre le Déploiement
 
-### Sur GitHub
+### Sur GitHub :
 
-1. Allez sur **Actions** dans votre repository
-2. Vous verrez la liste des workflows en cours/terminés
-3. Cliquez sur un workflow pour voir les détails
-4. Chaque étape affiche ses logs
+1. Aller dans l'onglet **Actions**
+2. Cliquer sur le workflow en cours
+3. Suivre les logs en temps réel
 
-### Exemple de logs réussis
+### Étapes du déploiement :
 
 ```
-✅ Checkout du code
-✅ Déploiement via SSH
-   🔄 Début du déploiement...
-   💾 Sauvegarde des fichiers sensibles...
-   📥 Récupération des modifications...
-   ♻️ Restauration des fichiers sensibles...
-   🔄 Redémarrage du backend...
-   ⏳ Attente du démarrage...
-   🏥 Vérification de la santé de l'API...
-   ✅ Déploiement terminé avec succès !
-✅ Notification de succès
-   🎉 Déploiement réussi sur 82.112.253.137
-   🌐 API: http://82.112.253.137:8082
+✅ 1/7: Sauvegarde de la configuration actuelle
+✅ 2/7: Récupération du code depuis Git
+✅ 3/7: Vérification du fichier .env
+✅ 4/7: Reconstruction de l'image Docker
+✅ 5/7: Arrêt du conteneur actuel
+✅ 6/7: Démarrage du nouveau conteneur
+✅ 7/7: Vérification du démarrage
 ```
 
 ---
 
-## 🔧 Workflow détaillé
+## 🔍 Vérification Post-Déploiement
 
-Le workflow `.github/workflows/deploy.yml` effectue les actions suivantes :
+### Sur le serveur :
 
-### 1. **Checkout du code**
-```yaml
-- name: 📥 Checkout du code
-  uses: actions/checkout@v3
-```
-Récupère le code depuis GitHub
-
-### 2. **Connexion SSH au VPS**
-```yaml
-- name: 🚀 Déploiement via SSH
-  uses: appleboy/ssh-action@master
-```
-Se connecte au VPS via SSH
-
-### 3. **Sauvegarde des fichiers sensibles**
 ```bash
-cp src/.env /tmp/.env.backup
-```
-Sauvegarde le fichier `.env` pour ne pas l'écraser
+# Vérifier que le conteneur tourne
+docker ps | grep datalys-api
 
-### 4. **Pull des modifications**
+# Vérifier les logs
+docker logs datalys-api --tail 50
+
+# Tester l'API
+curl http://localhost:8082/health
+```
+
+### Depuis l'extérieur :
+
 ```bash
-git fetch origin
-git reset --hard origin/develop
-```
-Récupère les dernières modifications depuis GitHub
+# Tester l'API
+curl http://82.112.253.137:8082/health
 
-### 5. **Restauration des fichiers sensibles**
-```bash
-cp /tmp/.env.backup src/.env
-```
-Restaure le fichier `.env`
-
-### 6. **Redémarrage du backend**
-```bash
-docker-compose restart datalys-api
-```
-Redémarre le container Docker
-
-### 7. **Vérification de santé**
-```bash
-curl -f http://localhost:8082/health
-```
-Vérifie que l'API fonctionne correctement
-
----
-
-## 🛠️ Personnalisation du workflow
-
-### Changer les branches de déploiement
-
-```yaml
-on:
-  push:
-    branches:
-      - main          # Déployer sur push vers main
-      - production    # Déployer sur push vers production
-```
-
-### Ajouter des notifications Slack/Discord
-
-```yaml
-- name: 📢 Notification Slack
-  if: success()
-  uses: 8398a7/action-slack@v3
-  with:
-    status: ${{ job.status }}
-    webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-    text: "✅ Déploiement réussi sur le VPS"
-```
-
-### Exécuter des migrations SQL automatiquement
-
-Ajoutez dans le script SSH :
-
-```yaml
-script: |
-  # ... (code existant)
-  
-  # Exécuter les migrations SQL
-  echo "🗄️ Exécution des migrations..."
-  docker exec mysql-db mysql -u root -p'root' datalys_consulting < src/migrations/VOTRE_MIGRATION.sql
-  
-  # Redémarrer le backend
-  docker-compose restart datalys-api
+# Tester le login
+curl -X POST http://82.112.253.137:8082/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"identifier":"admin@datalysconsulting.com","password":"Password123"}'
 ```
 
 ---
 
-## ❌ Résolution des problèmes
+## 🚨 Dépannage
 
-### Erreur : "can't connect without a private SSH key or password"
+### Erreur: "Permission denied (publickey)"
 
-**Cause** : Les secrets GitHub ne sont pas configurés
+**Cause:** La clé SSH n'est pas correctement configurée
 
-**Solution** :
-1. Vérifiez que vous avez ajouté les secrets `SSH_HOST`, `SSH_USER`, et `SSH_PASSWORD` (ou `SSH_PRIVATE_KEY`)
-2. Vérifiez l'orthographe des noms de secrets
-3. Assurez-vous que les secrets sont dans le bon repository
+**Solution:**
+```bash
+# Vérifier que la clé publique est sur le serveur
+ssh root@82.112.253.137 "cat ~/.ssh/authorized_keys"
 
-### Erreur : "Permission denied (publickey,password)"
+# Vérifier les permissions
+ssh root@82.112.253.137 "ls -la ~/.ssh/"
+```
 
-**Cause** : Mot de passe incorrect ou clé SSH non autorisée
+### Erreur: "docker: command not found"
 
-**Solution** :
-1. Vérifiez que le mot de passe est correct
-2. Si vous utilisez une clé SSH, assurez-vous qu'elle est ajoutée aux `authorized_keys` du VPS
+**Cause:** Docker n'est pas installé ou pas dans le PATH
 
-### Erreur : "fatal: not a git repository"
+**Solution:**
+```bash
+ssh root@82.112.253.137 "which docker"
+```
 
-**Cause** : Le dossier sur le VPS n'est pas un repository Git
+### Erreur: "File .env not found"
 
-**Solution** :
+**Cause:** Le fichier .env n'existe pas sur le serveur
+
+**Solution:**
+```bash
+# Créer le fichier .env sur le serveur
+ssh root@82.112.253.137
+cd /root/datalys-backend
+bash scripts/security/secure-docker-secrets.sh
+```
+
+### Le conteneur ne démarre pas
+
+**Solution:**
+```bash
+# Voir les logs complets
+ssh root@82.112.253.137 "docker logs datalys-api"
+
+# Vérifier la configuration
+ssh root@82.112.253.137 "docker inspect datalys-api"
+```
+
+---
+
+## 🔄 Rollback en cas de problème
+
+### Revenir à la version précédente :
+
 ```bash
 ssh root@82.112.253.137
-cd /root/Datalys_consulting_backend
-git init
-git remote add origin https://github.com/VOTRE_USERNAME/VOTRE_REPO.git
-git fetch origin
-git checkout develop
+
+# Lister les backups
+ls -lh /backup/deployments/
+
+# Restaurer un backup
+cd /root/datalys-backend
+cp -r /backup/deployments/backup_YYYYMMDD_HHMMSS/* .
+
+# Redémarrer
+docker stop datalys-api
+docker rm datalys-api
+docker run -d --name datalys-api \
+  --network bridge \
+  -p 8082:8082 \
+  --env-file .env \
+  --restart unless-stopped \
+  -e DB_HOST=172.17.0.2 \
+  datalys_consulting_backend-datalys-api:latest
 ```
-
-### Erreur : "curl: (7) Failed to connect"
-
-**Cause** : L'API n'a pas démarré correctement
-
-**Solution** :
-1. Augmentez le temps d'attente (`sleep 15` → `sleep 30`)
-2. Vérifiez les logs Docker : `docker logs datalys-api`
-3. Vérifiez que MySQL et Redis sont actifs
 
 ---
 
-## 🔒 Sécurité
+## 📈 Améliorations Futures
 
-### ✅ Bonnes pratiques
+### À implémenter :
 
-1. **Utilisez des clés SSH** plutôt que des mots de passe
-2. **Ne commitez JAMAIS** les secrets dans le code
-3. **Limitez les permissions** de la clé SSH (lecture seule si possible)
-4. **Utilisez des secrets GitHub** pour toutes les informations sensibles
-5. **Activez la 2FA** sur votre compte GitHub
+- [ ] **Tests automatiques** avant déploiement
+- [ ] **Notifications Slack/Email** en cas d'échec
+- [ ] **Déploiement Blue-Green** (zéro downtime)
+- [ ] **Variables d'environnement** par branche (dev/staging/prod)
+- [ ] **Health checks** automatiques post-déploiement
+- [ ] **Métriques de déploiement** (temps, succès/échec)
 
-### ❌ À éviter
-
-1. ❌ Ne mettez pas de mots de passe dans le workflow
-2. ❌ Ne partagez pas vos secrets GitHub
-3. ❌ N'utilisez pas le compte root en production (créez un utilisateur dédié)
-4. ❌ Ne désactivez pas la vérification de santé
-
----
-
-## 📈 Améliorations futures
-
-### 1. **Déploiement Blue-Green**
-
-Déployer sur un second container, tester, puis basculer :
-
-```yaml
-script: |
-  # Démarrer un nouveau container
-  docker-compose up -d datalys-api-new
-  
-  # Tester
-  curl -f http://localhost:8083/health
-  
-  # Basculer
-  docker-compose stop datalys-api
-  docker-compose rm -f datalys-api
-  docker rename datalys-api-new datalys-api
-```
-
-### 2. **Tests automatiques avant déploiement**
+### Exemple avec tests :
 
 ```yaml
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: 🧪 Tests unitaires
-        run: pytest tests/
+      - uses: actions/checkout@v3
+      - name: Run tests
+        run: |
+          python -m pytest tests/
   
   deploy:
-    needs: test
+    needs: test  # Ne déploie que si les tests passent
     runs-on: ubuntu-latest
-    # ... (déploiement)
-```
-
-### 3. **Rollback automatique en cas d'échec**
-
-```yaml
-- name: 🔄 Rollback en cas d'échec
-  if: failure()
-  run: |
-    ssh root@82.112.253.137 "cd /root/Datalys_consulting_backend && git reset --hard HEAD~1 && docker-compose restart datalys-api"
+    # ... reste du workflow
 ```
 
 ---
 
-## 📞 Support
+## 📚 Ressources
 
-Pour toute question :
-- **Documentation** : `/docs/GITHUB_ACTIONS_SETUP.md`
-- **GitHub Actions Docs** : https://docs.github.com/en/actions
-- **SSH Action Docs** : https://github.com/appleboy/ssh-action
-
----
-
-## ✅ Checklist de configuration
-
-- [ ] Secrets GitHub configurés (`SSH_HOST`, `SSH_USER`, `SSH_PASSWORD` ou `SSH_PRIVATE_KEY`)
-- [ ] Repository Git initialisé sur le VPS
-- [ ] Remote Git configuré sur le VPS
-- [ ] Workflow `.github/workflows/deploy.yml` créé
-- [ ] Workflow commité et pushé sur GitHub
-- [ ] Test de déploiement manuel réussi
-- [ ] Test de déploiement automatique réussi
-- [ ] Notifications configurées (optionnel)
+- [GitHub Actions Documentation](https://docs.github.com/en/actions)
+- [SSH Agent Action](https://github.com/webfactory/ssh-agent)
+- [Docker Best Practices](https://docs.docker.com/develop/dev-best-practices/)
 
 ---
 
-**Date de création** : 9 octobre 2025  
-**Version** : 1.0.0  
-**Statut** : ✅ Prêt à l'emploi
+## ✅ Checklist de Configuration
 
+- [ ] Clé SSH générée
+- [ ] Clé publique ajoutée au serveur
+- [ ] 3 secrets GitHub configurés (SSH_HOST, SSH_USER, SSH_PRIVATE_KEY)
+- [ ] Fichier .env présent sur le serveur
+- [ ] Workflow GitHub Actions créé (.github/workflows/deploy.yml)
+- [ ] Premier déploiement testé
+- [ ] Rollback testé
+- [ ] Documentation lue et comprise
+
+---
+
+**Créé le:** 12 octobre 2025  
+**Dernière mise à jour:** 12 octobre 2025  
+**Statut:** ✅ Prêt à l'emploi

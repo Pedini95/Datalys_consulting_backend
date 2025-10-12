@@ -1,69 +1,137 @@
-name: 🚀 Déploiement automatique
+name: 🚀 Deploy to Production
 
 on:
   push:
     branches:
-      - main
       - develop
-  workflow_dispatch:  # Permet de déclencher manuellement
+  workflow_dispatch:  # Permet le déclenchement manuel
 
 jobs:
   deploy:
-    name: 📦 Déployer sur VPS
+    name: 🚀 Deploy to VPS
     runs-on: ubuntu-latest
     
     steps:
-      - name: 📥 Checkout du code
+      - name: 📥 Checkout code
         uses: actions/checkout@v3
       
-      - name: 🚀 Déploiement via SSH
-        uses: appleboy/ssh-action@master
+      - name: 🔐 Setup SSH
+        uses: webfactory/ssh-agent@v0.8.0
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: 22
-          script: |
-            echo "🔄 Début du déploiement..."
-            
-            # Aller dans le dossier du projet
-            cd /root/Datalys_consulting_backend
-            
-            # Sauvegarder les fichiers sensibles
-            echo "💾 Sauvegarde des fichiers sensibles..."
-            cp src/.env /tmp/.env.backup 2>/dev/null || true
-            
-            # Pull les dernières modifications
-            echo "📥 Récupération des modifications..."
-            git fetch origin
-            git reset --hard origin/${{ github.ref_name }}
-            
-            # Restaurer les fichiers sensibles
-            echo "♻️ Restauration des fichiers sensibles..."
-            cp /tmp/.env.backup src/.env 2>/dev/null || true
-            
-            # Redémarrer le backend
-            echo "🔄 Redémarrage du backend..."
-            docker-compose restart datalys-api
-            
-            # Attendre le démarrage
-            echo "⏳ Attente du démarrage..."
-            sleep 15
-            
-            # Vérifier la santé de l'API
-            echo "🏥 Vérification de la santé de l'API..."
-            curl -f http://localhost:8082/health || exit 1
-            
-            echo "✅ Déploiement terminé avec succès !"
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
       
-      - name: ✅ Notification de succès
+      - name: 📦 Add server to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+      
+      - name: 🚀 Deploy to server
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          ssh $SSH_USER@$SSH_HOST << 'ENDSSH'
+            set -e
+            
+            echo "════════════════════════════════════════════════════════════"
+            echo "🚀 DÉPLOIEMENT AUTOMATIQUE - Datalys Consulting"
+            echo "════════════════════════════════════════════════════════════"
+            echo ""
+            
+            # Variables
+            APP_DIR="/root/datalys-backend"
+            BACKUP_DIR="/backup/deployments"
+            TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+            
+            # Créer le répertoire de backup si nécessaire
+            mkdir -p $BACKUP_DIR
+            
+            # Aller dans le répertoire de l'application
+            cd $APP_DIR
+            
+            echo "📋 Étape 1/7: Sauvegarde de la configuration actuelle..."
+            cp -r . $BACKUP_DIR/backup_$TIMESTAMP || true
+            echo "✅ Backup créé: $BACKUP_DIR/backup_$TIMESTAMP"
+            echo ""
+            
+            echo "📥 Étape 2/7: Récupération du code depuis Git..."
+            git fetch origin
+            git reset --hard origin/develop
+            echo "✅ Code mis à jour"
+            echo ""
+            
+            echo "🔒 Étape 3/7: Vérification du fichier .env..."
+            if [ ! -f .env ]; then
+              echo "⚠️  Fichier .env manquant - création nécessaire"
+              exit 1
+            fi
+            echo "✅ Fichier .env présent"
+            echo ""
+            
+            echo "🐳 Étape 4/7: Reconstruction de l'image Docker..."
+            docker build -t datalys_consulting_backend-datalys-api:latest -f src/Dockerfile .
+            echo "✅ Image Docker construite"
+            echo ""
+            
+            echo "🔄 Étape 5/7: Arrêt du conteneur actuel..."
+            docker stop datalys-api || true
+            docker rm datalys-api || true
+            echo "✅ Ancien conteneur supprimé"
+            echo ""
+            
+            echo "🚀 Étape 6/7: Démarrage du nouveau conteneur..."
+            docker run -d --name datalys-api \
+              --network bridge \
+              -p 8082:8082 \
+              --env-file .env \
+              --restart unless-stopped \
+              -e DB_HOST=172.17.0.2 \
+              datalys_consulting_backend-datalys-api:latest
+            echo "✅ Nouveau conteneur démarré"
+            echo ""
+            
+            echo "⏳ Étape 7/7: Vérification du démarrage (30s)..."
+            sleep 30
+            
+            # Vérifier que le conteneur tourne
+            if docker ps | grep -q datalys-api; then
+              echo "✅ Conteneur actif"
+              
+              # Test de santé
+              if curl -s http://localhost:8082/health > /dev/null 2>&1; then
+                echo "✅ API opérationnelle"
+              else
+                echo "⚠️  API ne répond pas encore (peut prendre quelques secondes)"
+              fi
+            else
+              echo "❌ ERREUR: Le conteneur n'est pas démarré"
+              echo "Logs du conteneur:"
+              docker logs datalys-api --tail 50
+              exit 1
+            fi
+            
+            echo ""
+            echo "════════════════════════════════════════════════════════════"
+            echo "✅ DÉPLOIEMENT TERMINÉ AVEC SUCCÈS"
+            echo "════════════════════════════════════════════════════════════"
+            echo ""
+            echo "📊 Informations:"
+            echo "   • Version: $(git rev-parse --short HEAD)"
+            echo "   • Date: $(date '+%Y-%m-%d %H:%M:%S')"
+            echo "   • Backup: $BACKUP_DIR/backup_$TIMESTAMP"
+            echo ""
+            echo "🔍 Vérifications:"
+            docker ps --filter name=datalys-api --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+            echo ""
+          ENDSSH
+      
+      - name: 📧 Notification de succès
         if: success()
         run: |
-          echo "🎉 Déploiement réussi sur ${{ secrets.SSH_HOST }}"
-          echo "🌐 API: http://${{ secrets.SSH_HOST }}:8082"
+          echo "✅ Déploiement réussi sur ${{ secrets.SSH_HOST }}"
       
       - name: ❌ Notification d'échec
         if: failure()
         run: |
-          echo "❌ Le déploiement a échoué"
-          echo "📝 Vérifiez les logs ci-dessus"
+          echo "❌ Échec du déploiement sur ${{ secrets.SSH_HOST }}"
+          echo "Vérifiez les logs ci-dessus pour plus de détails"

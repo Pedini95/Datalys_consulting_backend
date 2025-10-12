@@ -7,9 +7,12 @@ class UserProjectPermission(db.Model):
     __tablename__ = 'user_project_permissions'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=True)
-    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=True)  # Optionnel : peut utiliser can_read/write/delete à la place
+    can_read = db.Column(db.Boolean, default=True)
+    can_write = db.Column(db.Boolean, default=False)
+    can_delete = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=True)
     is_deleted = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -19,7 +22,7 @@ class UserProjectPermission(db.Model):
 
     def as_dict(self):
         data = {}
-        columns = ['id', 'user_id', 'project_id', 'role_id', 'is_active', 'is_deleted', 'created_at', 'created_by', 'updated_at', 'updated_by']
+        columns = ['id', 'user_id', 'project_id', 'role_id', 'can_read', 'can_write', 'can_delete', 'is_active', 'is_deleted', 'created_at', 'created_by', 'updated_at', 'updated_by']
         for column in columns:
             value = getattr(self, column, None)
             if value is not None:

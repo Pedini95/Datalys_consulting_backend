@@ -138,24 +138,6 @@
             line-height: 1.6;
             font-size: 14px;
         }
-        .action-button {
-            display: inline-block;
-            background: linear-gradient(135deg, #4FB5B9 0%, #2980B9 100%);
-            color: white;
-            padding: 16px 40px;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 16px;
-            margin: 25px 0;
-            text-align: center;
-            box-shadow: 0 4px 12px rgba(79, 181, 185, 0.3);
-            transition: transform 0.2s;
-        }
-        .action-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(79, 181, 185, 0.4);
-        }
         .urgency-notice {
             background-color: #fef2f2;
             border-left: 4px solid #dc2626;
@@ -248,13 +230,6 @@
                 <p>⚠️ Cet incident nécessite une prise en charge immédiate !</p>
             </div>
             {% endif %}
-
-            <!-- Action Button -->
-            <center>
-                <a href="{{ app_url }}/incidents/{{ incident_id }}" class="action-button">
-                    🔍 Accéder à l'incident
-                </a>
-            </center>
         </div>
 
         <!-- Footer -->

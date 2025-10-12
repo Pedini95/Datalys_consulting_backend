@@ -55,9 +55,9 @@ services:
       - MAIL_PORT=${MAIL_PORT:-465}
       - MAIL_USE_SSL=${MAIL_USE_SSL:-True}
       - MAIL_USE_TLS=${MAIL_USE_TLS:-False}
-      - MAIL_USERNAME=${MAIL_USERNAME:-datalysconsultingapp@datalysconsulting.com}
-      - MAIL_PASSWORD=${MAIL_PASSWORD:-Nonsse@123}
-      - MAIL_DEFAULT_SENDER=${MAIL_DEFAULT_SENDER:-datalysconsultingapp@datalysconsulting.com}
+      - MAIL_USERNAME=${MAIL_USERNAME:-appweb@datalysconsulting.com}
+      - MAIL_PASSWORD=${MAIL_PASSWORD:-Datalysconsulting@2025}
+      - MAIL_DEFAULT_SENDER=${MAIL_DEFAULT_SENDER:-appweb@datalysconsulting.com}
       
       # App Config
       - SECRET_KEY=${SECRET_KEY:-development-secret-change-in-production}

@@ -54,9 +54,9 @@ class Config:
     MAIL_PORT = int(os.getenv('MAIL_PORT', '587'))  # Port TLS au lieu de 465 SSL
     MAIL_USE_SSL = os.getenv('MAIL_USE_SSL', 'False').lower() == 'true'  # SSL désactivé par défaut
     MAIL_USE_TLS = os.getenv('MAIL_USE_TLS', 'True').lower() == 'true'  # TLS activé par défaut
-    MAIL_USERNAME = os.getenv('MAIL_USERNAME', 'datalysconsultingapp@datalysconsulting.com')
+    MAIL_USERNAME = os.getenv('MAIL_USERNAME', 'appweb@datalysconsulting.com')
     MAIL_PASSWORD = os.getenv('MAIL_PASSWORD', '')
-    MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER', 'datalysconsultingapp@datalysconsulting.com')
+    MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER', 'appweb@datalysconsulting.com')
     
     # Configuration Flask-Mail pour UTF-8
     MAIL_ASCII_ATTACHMENTS = False

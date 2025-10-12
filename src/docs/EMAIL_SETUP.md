@@ -34,9 +34,9 @@ MAIL_SERVER=smtp.hostinger.com
 MAIL_PORT=465
 MAIL_USE_SSL=True
 MAIL_USE_TLS=False
-MAIL_USERNAME=datalysconsultingapp@datalysconsulting.com
+MAIL_USERNAME=appweb@datalysconsulting.com
 MAIL_PASSWORD=votre_mot_de_passe
-MAIL_DEFAULT_SENDER=datalysconsultingapp@datalysconsulting.com
+MAIL_DEFAULT_SENDER=appweb@datalysconsulting.com
 
 # Configuration de l'expéditeur
 SENDER_NAME=Datalys Consulting
