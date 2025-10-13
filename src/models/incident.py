@@ -52,6 +52,17 @@ class Incident(db.Model):
     is_read = db.Column(db.Boolean, default=False)  # Lu par le destinataire
     read_at = db.Column(db.DateTime, nullable=True)  # Date de lecture
     
+    # Champs de résolution
+    resolved_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Qui a résolu
+    resolved_at = db.Column(db.DateTime, nullable=True)  # Date de résolution
+    
+    # ✅ NOUVEAU : Champs SLA (Service Level Agreement)
+    taken_at = db.Column(db.DateTime, nullable=True)  # Date de prise en charge
+    sla_prise_en_charge_deadline = db.Column(db.DateTime, nullable=True)  # Deadline prise en charge
+    sla_resolution_deadline = db.Column(db.DateTime, nullable=True)  # Deadline résolution
+    sla_prise_en_charge_status = db.Column(db.String(20), default='respecte')  # 'respecte' ou 'depasse'
+    sla_resolution_status = db.Column(db.String(20), default='respecte')  # 'respecte' ou 'depasse'
+    
     # Champs existants
     is_active = db.Column(db.Boolean, default=True)
     is_deleted = db.Column(db.Boolean, default=False)
@@ -66,6 +77,7 @@ class Incident(db.Model):
     # Relations avec users (spécifier les foreign_keys pour éviter l'ambiguïté)
     creator = db.relationship('User', foreign_keys=[user_id])
     assignee = db.relationship('User', foreign_keys=[assigned_to])
+    resolver = db.relationship('User', foreign_keys=[resolved_by])
 
     def as_dict(self):
         data = {}
@@ -73,7 +85,9 @@ class Incident(db.Model):
             'id', 'incident_number', 'title', 'description', 'type', 'priority', 'status', 'category',
             'impact', 'domain', 'declarant_name', 'motif_attente', 
             'user_id', 'project_id', 'assigned_to', 'parent_id', 
-            'resolution_notes', 'is_read', 'read_at',
+            'resolution_notes', 'is_read', 'read_at', 'resolved_by', 'resolved_at',
+            'taken_at', 'sla_prise_en_charge_deadline', 'sla_resolution_deadline',
+            'sla_prise_en_charge_status', 'sla_resolution_status',
             'is_active', 'is_deleted', 'created_at', 'created_by', 'updated_at', 'updated_by'
         ]
         for column in columns:
@@ -91,6 +105,12 @@ class Incident(db.Model):
             data['status_color'] = self.get_status_color()
         if self.impact:
             data['impact_label'] = self.get_impact_label()
+        
+        # ✅ Ajouter les délais SLA calculés
+        if self.sla_prise_en_charge_deadline and not self.taken_at:
+            data['temps_restant_prise_en_charge'] = self.calculate_time_remaining(self.sla_prise_en_charge_deadline)
+        if self.sla_resolution_deadline and not self.resolved_at:
+            data['temps_restant_resolution'] = self.calculate_time_remaining(self.sla_resolution_deadline)
         
         return data
     
@@ -204,6 +224,132 @@ class Incident(db.Model):
     def get_valid_domains(cls):
         """Retourne la liste des domaines valides"""
         return ['reseau', 'infrastructure', 'cloud', 'energie']
+    
+    @classmethod
+    def get_sla_config(cls):
+        """
+        Configuration SLA par priorité
+        Retourne les délais de prise en charge et de résolution
+        """
+        return {
+            'P1': {
+                'prise_en_charge_minutes': 30,  # 30 minutes (24/7)
+                'resolution_hours': 4  # 4 heures ouvrées
+            },
+            'P2': {
+                'prise_en_charge_hours': 1,  # 1 heure ouvrée
+                'resolution_hours': 8  # 1 jour ouvré (8h)
+            },
+            'P3': {
+                'prise_en_charge_hours': 4,  # 4 heures ouvrées
+                'resolution_hours': 24  # 3 jours ouvrés (3x8h)
+            },
+            'P4': {
+                'prise_en_charge_hours': 8,  # 1 jour ouvré
+                'resolution_hours': 40  # 5 jours ouvrés (5x8h)
+            }
+        }
+    
+    @classmethod
+    def calculate_sla_deadlines(cls, priority, created_at=None):
+        """
+        Calcule les deadlines SLA en fonction de la priorité
+        Retourne un dict avec les deux deadlines
+        """
+        from datetime import timedelta
+        
+        if not created_at:
+            created_at = datetime.utcnow()
+        
+        sla_config = cls.get_sla_config()
+        
+        # P1 n'est pas dans la config car priorité P0 n'a pas de SLA défini
+        if priority not in sla_config:
+            return {
+                'sla_prise_en_charge_deadline': None,
+                'sla_resolution_deadline': None
+            }
+        
+        config = sla_config[priority]
+        
+        # Calcul deadline prise en charge
+        if 'prise_en_charge_minutes' in config:
+            prise_en_charge_deadline = created_at + timedelta(minutes=config['prise_en_charge_minutes'])
+        else:
+            prise_en_charge_deadline = created_at + timedelta(hours=config['prise_en_charge_hours'])
+        
+        # Calcul deadline résolution
+        resolution_deadline = created_at + timedelta(hours=config['resolution_hours'])
+        
+        return {
+            'sla_prise_en_charge_deadline': prise_en_charge_deadline,
+            'sla_resolution_deadline': resolution_deadline
+        }
+    
+    def calculate_time_remaining(self, deadline):
+        """
+        Calcule le temps restant jusqu'à la deadline
+        Retourne un dict avec jours, heures, minutes et le statut (respecte/depasse)
+        """
+        if not deadline:
+            return None
+        
+        now = datetime.utcnow()
+        delta = deadline - now
+        
+        # Si la deadline est dépassée
+        if delta.total_seconds() < 0:
+            total_minutes = int(abs(delta.total_seconds()) / 60)
+            hours = total_minutes // 60
+            minutes = total_minutes % 60
+            days = hours // 24
+            hours = hours % 24
+            
+            return {
+                'status': 'depasse',
+                'depassement': True,
+                'jours': days,
+                'heures': hours,
+                'minutes': minutes,
+                'total_minutes': -total_minutes  # Négatif pour indiquer le dépassement
+            }
+        
+        # Si la deadline n'est pas encore atteinte
+        total_minutes = int(delta.total_seconds() / 60)
+        hours = total_minutes // 60
+        minutes = total_minutes % 60
+        days = hours // 24
+        hours = hours % 24
+        
+        return {
+            'status': 'respecte',
+            'depassement': False,
+            'jours': days,
+            'heures': hours,
+            'minutes': minutes,
+            'total_minutes': total_minutes
+        }
+    
+    def update_sla_status(self):
+        """
+        Met à jour les statuts SLA (respecte/depasse) en fonction de l'état actuel
+        À appeler périodiquement ou lors de la récupération
+        """
+        now = datetime.utcnow()
+        
+        # Vérifier le statut de prise en charge
+        if self.sla_prise_en_charge_deadline and not self.taken_at:
+            if now > self.sla_prise_en_charge_deadline:
+                self.sla_prise_en_charge_status = 'depasse'
+            else:
+                self.sla_prise_en_charge_status = 'respecte'
+        
+        # Vérifier le statut de résolution
+        if self.sla_resolution_deadline and not self.resolved_at:
+            if now > self.sla_resolution_deadline:
+                self.sla_resolution_status = 'depasse'
+            else:
+                self.sla_resolution_status = 'respecte'
     
     @classmethod
     def generate_incident_number(cls):

@@ -279,6 +279,19 @@ class IncidentService:
                 data['incident_number'] = self.model_class.generate_incident_number()
                 logger.info(f"Numéro d'incident généré automatiquement: {data['incident_number']}")
             
+            # ✅ NOUVEAU : Calculer automatiquement les deadlines SLA
+            priority = data.get('priority', 'P3')
+            if priority in ['P1', 'P2', 'P3', 'P4']:
+                created_at = data.get('created_at', datetime.utcnow())
+                sla_deadlines = self.model_class.calculate_sla_deadlines(priority, created_at)
+                data['sla_prise_en_charge_deadline'] = sla_deadlines['sla_prise_en_charge_deadline']
+                data['sla_resolution_deadline'] = sla_deadlines['sla_resolution_deadline']
+                data['sla_prise_en_charge_status'] = 'respecte'
+                data['sla_resolution_status'] = 'respecte'
+                logger.info(f"Deadlines SLA calculées pour priorité {priority}: "
+                          f"Prise en charge: {sla_deadlines['sla_prise_en_charge_deadline']}, "
+                          f"Résolution: {sla_deadlines['sla_resolution_deadline']}")
+            
             # Traiter le user_name si fourni (au lieu de user_id)
             if 'user_name' in data and data['user_name']:
                 from models import User
