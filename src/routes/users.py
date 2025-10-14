@@ -5,6 +5,7 @@ import logging
 from utils import functional_error, utilities
 from flask_cors import cross_origin
 from .auth import require_auth
+from middleware.role_security import require_role
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -19,6 +20,7 @@ user_service = UserService()
 @bp.route('/users/getByCriteria', methods=['POST'])
 @cross_origin()
 @require_auth
+@require_role(['admin', 'manager'])  # Seuls admins et managers peuvent voir la liste des utilisateurs
 def get_users():
     logging.info("**** Begin get_users ****")
     logging.info("/users/getByCriteria")
@@ -44,25 +46,16 @@ def get_users():
 @bp.route('/users/create', methods=['POST'])
 @cross_origin()
 @require_auth
+@require_role('admin')  # Seuls les admins peuvent créer des utilisateurs
 def create_users():
     logging.info("**** Begin create_users ****")
     logging.info("/users/create")
     r = request.get_json() or {}
     logging.info("**** request input ****")
     logging.info(r)
-    
+
     user = r.get('user', {})
     datas = r.get('datas', [])
-    
-    # VÉRIFICATION DE SÉCURITÉ : Seuls les admins peuvent créer des utilisateurs
-    current_user_id = user.get('id')
-    if current_user_id:
-        from models import User, Role
-        current_user = User.query.get(current_user_id)
-        if current_user and current_user.role_id:
-            current_role = Role.query.get(current_user.role_id)
-            if not current_role or current_role.name.lower() != 'admin':
-                return {"status": "error", "message": "Accès refusé : Seuls les administrateurs peuvent créer des utilisateurs"}, 403
     
     # Préparer les données pour le service
     processed_datas = []
@@ -195,6 +188,7 @@ def update_users():
 @bp.route('/users/delete', methods=['POST'])
 @cross_origin()
 @require_auth
+@require_role('admin')  # Seuls les admins peuvent supprimer des utilisateurs
 def delete_users():
     logging.info("**** Begin delete_users ****")
     logging.info("/users/delete")

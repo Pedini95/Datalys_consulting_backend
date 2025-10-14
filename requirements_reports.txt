@@ -1,0 +1,4 @@
+# Dépendances pour la génération de rapports
+openpyxl==3.1.2         # Génération de fichiers Excel
+reportlab==4.0.7        # Génération de fichiers PDF
+Pillow==10.1.0          # Requis par reportlab pour les images

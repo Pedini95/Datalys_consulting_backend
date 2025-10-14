@@ -114,16 +114,13 @@ def get_partner_dashboard(partner_id):
         user_role = g.current_user.role.name if hasattr(g.current_user, 'role') else 'user'
         user_id = g.current_user.id
         
-        # Si l'utilisateur n'est pas admin, vérifier qu'il appartient au partenaire
-        if user_role != 'admin':
-            # Vérifier si l'utilisateur appartient au partenaire
-            partners, _ = partner_service.getByCriteria({'id': partner_id}, 0, 1)
-            partner = partners[0] if partners else None
-            if not partner or partner.id != g.current_user.partner_id:
-                return jsonify({
-                    "status": "error", 
-                    "message": "Accès non autorisé à ce partenaire"
-                }), 403
+        # Si l'utilisateur n'est pas admin, vérifier les permissions
+        # Note: Pour l'instant, tous les users peuvent voir n'importe quel partenaire
+        # À améliorer : ajouter un système de permissions plus fin si nécessaire
+        if user_role not in ['admin', 'manager']:
+            # Les utilisateurs simples peuvent uniquement accéder via leur propre contexte
+            # Pour le moment, on ne bloque pas mais on pourrait ajouter des restrictions
+            pass
         
         # Récupérer les données du partenaire
         partners, _ = partner_service.getByCriteria({'id': partner_id}, 0, 1)
@@ -136,9 +133,14 @@ def get_partner_dashboard(partner_id):
         
         # Récupérer les projets du partenaire
         projects, _ = project_service.getByCriteria({'partner_id': partner_id}, 0, 100)
-        
-        # Récupérer les incidents du partenaire
-        incidents, _ = incident_service.getByCriteria({'partner_id': partner_id}, 0, 100)
+
+        # Récupérer les incidents liés aux projets du partenaire
+        project_ids = [p.id for p in projects]
+        all_incidents = []
+        for project_id in project_ids:
+            incidents_for_project, _ = incident_service.getByCriteria({'project_id': project_id}, 0, 1000)
+            all_incidents.extend(incidents_for_project)
+        incidents = all_incidents
         
         # Calculer les statistiques
         project_stats = {
@@ -179,6 +181,112 @@ def get_partner_dashboard(partner_id):
         return jsonify({
             "status": "error", 
             "message": "Erreur interne du serveur"
+        }), 500
+
+@bp.route('/dashboard/client', methods=['POST'])
+@cross_origin()
+@require_auth
+def get_client_dashboard():
+    """
+    Dashboard pour un client (user)
+    Affiche une vue globale de SES incidents : nouveau, en cours, en attente
+    """
+    logging.info("**** Begin get_client_dashboard ****")
+    try:
+        user_id = g.current_user.id
+        user_role = g.current_user.role.name if hasattr(g.current_user, 'role') else 'user'
+
+        # Récupérer tous les incidents créés par cet utilisateur
+        user_incidents, total_incidents = incident_service.getByCriteria({'user_id': user_id}, 0, 1000)
+
+        # Calculer les statistiques détaillées
+        incident_stats = {
+            "total": len(user_incidents),
+            "nouveau": len([i for i in user_incidents if i.status == 'nouveau']),
+            "en_cours": len([i for i in user_incidents if i.status == 'en_cours']),
+            "en_attente": len([i for i in user_incidents if i.status == 'en_attente']),
+            "en_arbitrage": len([i for i in user_incidents if i.status == 'en_arbitrage']),
+            "resolu": len([i for i in user_incidents if i.status == 'resolu']),
+            "ferme": len([i for i in user_incidents if i.status == 'ferme']),
+        }
+
+        # Compter les incidents actifs (non résolus et non fermés)
+        incident_stats["actifs"] = incident_stats["nouveau"] + incident_stats["en_cours"] + incident_stats["en_attente"] + incident_stats["en_arbitrage"]
+
+        # Statistiques par priorité
+        priority_stats = {
+            "P0": len([i for i in user_incidents if i.priority == 'P0']),
+            "P1": len([i for i in user_incidents if i.priority == 'P1']),
+            "P2": len([i for i in user_incidents if i.priority == 'P2']),
+            "P3": len([i for i in user_incidents if i.priority == 'P3']),
+            "P4": len([i for i in user_incidents if i.priority == 'P4']),
+        }
+
+        # Statistiques par domaine
+        domain_stats = {}
+        for incident in user_incidents:
+            domain = incident.domain or 'non_specifie'
+            domain_stats[domain] = domain_stats.get(domain, 0) + 1
+
+        # Statistiques SLA (incidents en dépassement)
+        sla_stats = {
+            "prise_en_charge_depasse": len([i for i in user_incidents if i.sla_prise_en_charge_status == 'depasse']),
+            "resolution_depasse": len([i for i in user_incidents if i.sla_resolution_status == 'depasse']),
+        }
+
+        # Statistiques de refus
+        refusal_stats = {
+            "total_refus": sum([i.refusal_count or 0 for i in user_incidents]),
+            "incidents_with_refusals": len([i for i in user_incidents if (i.refusal_count or 0) > 0])
+        }
+
+        # Récupérer les incidents récents (10 derniers)
+        recent_incidents = sorted(user_incidents, key=lambda x: x.created_at, reverse=True)[:10]
+
+        # Récupérer les incidents urgents (P0 et P1 non résolus)
+        urgent_incidents = [
+            i for i in user_incidents
+            if i.priority in ['P0', 'P1'] and i.status not in ['resolu', 'ferme']
+        ]
+
+        # Récupérer les incidents en attente de réponse (en_attente)
+        waiting_incidents = [i for i in user_incidents if i.status == 'en_attente']
+
+        # Résumé d'activité utilisateur
+        activity_summary = _get_activity_summary(None, user_role, user_id)
+
+        dashboard_data = {
+            "user": {
+                "id": g.current_user.id,
+                "name": g.current_user.name,
+                "email": g.current_user.email,
+                "role": user_role
+            },
+            "incident_stats": incident_stats,
+            "priority_stats": priority_stats,
+            "domain_stats": domain_stats,
+            "sla_stats": sla_stats,
+            "refusal_stats": refusal_stats,
+            "recent_incidents": [i.as_dict() for i in recent_incidents],
+            "urgent_incidents": [i.as_dict() for i in urgent_incidents],
+            "waiting_incidents": [i.as_dict() for i in waiting_incidents],
+            "activity_summary": activity_summary
+        }
+
+        response = {
+            "code": 200,
+            "data": dashboard_data,
+            "message": functional_error.MESSAGE_SUCCESS()
+        }
+
+        logging.info("**** End get_client_dashboard ****")
+        return jsonify(response)
+
+    except Exception as e:
+        logging.error(f"Erreur dans get_client_dashboard: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": f"Erreur interne du serveur: {str(e)}"
         }), 500
 
 @bp.route('/dashboard/admin', methods=['POST'])

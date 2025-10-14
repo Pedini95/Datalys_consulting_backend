@@ -55,7 +55,12 @@ class Incident(db.Model):
     # Champs de résolution
     resolved_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Qui a résolu
     resolved_at = db.Column(db.DateTime, nullable=True)  # Date de résolution
-    
+
+    # ✅ NOUVEAU : Champs de refus de solution
+    refusal_count = db.Column(db.Integer, default=0)  # Nombre de fois que le client a refusé la solution
+    refusal_reason = db.Column(db.Text, nullable=True)  # Raison du dernier refus
+    last_refusal_at = db.Column(db.DateTime, nullable=True)  # Date du dernier refus
+
     # ✅ NOUVEAU : Champs SLA (Service Level Agreement)
     taken_at = db.Column(db.DateTime, nullable=True)  # Date de prise en charge
     sla_prise_en_charge_deadline = db.Column(db.DateTime, nullable=True)  # Deadline prise en charge
@@ -83,9 +88,10 @@ class Incident(db.Model):
         data = {}
         columns = [
             'id', 'incident_number', 'title', 'description', 'type', 'priority', 'status', 'category',
-            'impact', 'domain', 'declarant_name', 'motif_attente', 
-            'user_id', 'project_id', 'assigned_to', 'parent_id', 
+            'impact', 'domain', 'declarant_name', 'motif_attente',
+            'user_id', 'project_id', 'assigned_to', 'parent_id',
             'resolution_notes', 'is_read', 'read_at', 'resolved_by', 'resolved_at',
+            'refusal_count', 'refusal_reason', 'last_refusal_at',
             'taken_at', 'sla_prise_en_charge_deadline', 'sla_resolution_deadline',
             'sla_prise_en_charge_status', 'sla_resolution_status',
             'is_active', 'is_deleted', 'created_at', 'created_by', 'updated_at', 'updated_by'
