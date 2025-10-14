@@ -407,6 +407,136 @@ def serve_file(filename):
             'message': 'Fichier non trouvé'
         }), 404 
 
+@bp.route('/incidents/<int:incident_id>/upload-file', methods=['POST'])
+@require_auth
+def upload_incident_file(incident_id):
+    """
+    Upload un fichier et l'associer à un incident
+    Accepte tous types de fichiers: PDF, Word, Excel, PNG, JPEG, CSV, texte, etc.
+    """
+    try:
+        logger.info(f"**** Begin upload_incident_file - Incident ID: {incident_id} ****")
+
+        # Vérifier si un fichier a été envoyé
+        if 'file' not in request.files:
+            return jsonify({
+                'status': 'error',
+                'message': 'Aucun fichier fourni'
+            }), 400
+
+        file = request.files['file']
+
+        # Vérifier que l'incident existe
+        from models.incident import Incident
+        incident = Incident.query.filter_by(id=incident_id, is_deleted=False).first()
+        if not incident:
+            return jsonify({
+                'status': 'error',
+                'message': f'Incident {incident_id} non trouvé'
+            }), 404
+
+        # Sauvegarder le fichier physiquement (subfolder incidents)
+        success, message, file_path = file_upload_manager.save_file(
+            file,
+            subfolder=f'incidents/incident_{incident_id}',
+            image_only=False  # Accepter tous types de fichiers
+        )
+
+        if success:
+            # Générer l'URL d'accès
+            file_url = file_upload_manager.get_file_url(file_path)
+
+            # Créer l'enregistrement dans la base de données
+            file_data = {
+                'name': file.filename,
+                'file_url': file_path,
+                'incident_id': incident_id,  # Lier au incident
+                'is_public': False,  # Fichiers incidents non publics par défaut
+                'is_active': True
+            }
+
+            # Créer l'enregistrement en base
+            file_record, create_success, create_message = file_service.create(file_data, g.current_user.id)
+
+            if create_success and file_record:
+                response = {
+                    'status': 'success',
+                    'message': 'Fichier uploadé et associé à l\'incident avec succès',
+                    'data': {
+                        'file_path': file_path,
+                        'file_url': file_url,
+                        'filename': os.path.basename(file_path),
+                        'file_id': file_record.id,
+                        'incident_id': incident_id,
+                        'incident_number': incident.incident_number,
+                        'db_record': file_record.as_dict()
+                    }
+                }
+
+                logger.info(f"**** Fichier uploadé pour incident {incident.incident_number}: {file_path} (ID: {file_record.id}) ****")
+                return jsonify(response), 200
+            else:
+                # Supprimer le fichier physique si l'enregistrement DB échoue
+                file_upload_manager.delete_file(file_path)
+                return jsonify({
+                    'status': 'error',
+                    'message': f'Fichier uploadé mais erreur DB: {create_message}'
+                }), 500
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': message
+            }), 500
+
+    except Exception as e:
+        logger.error(f"Erreur lors de l'upload du fichier pour incident {incident_id}: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f'Erreur lors de l\'upload: {str(e)}'
+        }), 500
+
+@bp.route('/incidents/<int:incident_id>/files', methods=['GET'])
+@require_auth
+def get_incident_files(incident_id):
+    """
+    Récupérer tous les fichiers associés à un incident
+    """
+    try:
+        logger.info(f"**** Begin get_incident_files - Incident ID: {incident_id} ****")
+
+        # Vérifier que l'incident existe
+        from models.incident import Incident
+        incident = Incident.query.filter_by(id=incident_id, is_deleted=False).first()
+        if not incident:
+            return jsonify({
+                'status': 'error',
+                'message': f'Incident {incident_id} non trouvé'
+            }), 404
+
+        # Récupérer tous les fichiers de l'incident
+        files, total = file_service.model_class.get_by_criteria({'incident_id': incident_id}, 0, 100)
+
+        response = {
+            'status': 'success',
+            'message': f'{total} fichier(s) trouvé(s) pour l\'incident {incident.incident_number}',
+            'data': {
+                'incident_id': incident_id,
+                'incident_number': incident.incident_number,
+                'files': [file.as_dict() for file in files],
+                'count': total
+            }
+        }
+
+        logger.info(f"**** {total} fichiers trouvés pour incident {incident.incident_number} ****")
+        return jsonify(response), 200
+
+    except Exception as e:
+        logger.error(f"Erreur lors de la récupération des fichiers pour incident {incident_id}: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f'Erreur: {str(e)}'
+        }), 500
+
 @bp.route('/files/download/<int:file_id>', methods=['GET'])
 @require_auth
 def download_file(file_id):

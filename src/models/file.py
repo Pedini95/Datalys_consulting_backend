@@ -9,6 +9,7 @@ class File(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(255), nullable=False)
     folder_id = db.Column(db.Integer, db.ForeignKey('folders.id'), nullable=True)
+    incident_id = db.Column(db.Integer, db.ForeignKey('incidents.id'), nullable=True)
     file_url = db.Column(db.String(255), nullable=False)
     is_public = db.Column(db.Boolean, default=False)
     is_active = db.Column(db.Boolean, default=True)
@@ -20,7 +21,7 @@ class File(db.Model):
 
     def as_dict(self):
         data = {}
-        columns = ['id', 'name', 'folder_id', 'file_url', 'is_public', 'is_active', 'is_deleted', 'created_at', 'created_by', 'updated_at', 'updated_by']
+        columns = ['id', 'name', 'folder_id', 'incident_id', 'file_url', 'is_public', 'is_active', 'is_deleted', 'created_at', 'created_by', 'updated_at', 'updated_by']
         for column in columns:
             value = getattr(self, column, None)
             if value is not None:
@@ -41,6 +42,8 @@ class File(db.Model):
             conditions.append(File.name.like(f"%{criteria['name']}%"))
         if 'folder_id' in criteria:
             conditions.append(File.folder_id == criteria['folder_id'])
+        if 'incident_id' in criteria:
+            conditions.append(File.incident_id == criteria['incident_id'])
         if 'is_public' in criteria:
             conditions.append(File.is_public == criteria['is_public'])
         if 'is_active' in criteria:
