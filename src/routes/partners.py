@@ -47,11 +47,11 @@ def create_partner():
     current_user = g.current_user
     try:
         data = request.get_json()
-        
+
         # Validation du numéro de téléphone
         phone = data.get('phone')
         country_code = data.get('country_code', '+237')
-        
+
         if phone:
             is_valid, error_message = validate_phone_number(phone, country_code)
             if not is_valid:
@@ -59,18 +59,18 @@ def create_partner():
                     'message': {'message': f'Numéro de téléphone invalide: {error_message}', 'code': 400},
                     'code': 400
                 }), 400
-        
+
         # Normaliser le numéro de téléphone
         if phone:
             from utils.phone_validator import PhoneValidator
             normalized_phone, detected_country = PhoneValidator.normalize_phone(phone, country_code)
             data['phone'] = normalized_phone
             data['country_code'] = detected_country
-        
+
         # Vérifier si un email est fourni pour créer un utilisateur
         if data.get('email'):
             # Créer le partenaire avec un compte utilisateur
-            partner, username, temp_password, success, message = partner_service.create_with_user(data, current_user['user_id'])
+            partner, username, temp_password, success, message = partner_service.create_with_user(data, current_user.id)
             
             if not success:
                 return jsonify({
@@ -123,7 +123,7 @@ def create_partner():
             }), 201
         else:
             # Créer le partenaire sans compte utilisateur
-            partner, success, message = partner_service.create(data, current_user['user_id'])
+            partner, success, message = partner_service.create(data, current_user.id)
             if not success:
                 return jsonify({
                     'message': {'message': message, 'code': 400},
@@ -144,22 +144,24 @@ def create_partner():
 
 @bp.route('/partners/update', methods=['PUT'])
 @require_auth
-def update_partner(current_user):
+def update_partner():
     """Mettre à jour un partenaire"""
+    from flask import g
+    current_user = g.current_user
     try:
         data = request.get_json()
         partner_id = data.get('id')
-        
+
         if not partner_id:
             return jsonify({
                 'message': {'message': 'ID du partenaire requis', 'code': 400},
                 'code': 400
             }), 400
-        
+
         # Validation du numéro de téléphone
         phone = data.get('phone')
         country_code = data.get('country_code', '+237')
-        
+
         if phone:
             is_valid, error_message = validate_phone_number(phone, country_code)
             if not is_valid:
@@ -167,15 +169,15 @@ def update_partner(current_user):
                     'message': {'message': f'Numéro de téléphone invalide: {error_message}', 'code': 400},
                     'code': 400
                 }), 400
-        
+
         # Normaliser le numéro de téléphone
         if phone:
             from utils.phone_validator import PhoneValidator
             normalized_phone, detected_country = PhoneValidator.normalize_phone(phone, country_code)
             data['phone'] = normalized_phone
             data['country_code'] = detected_country
-        
-        partner, success, message = partner_service.update(partner_id, data, current_user['user_id'])
+
+        partner, success, message = partner_service.update(partner_id, data, current_user.id)
         if not success:
             return jsonify({
                 'message': {'message': message, 'code': 400},
@@ -196,19 +198,21 @@ def update_partner(current_user):
 
 @bp.route('/partners/delete', methods=['DELETE'])
 @require_auth
-def delete_partner(current_user):
+def delete_partner():
     """Supprimer un partenaire"""
+    from flask import g
+    current_user = g.current_user
     try:
         data = request.get_json()
         partner_id = data.get('id')
-        
+
         if not partner_id:
             return jsonify({
                 'message': {'message': 'ID du partenaire requis', 'code': 400},
                 'code': 400
             }), 400
-        
-        success, message = partner_service.delete(partner_id, current_user['user_id'])
+
+        success, message = partner_service.delete(partner_id, current_user.id)
         if not success:
             return jsonify({
                 'message': {'message': message, 'code': 400},
@@ -228,7 +232,7 @@ def delete_partner(current_user):
 
 @bp.route('/partners/countries', methods=['GET'])
 @require_auth
-def get_supported_countries(current_user):
+def get_supported_countries():
     """Obtenir la liste des pays supportés pour les numéros de téléphone"""
     try:
         countries = PhoneValidator.get_supported_countries()
@@ -257,7 +261,7 @@ def get_supported_countries(current_user):
 
 @bp.route('/partners/validate-phone', methods=['POST'])
 @require_auth
-def validate_phone_number_route(current_user):
+def validate_phone_number_route():
     """Valider un numéro de téléphone"""
     try:
         data = request.get_json()

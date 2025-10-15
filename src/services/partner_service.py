@@ -109,13 +109,17 @@ class PartnerService:
             
             # Générer un nom d'utilisateur basé sur l'email
             username = data.get('email', '').lower()
-            
+
+            # Générer un code client unique pour le partenaire
+            client_code = User.generate_client_code()
+
             # Créer l'utilisateur avec la structure existante
             user_data = {
                 'name': data.get('name', ''),  # Utiliser name au lieu de username
                 'email': data.get('email', ''),
                 'password_hash': encrypt(temp_password),  # Utiliser password_hash
                 'is_temp_password': True,  # Marquer le mot de passe comme temporaire
+                'client_code': client_code,  # Code client unique pour la connexion
                 'role_id': partner_role.id,  # Assigner le rôle 'partner'
                 'is_active': True
             }
