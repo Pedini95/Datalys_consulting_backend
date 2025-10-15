@@ -169,7 +169,7 @@ class AuthService:
         try:
             # Rechercher l'utilisateur par email OU code client
             from sqlalchemy import or_
-            from werkzeug.security import check_password_hash
+            from utils import utilities
             
             user = self.model_class.query.filter(
                 or_(
@@ -182,8 +182,8 @@ class AuthService:
             if not user:
                 return None, False, "Identifiant ou mot de passe incorrect"
             
-            # Vérifier le mot de passe avec Werkzeug
-            if not check_password_hash(user.password_hash, password):
+            # Vérifier le mot de passe avec la même méthode de hashage que lors de la création (SHA1)
+            if user.password_hash != utilities.encrypt(password):
                 return None, False, "Identifiant ou mot de passe incorrect"
             
             # Vérifier si l'utilisateur est actif
