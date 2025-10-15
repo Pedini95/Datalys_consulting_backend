@@ -10,8 +10,9 @@ partner_service = PartnerService()
 
 @bp.route('/partners/getByCriteria', methods=['POST'])
 @require_auth
-def get_partners(current_user):
+def get_partners():
     """Récupérer les partenaires selon des critères"""
+    from flask import g
     try:
         data = request.get_json()
         index = data.get('index', 0)
@@ -40,8 +41,10 @@ def get_partners(current_user):
 
 @bp.route('/partners/create', methods=['POST'])
 @require_auth
-def create_partner(current_user):
+def create_partner():
     """Créer un nouveau partenaire"""
+    from flask import g
+    current_user = g.current_user
     try:
         data = request.get_json()
         
