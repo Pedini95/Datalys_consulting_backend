@@ -49,8 +49,8 @@ def require_auth(f):
         g.current_user = user
         logger.info(f"Utilisateur authentifié: {user.email if user else 'None'}")
         
-        # Passer current_user comme premier argument à la fonction décorée
-        return f(user, *args, **kwargs)
+        # Appeler la fonction avec current_user comme argument nommé
+        return f(*args, current_user=user, **kwargs)
     
     return decorated_function
 
