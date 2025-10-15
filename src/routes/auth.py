@@ -48,7 +48,9 @@ def require_auth(f):
         # Ajouter l'utilisateur à Flask's g object
         g.current_user = user
         logger.info(f"Utilisateur authentifié: {user.email if user else 'None'}")
-        return f(*args, **kwargs)
+        
+        # Passer current_user comme premier argument à la fonction décorée
+        return f(user, *args, **kwargs)
     
     return decorated_function
 
