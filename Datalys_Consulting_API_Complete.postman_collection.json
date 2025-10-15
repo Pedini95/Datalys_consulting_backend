@@ -1,0 +1,1253 @@
+{
+	"info": {
+		"_postman_id": "datalys-complete-2025",
+		"name": "Datalys Consulting API - Collection Complète",
+		"description": "Collection complète de toutes les routes API de Datalys Consulting\n\nInclut :\n- Authentification (login, MFA, logout)\n- Utilisateurs (CRUD)\n- Partenaires (CRUD)\n- Projets (CRUD)\n- Incidents (CRUD + export + refus solution)\n- Fichiers (upload, liste)\n- Dashboard (client, partner, admin)\n- Communication (messages)\n\nVersion: 2.0\nDate: 2025-10-14",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Login (Email ou Code Client)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"identifier\": \"admin@datalys.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						},
+						"description": "Authentification avec email OU code client + mot de passe.\nRetourne user_id et envoie un code MFA par email."
+					},
+					"response": []
+				},
+				{
+					"name": "Verify MFA Code",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"identifier\": \"admin@datalys.com\",\n  \"mfa_code\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/verify-mfa",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "verify-mfa"]
+						},
+						"description": "Vérifier le code MFA à 6 chiffres reçu par email.\nRetourne le JWT token en cas de succès."
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/logout",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "logout"]
+						},
+						"description": "Déconnexion de l'utilisateur.\nInvalide le token JWT et supprime la session Redis."
+					},
+					"response": []
+				},
+				{
+					"name": "Change Temp Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\",\n  \"current_password\": \"TempPass123\",\n  \"new_password\": \"NewSecurePass456\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/change-temp-password",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "change-temp-password"]
+						},
+						"description": "Changer un mot de passe temporaire.\nUtilisé lors de la première connexion."
+					},
+					"response": []
+				},
+				{
+					"name": "Reset Password Request",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/reset-password-request",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "reset-password-request"]
+						},
+						"description": "Demander un reset de mot de passe.\nEnvoie un email avec un lien de réinitialisation."
+					},
+					"response": []
+				}
+			],
+			"description": "Routes d'authentification (login, MFA, logout)"
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Get Users (Admin/Manager)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"index\": 0,\n  \"size\": 10,\n  \"data\": {\n    \"role_id\": 3,\n    \"is_active\": true\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/users/getByCriteria",
+							"host": ["{{base_url}}"],
+							"path": ["users", "getByCriteria"]
+						},
+						"description": "Récupérer la liste des utilisateurs (réservé admin/manager).\nFiltrage par : id, name, email, client_code, role_id, is_active"
+					},
+					"response": []
+				},
+				{
+					"name": "Create User (Admin only)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user\": {\n    \"id\": 1,\n    \"email\": \"admin@datalys.com\"\n  },\n  \"datas\": [\n    {\n      \"name\": \"Jean Dupont\",\n      \"email\": \"jean.dupont@example.com\",\n      \"password\": \"TempPass123\",\n      \"role_name\": \"user\"\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/users/create",
+							"host": ["{{base_url}}"],
+							"path": ["users", "create"]
+						},
+						"description": "Créer un nouvel utilisateur (réservé admin).\nRôles possibles : admin, manager, user.\nUn code client unique (DTLSXXXXXX) est auto-généré.\nUn email de bienvenue est envoyé automatiquement."
+					},
+					"response": []
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user\": {\n    \"id\": 1,\n    \"email\": \"admin@datalys.com\"\n  },\n  \"datas\": [\n    {\n      \"id\": 5,\n      \"name\": \"Jean Dupont Modifié\",\n      \"is_active\": true,\n      \"fcm_token\": \"firebase_token_here\"\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/users/update",
+							"host": ["{{base_url}}"],
+							"path": ["users", "update"]
+						},
+						"description": "Mettre à jour un utilisateur.\nChamps modifiables : name, email, password, role_name, is_active, fcm_token, mfa_enabled.\nNote : client_code ne peut PAS être modifié."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete User (Admin only)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"datas\": [\n    {\n      \"id\": 5\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/users/delete",
+							"host": ["{{base_url}}"],
+							"path": ["users", "delete"]
+						},
+						"description": "Supprimer un utilisateur (soft delete) - réservé admin.\nL'utilisateur est marqué is_deleted=true."
+					},
+					"response": []
+				}
+			],
+			"description": "Gestion des utilisateurs (CRUD)"
+		},
+		{
+			"name": "Partners",
+			"item": [
+				{
+					"name": "Get Partners",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"index\": 0,\n  \"size\": 10,\n  \"data\": {\n    \"is_active\": true\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/partners/getByCriteria",
+							"host": ["{{base_url}}"],
+							"path": ["partners", "getByCriteria"]
+						},
+						"description": "Récupérer la liste des partenaires.\nFiltrage par : id, name, email, phone, country_code, is_active"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Partner",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Société ABC\",\n  \"email\": \"contact@societeabc.com\",\n  \"phone\": \"612345678\",\n  \"country_code\": \"+237\",\n  \"address\": \"123 Rue Example, Yaoundé, Cameroun\",\n  \"logo_url\": \"https://example.com/logo.png\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/partners/create",
+							"host": ["{{base_url}}"],
+							"path": ["partners", "create"]
+						},
+						"description": "Créer un nouveau partenaire.\nValidation automatique du format de téléphone selon le pays."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Partner",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": 1,\n  \"name\": \"Société ABC Modifiée\",\n  \"phone\": \"698765432\",\n  \"address\": \"Nouvelle adresse\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/partners/update",
+							"host": ["{{base_url}}"],
+							"path": ["partners", "update"]
+						},
+						"description": "Mettre à jour un partenaire."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Partner",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/partners/delete",
+							"host": ["{{base_url}}"],
+							"path": ["partners", "delete"]
+						},
+						"description": "Supprimer un partenaire (soft delete)."
+					},
+					"response": []
+				}
+			],
+			"description": "Gestion des partenaires (entreprises clientes)"
+		},
+		{
+			"name": "Projects",
+			"item": [
+				{
+					"name": "Get Projects",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"index\": 0,\n  \"size\": 10,\n  \"data\": {\n    \"partner_id\": 1,\n    \"is_active\": true\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/projects/getByCriteria",
+							"host": ["{{base_url}}"],
+							"path": ["projects", "getByCriteria"]
+						},
+						"description": "Récupérer la liste des projets.\nFiltrage par : id, name, description, partner_id, is_active"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Project",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user\": {\n    \"id\": 1,\n    \"email\": \"admin@datalys.com\"\n  },\n  \"datas\": [\n    {\n      \"name\": \"Projet Infrastructure Cloud\",\n      \"description\": \"Migration vers le cloud\",\n      \"partner_id\": 1\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/projects/create",
+							"host": ["{{base_url}}"],
+							"path": ["projects", "create"]
+						},
+						"description": "Créer un nouveau projet."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Project",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user\": {\n    \"id\": 1,\n    \"email\": \"admin@datalys.com\"\n  },\n  \"datas\": [\n    {\n      \"id\": 5,\n      \"name\": \"Projet modifié\",\n      \"is_active\": false\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/projects/update",
+							"host": ["{{base_url}}"],
+							"path": ["projects", "update"]
+						},
+						"description": "Mettre à jour un projet."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Project",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"datas\": [\n    {\n      \"id\": 5\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/projects/delete",
+							"host": ["{{base_url}}"],
+							"path": ["projects", "delete"]
+						},
+						"description": "Supprimer un projet (soft delete)."
+					},
+					"response": []
+				}
+			],
+			"description": "Gestion des projets"
+		},
+		{
+			"name": "Incidents",
+			"item": [
+				{
+					"name": "Get Incidents",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"index\": 0,\n  \"size\": 20,\n  \"data\": {\n    \"status\": \"en_cours\",\n    \"priority\": \"P1\",\n    \"domain\": \"reseau\",\n    \"user_id\": 5\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/incidents/getByCriteria",
+							"host": ["{{base_url}}"],
+							"path": ["incidents", "getByCriteria"]
+						},
+						"description": "Récupérer la liste des incidents avec filtres.\nFiltrage par : status, priority, impact, domain, user_id, project_id, assigned_to, etc."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Incidents Metadata",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/incidents/metadata",
+							"host": ["{{base_url}}"],
+							"path": ["incidents", "metadata"]
+						},
+						"description": "Récupérer les métadonnées des incidents :\n- Priorités (P0-P4)\n- Statuts\n- Impacts\n- Domaines\n- Mapping impact → priorité"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Incident",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user\": {\n    \"id\": 5,\n    \"email\": \"client@example.com\"\n  },\n  \"datas\": [\n    {\n      \"title\": \"Panne réseau datacenter\",\n      \"description\": \"Coupure complète du réseau au datacenter principal\",\n      \"priority\": \"P0\",\n      \"impact\": \"arret_service\",\n      \"domain\": \"reseau\",\n      \"declarant_name\": \"Jean Dupont\",\n      \"project_id\": 3\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/incidents/create",
+							"host": ["{{base_url}}"],
+							"path": ["incidents", "create"]
+						},
+						"description": "Créer un nouvel incident.\nUn numéro unique (INC-YYYY-NNNNN) est auto-généré.\nSLA calculé automatiquement selon la priorité."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Incident",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user\": {\n    \"id\": 1,\n    \"email\": \"admin@datalys.com\"\n  },\n  \"datas\": [\n    {\n      \"id\": 10,\n      \"status\": \"resolu\",\n      \"resolution_notes\": \"Problème résolu en redémarrant le switch principal. Surveillance 24h recommandée.\",\n      \"assigned_to\": 2\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/incidents/update",
+							"host": ["{{base_url}}"],
+							"path": ["incidents", "update"]
+						},
+						"description": "Mettre à jour un incident.\nChamps modifiables : status, priority, assigned_to, resolution_notes, motif_attente, etc."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Incident (Admin/Manager)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"datas\": [\n    {\n      \"id\": 10\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/incidents/delete",
+							"host": ["{{base_url}}"],
+							"path": ["incidents", "delete"]
+						},
+						"description": "Supprimer un incident (soft delete).\nRéservé aux admins et managers."
+					},
+					"response": []
+				},
+				{
+					"name": "Refuse Solution (Client)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user\": {\n    \"id\": 5,\n    \"email\": \"client@example.com\",\n    \"name\": \"Jean Dupont\"\n  },\n  \"refusal_reason\": \"La solution proposée ne résout pas complètement le problème. Le réseau est toujours instable.\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/incidents/123/refuse-solution",
+							"host": ["{{base_url}}"],
+							"path": ["incidents", "123", "refuse-solution"]
+						},
+						"description": "Refuser une solution proposée.\nL'incident passe de 'resolu' à 'en_cours'.\nNotification envoyée à l'expert assigné.\nMessage ajouté au fil de discussion."
+					},
+					"response": []
+				},
+				{
+					"name": "Export Incidents (Admin/Manager)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user\": {\n    \"id\": 1,\n    \"email\": \"admin@datalys.com\"\n  },\n  \"format\": \"pdf\",\n  \"criteria\": {\n    \"status\": \"resolu\",\n    \"priority\": \"P1\"\n  },\n  \"date_from\": \"2025-01-01\",\n  \"date_to\": \"2025-12-31\",\n  \"include_stats\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/incidents/export",
+							"host": ["{{base_url}}"],
+							"path": ["incidents", "export"]
+						},
+						"description": "Exporter les incidents en PDF, Excel ou CSV.\nRéservé aux admins et managers.\nFormats : pdf, excel, csv.\nMax 10 000 incidents par export."
+					},
+					"response": []
+				}
+			],
+			"description": "Gestion des incidents (CRUD + export + refus)"
+		},
+		{
+			"name": "Files",
+			"item": [
+				{
+					"name": "Upload File to Incident",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "/path/to/file.pdf"
+								},
+								{
+									"key": "user",
+									"value": "{\"id\": 1, \"email\": \"admin@datalys.com\"}",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/incidents/123/upload-file",
+							"host": ["{{base_url}}"],
+							"path": ["incidents", "123", "upload-file"]
+						},
+						"description": "Uploader un fichier sur un incident.\nTous types de fichiers acceptés (PDF, Word, Excel, images, etc.).\nStockage dans static/files/incidents/incident_{id}/"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Incident Files",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/incidents/123/files?index=0&size=10",
+							"host": ["{{base_url}}"],
+							"path": ["incidents", "123", "files"],
+							"query": [
+								{
+									"key": "index",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Récupérer la liste des fichiers d'un incident.\nPagination avec index et size."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Files",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"index\": 0,\n  \"size\": 10,\n  \"data\": {\n    \"folder_id\": 5,\n    \"incident_id\": 123\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/files/getByCriteria",
+							"host": ["{{base_url}}"],
+							"path": ["files", "getByCriteria"]
+						},
+						"description": "Récupérer la liste des fichiers.\nFiltrage par : folder_id, incident_id, is_public, name"
+					},
+					"response": []
+				},
+				{
+					"name": "Upload File to Folder",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "/path/to/file.pdf"
+								},
+								{
+									"key": "folder_id",
+									"value": "5",
+									"type": "text"
+								},
+								{
+									"key": "user",
+									"value": "{\"id\": 1}",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/files/upload",
+							"host": ["{{base_url}}"],
+							"path": ["files", "upload"]
+						},
+						"description": "Uploader un fichier dans un dossier."
+					},
+					"response": []
+				}
+			],
+			"description": "Gestion des fichiers (upload, liste)"
+		},
+		{
+			"name": "Dashboards",
+			"item": [
+				{
+					"name": "Dashboard Client",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user\": {\n    \"id\": 5,\n    \"email\": \"client@example.com\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/dashboard/client",
+							"host": ["{{base_url}}"],
+							"path": ["dashboard", "client"]
+						},
+						"description": "Dashboard pour un client (user).\nVue globale de SES incidents : total, par statut, priorité, domaine.\nIncidents urgents, en attente, SLA."
+					},
+					"response": []
+				},
+				{
+					"name": "Dashboard Partner",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{base_url}}/dashboard/partner/1",
+							"host": ["{{base_url}}"],
+							"path": ["dashboard", "partner", "1"]
+						},
+						"description": "Dashboard pour un partenaire.\nVue des incidents liés aux projets du partenaire."
+					},
+					"response": []
+				},
+				{
+					"name": "Dashboard Admin",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{base_url}}/dashboard/admin",
+							"host": ["{{base_url}}"],
+							"path": ["dashboard", "admin"]
+						},
+						"description": "Dashboard global pour administrateurs.\nVue de tous les partenaires, incidents, activités.\nRéservé aux admins."
+					},
+					"response": []
+				}
+			],
+			"description": "Dashboards (client, partner, admin)"
+		},
+		{
+			"name": "Communication",
+			"item": [
+				{
+					"name": "Send Message",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user\": {\n    \"id\": 5,\n    \"email\": \"client@example.com\"\n  },\n  \"title\": \"Question sur l'incident\",\n  \"description\": \"Bonjour, j'ai une question concernant la résolution de l'incident...\",\n  \"incident_id\": 123,\n  \"recipient_id\": 2\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/messages/send",
+							"host": ["{{base_url}}"],
+							"path": ["messages", "send"]
+						},
+						"description": "Envoyer un message (créer un incident de type 'message')."
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Messages",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user\": {\n    \"id\": 5\n  },\n  \"index\": 0,\n  \"size\": 20\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/messages/my-messages",
+							"host": ["{{base_url}}"],
+							"path": ["messages", "my-messages"]
+						},
+						"description": "Récupérer mes messages (incidents de type 'message')."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Conversation Thread",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user\": {\n    \"id\": 5\n  },\n  \"incident_id\": 123\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/conversations/thread",
+							"host": ["{{base_url}}"],
+							"path": ["conversations", "thread"]
+						},
+						"description": "Récupérer le fil de conversation d'un incident.\nRetourne l'incident parent + tous les messages/réponses."
+					},
+					"response": []
+				}
+			],
+			"description": "Communication (messages entre client et expert)"
+		},
+		{
+			"name": "Roles",
+			"item": [
+				{
+					"name": "Get Roles",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"index\": 0,\n  \"size\": 10,\n  \"data\": {\n    \"is_active\": true\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/roles/getByCriteria",
+							"host": ["{{base_url}}"],
+							"path": ["roles", "getByCriteria"]
+						},
+						"description": "Récupérer la liste des rôles.\nRôles : admin, manager, user"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Role",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user\": {\n    \"id\": 1,\n    \"email\": \"admin@datalys.com\"\n  },\n  \"datas\": [\n    {\n      \"name\": \"support\",\n      \"is_active\": true\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/roles/create",
+							"host": ["{{base_url}}"],
+							"path": ["roles", "create"]
+						},
+						"description": "Créer un nouveau rôle."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Role",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user\": {\n    \"id\": 1,\n    \"email\": \"admin@datalys.com\"\n  },\n  \"datas\": [\n    {\n      \"id\": 4,\n      \"name\": \"support_modifie\",\n      \"is_active\": false\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/roles/update",
+							"host": ["{{base_url}}"],
+							"path": ["roles", "update"]
+						},
+						"description": "Mettre à jour un rôle."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Role",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"datas\": [\n    {\n      \"id\": 4\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/roles/delete",
+							"host": ["{{base_url}}"],
+							"path": ["roles", "delete"]
+						},
+						"description": "Supprimer un rôle (soft delete)."
+					},
+					"response": []
+				}
+			],
+			"description": "Gestion des rôles (CRUD complet)"
+		},
+		{
+			"name": "Folders",
+			"item": [
+				{
+					"name": "Get Folders",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"index\": 0,\n  \"size\": 10,\n  \"data\": {\n    \"is_active\": true\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/folders/getByCriteria",
+							"host": ["{{base_url}}"],
+							"path": ["folders", "getByCriteria"]
+						},
+						"description": "Récupérer la liste des dossiers."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Folder",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user\": {\n    \"id\": 1\n  },\n  \"datas\": [\n    {\n      \"name\": \"Documents techniques\",\n      \"description\": \"Documentation technique des projets\"\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/folders/create",
+							"host": ["{{base_url}}"],
+							"path": ["folders", "create"]
+						},
+						"description": "Créer un nouveau dossier."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Folder",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user\": {\n    \"id\": 1,\n    \"email\": \"admin@datalys.com\"\n  },\n  \"datas\": [\n    {\n      \"id\": 5,\n      \"name\": \"Documents techniques modifiés\",\n      \"description\": \"Nouvelle description\",\n      \"is_active\": true\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/folders/update",
+							"host": ["{{base_url}}"],
+							"path": ["folders", "update"]
+						},
+						"description": "Mettre à jour un dossier."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Folder",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"datas\": [\n    {\n      \"id\": 5\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/folders/delete",
+							"host": ["{{base_url}}"],
+							"path": ["folders", "delete"]
+						},
+						"description": "Supprimer un dossier (soft delete)."
+					},
+					"response": []
+				}
+			],
+			"description": "Gestion des dossiers (CRUD complet)"
+		},
+		{
+			"name": "Health Check",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": ["{{base_url}}"],
+							"path": ["health"]
+						},
+						"description": "Vérifier que l'API est en ligne."
+					},
+					"response": []
+				}
+			],
+			"description": "Vérification santé de l'API"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://82.112.253.137:8082",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

@@ -10,7 +10,7 @@ is_production = os.getenv('ENV') == 'production' or os.getenv('FLASK_ENV') == 'p
 
 if is_production:
     print(" Mode production: utilisation des variables d'environnement système")
-    # En production, ne pas charger de fichier .env pour éviter les conflits
+    # ########En production, ne pas charger de fichier .env pour éviter les conflits
 elif os.path.exists(env_path):
     load_dotenv(env_path, override=True)
     print(f" Variables d'environnement chargées depuis: {env_path}")
