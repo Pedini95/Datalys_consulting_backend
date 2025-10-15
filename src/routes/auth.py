@@ -375,4 +375,123 @@ def reset_password_request():
             
     except Exception as e:
         logger.error(f"Erreur lors de la demande de reset: {str(e)}")
+        return {"status": "error", "message": "Erreur interne du serveur"}, 500
+
+
+@bp.route('/auth/admin/reset-temp-password', methods=['POST'])
+@cross_origin()
+@require_auth
+def admin_reset_temp_password():
+    """
+    Route pour qu'un admin réinitialise le mot de passe temporaire d'un utilisateur
+    """
+    try:
+        # Vérifier que l'utilisateur actuel est un admin
+        current_user = g.current_user
+        if not current_user or not hasattr(current_user, 'role') or current_user.role.name not in ['admin', 'super_admin']:
+            return {"status": "error", "message": "Accès non autorisé. Seuls les administrateurs peuvent réinitialiser les mots de passe."}, 403
+        
+        data = request.get_json()
+        
+        if not data:
+            return {"status": "error", "message": "Données manquantes"}, 400
+        
+        email = data.get('email')
+        new_temp_password = data.get('new_temp_password')
+        
+        if not email:
+            return {"status": "error", "message": "Email requis"}, 400
+        
+        if not new_temp_password:
+            return {"status": "error", "message": "Nouveau mot de passe temporaire requis"}, 400
+        
+        # Valider le nouveau mot de passe
+        if len(new_temp_password) < 8:
+            return {"status": "error", "message": "Le mot de passe doit contenir au moins 8 caractères"}, 400
+        
+        # Chercher l'utilisateur
+        from models import User
+        from utils import utilities
+        
+        users, _ = User.get_by_criteria({'email': email}, 0, 1)
+        if not users:
+            return {"status": "error", "message": "Utilisateur non trouvé"}, 404
+        
+        user = users[0]
+        
+        # Mettre à jour le mot de passe
+        user.password_hash = utilities.encrypt(new_temp_password)
+        user.is_temp_password = True  # Marquer comme mot de passe temporaire
+        
+        from extensions import db
+        db.session.commit()
+        
+        logger.info(f"Admin {current_user.email} a réinitialisé le mot de passe temporaire pour {email}")
+        
+        return {
+            "status": "success",
+            "message": f"Mot de passe temporaire réinitialisé avec succès pour {email}",
+            "temp_password": new_temp_password
+        }, 200
+            
+    except Exception as e:
+        logger.error(f"Erreur lors de la réinitialisation du mot de passe temporaire: {str(e)}")
+        return {"status": "error", "message": "Erreur interne du serveur"}, 500
+
+
+@bp.route('/auth/check-user-status', methods=['POST'])
+@cross_origin()
+def check_user_status():
+    """
+    Route pour vérifier le statut d'un utilisateur (pour le débogage)
+    """
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return {"status": "error", "message": "Données manquantes"}, 400
+        
+        email = data.get('email')
+        test_password = data.get('test_password')  # Optionnel
+        
+        if not email:
+            return {"status": "error", "message": "Email requis"}, 400
+        
+        # Chercher l'utilisateur
+        from models import User
+        from utils import utilities
+        
+        users, _ = User.get_by_criteria({'email': email}, 0, 1)
+        if not users:
+            return {"status": "error", "message": "Utilisateur non trouvé"}, 404
+        
+        user = users[0]
+        
+        response_data = {
+            "status": "success",
+            "user_info": {
+                "id": user.id,
+                "name": user.name,
+                "email": user.email,
+                "is_active": user.is_active,
+                "is_temp_password": getattr(user, 'is_temp_password', False),
+                "role": user.role.name if hasattr(user, 'role') and user.role else None,
+                "password_hash": user.password_hash  # Pour le débogage uniquement
+            }
+        }
+        
+        # Si un mot de passe de test est fourni, vérifier s'il correspond
+        if test_password:
+            test_hash = utilities.encrypt(test_password)
+            password_matches = (test_hash == user.password_hash)
+            response_data["password_test"] = {
+                "provided_password": test_password,
+                "calculated_hash": test_hash,
+                "matches": password_matches
+            }
+        
+        return response_data, 200
+            
+    except Exception as e:
+        logger.error(f"Erreur lors de la vérification du statut utilisateur: {str(e)}")
         return {"status": "error", "message": "Erreur interne du serveur"}, 500 

@@ -64,13 +64,13 @@ class UserService:
                 data['is_temp_password'] = True
                 logger.info("🔐 Mot de passe temporaire défini automatiquement")
             
-            # Générer automatiquement un code client unique UNIQUEMENT pour les partenaires (rôle "User")
+            # Générer automatiquement un code client unique UNIQUEMENT pour les partenaires
             # Les Admin et Manager n'ont pas besoin de code client car ce sont des employés Datalys
             if 'client_code' not in data or not data['client_code']:
-                # Vérifier si c'est un partenaire (rôle "User")
+                # Vérifier si c'est un partenaire (rôle "User" ou "partner")
                 if 'role_id' in data:
                     role = Role.query.get(data['role_id'])
-                    if role and role.name == 'User':
+                    if role and role.name.lower() in ['user', 'partner']:
                         data['client_code'] = self.model_class.generate_client_code()
                         logger.info(f"✅ Code client généré pour le partenaire: {data['client_code']}")
                     else:

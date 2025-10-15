@@ -64,18 +64,74 @@ def create_partner(current_user):
             data['phone'] = normalized_phone
             data['country_code'] = detected_country
         
-        partner, success, message = partner_service.create(data, current_user['user_id'])
-        if not success:
+        # Vérifier si un email est fourni pour créer un utilisateur
+        if data.get('email'):
+            # Créer le partenaire avec un compte utilisateur
+            partner, username, temp_password, success, message = partner_service.create_with_user(data, current_user['user_id'])
+            
+            if not success:
+                return jsonify({
+                    'message': {'message': message, 'code': 400},
+                    'code': 400
+                }), 400
+            
+            # Récupérer le client_code de l'utilisateur créé
+            from models import User
+            user = User.query.filter_by(email=data.get('email')).first()
+            client_code = user.client_code if user and user.client_code else username
+            
+            # Envoyer l'email avec les credentials
+            email_sent = False
+            try:
+                from utils.notification import EmailService
+                import os
+                
+                email_service = EmailService()
+                app_url = os.getenv('APP_URL', 'http://localhost:3000')
+                
+                # Vérifier que client_code et temp_password ne sont pas None
+                if client_code and temp_password:
+                    email_sent = email_service.send_partner_credentials_email(
+                        partner_email=data.get('email', ''),
+                        partner_name=data.get('name', 'Partenaire'),
+                        email=client_code,  # Utiliser le client_code comme identifiant de connexion
+                        password=temp_password,
+                        app_url=app_url
+                    )
+                    
+                    if email_sent:
+                        logging.info(f"Email avec credentials envoyé à {data.get('email')} - Code client: {client_code}")
+                    else:
+                        logging.warning(f"Échec de l'envoi de l'email à {data.get('email')}")
+            except Exception as email_error:
+                logging.error(f"Erreur lors de l'envoi de l'email: {str(email_error)}")
+                # Ne pas échouer la création si l'email échoue
+            
             return jsonify({
-                'message': {'message': message, 'code': 400},
-                'code': 400
-            }), 400
-        
-        return jsonify({
-            'data': partner.as_dict(),
-            'message': {'message': 'Partenaire créé avec succès', 'code': 201},
-            'code': 201
-        }), 201
+                'data': partner.as_dict(),
+                'credentials': {
+                    'client_code': client_code,  # Retourner le client_code au lieu de username
+                    'email': username,  # Garder l'email pour référence
+                    'temp_password': temp_password,
+                    'email_sent': email_sent
+                },
+                'message': {'message': 'Partenaire et compte utilisateur créés avec succès', 'code': 201},
+                'code': 201
+            }), 201
+        else:
+            # Créer le partenaire sans compte utilisateur
+            partner, success, message = partner_service.create(data, current_user['user_id'])
+            if not success:
+                return jsonify({
+                    'message': {'message': message, 'code': 400},
+                    'code': 400
+                }), 400
+            
+            return jsonify({
+                'data': partner.as_dict(),
+                'message': {'message': 'Partenaire créé avec succès', 'code': 201},
+                'code': 201
+            }), 201
     except Exception as e:
         logging.error(f"Erreur lors de la création du partenaire: {str(e)}")
         return jsonify({
