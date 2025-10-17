@@ -234,34 +234,41 @@ def verify_mfa():
 @cross_origin()
 def change_temp_password():
     """
-    Route pour changer un mot de passe temporaire
+    Route pour changer un mot de passe temporaire (accepte email ou client_code)
     """
     try:
         data = request.get_json()
-        
+
         if not data:
             return {"status": "error", "message": "Données manquantes"}, 400
-        
-        email = data.get('email')
+
+        # Accepter 'email' ou 'identifier' (pour email ou client_code)
+        identifier = data.get('identifier') or data.get('email')
         current_password = data.get('current_password')
         new_password = data.get('new_password')
-        
-        if not all([email, current_password, new_password]):
-            return {"status": "error", "message": "Email, mot de passe actuel et nouveau mot de passe requis"}, 400
-        
+
+        if not all([identifier, current_password, new_password]):
+            return {"status": "error", "message": "Identifiant (email ou code client), mot de passe actuel et nouveau mot de passe requis"}, 400
+
         # Valider le nouveau mot de passe
         if len(new_password) < 8:
             return {"status": "error", "message": "Le nouveau mot de passe doit contenir au moins 8 caractères"}, 400
-        
-        # Chercher l'utilisateur
+
+        # Chercher l'utilisateur par email OU client_code
         from models import User
         from utils import utilities
-        
-        users, _ = User.get_by_criteria({'email': email}, 0, 1)
-        if not users:
+        from sqlalchemy import or_
+
+        user = User.query.filter(
+            or_(
+                User.email == identifier,
+                User.client_code == identifier
+            ),
+            User.is_deleted == False
+        ).first()
+
+        if not user:
             return {"status": "error", "message": "Utilisateur non trouvé"}, 404
-        
-        user = users[0]
         
         # Vérifier le mot de passe actuel
         if user.password_hash != utilities.encrypt(current_password):
@@ -276,12 +283,12 @@ def change_temp_password():
         user.password_hash = utilities.encrypt(new_password)
         if hasattr(user, 'is_temp_password'):
             user.is_temp_password = False  # Le mot de passe n'est plus temporaire
-        
+
         from extensions import db
         db.session.commit()
-        
-        # Maintenant authentifier l'utilisateur normalement
-        user_data, success, _ = auth_service.login(email, new_password)
+
+        # Maintenant authentifier l'utilisateur normalement avec l'identifier
+        user_data, success, _ = auth_service.login(identifier, new_password)
         
         if success:
             return {
