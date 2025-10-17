@@ -196,7 +196,7 @@ def update_partner():
             'code': 500
         }), 500
 
-@bp.route('/partners/delete', methods=['DELETE'])
+@bp.route('/partners/delete', methods=['POST'])
 @require_auth
 def delete_partner():
     """Supprimer un partenaire"""
