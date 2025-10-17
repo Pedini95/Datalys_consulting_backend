@@ -254,12 +254,12 @@ class PartnerService:
     def delete(self, partner_id: int, user_id: Optional[int] = None, hard_delete: bool = False) -> Tuple[bool, str]:
         """
         Supprimer un partner (soft delete par défaut)
-        
+
         Args:
             partner_id: ID du partner à supprimer
             user_id: ID de l'utilisateur qui supprime
             hard_delete: Si True, suppression définitive
-            
+
         Returns:
             Tuple (succès, message)
         """
@@ -268,19 +268,29 @@ class PartnerService:
             partners, _ = self.model_class.get_by_criteria({'id': partner_id}, 0, 1)
             if not partners:
                 return False, f"{self.model_class.__name__} non trouvé"
-            
+
             partner = partners[0]
-            
+
+            # Chercher l'utilisateur associé au partenaire (via email)
+            from models import User
+            associated_user = None
+            if partner.email:
+                associated_user = User.query.filter_by(email=partner.email).first()
+
             # Supprimer le logo si il existe
             if partner.logo_url:
                 file_upload_manager.delete_file(partner.logo_url)
                 logger.info(f"Logo supprimé pour le partner {partner_id}: {partner.logo_url}")
-            
+
             if hard_delete:
-                # Suppression définitive
+                # Suppression définitive du partenaire
                 db.session.delete(partner)
+                # Suppression définitive de l'utilisateur associé
+                if associated_user:
+                    db.session.delete(associated_user)
+                    logger.info(f"Utilisateur associé supprimé définitivement: {associated_user.email}")
             else:
-                # Soft delete
+                # Soft delete du partenaire
                 if hasattr(partner, 'is_deleted'):
                     partner.is_deleted = True
                     if user_id and hasattr(partner, 'updated_by'):
@@ -288,9 +298,23 @@ class PartnerService:
                 else:
                     # Si pas de soft delete, faire une suppression définitive
                     db.session.delete(partner)
-            
+
+                # Soft delete de l'utilisateur associé
+                if associated_user:
+                    if hasattr(associated_user, 'is_deleted'):
+                        associated_user.is_deleted = True
+                        if user_id and hasattr(associated_user, 'updated_by'):
+                            update_audit_field(associated_user, user_id)
+                        logger.info(f"Utilisateur associé désactivé: {associated_user.email}")
+                    else:
+                        # Si pas de soft delete sur User, désactiver le compte
+                        associated_user.is_active = False
+                        if user_id and hasattr(associated_user, 'updated_by'):
+                            update_audit_field(associated_user, user_id)
+                        logger.info(f"Utilisateur associé désactivé: {associated_user.email}")
+
             db.session.commit()
-            
+
             return True, f"{self.model_class.__name__} supprimé avec succès"
             
         except SQLAlchemyError as e:
