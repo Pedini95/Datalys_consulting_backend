@@ -55,11 +55,11 @@ class PartnerService:
     def create_with_user(self, data: Dict[str, Any], user_id: Optional[int] = None) -> Tuple[Optional[Partner], Optional[str], Optional[str], bool, str]:
         """
         Créer un nouveau partner avec un utilisateur associé
-        
+
         Args:
             data: Données du partner à créer
             user_id: ID de l'utilisateur qui crée
-            
+
         Returns:
             Tuple (partner, username, temp_password, succès, message)
         """
@@ -71,14 +71,20 @@ class PartnerService:
                 name=data.get('name'),
                 address=data.get('address')
             )
-            
+
             if has_duplicates:
                 logger.warning(f"Tentative de création d'un partenaire en doublon: {error_msg}")
                 return None, None, None, False, error_msg
-            
+
             # Vérifier qu'un email est fourni (obligatoire pour créer l'utilisateur)
             if not data.get('email'):
                 return None, None, None, False, "L'email est obligatoire pour créer un compte utilisateur"
+
+            # Vérifier si l'email existe déjà dans la table users
+            from models import User
+            existing_user = User.query.filter_by(email=data.get('email')).first()
+            if existing_user:
+                return None, None, None, False, f"Un utilisateur avec l'email '{data.get('email')}' existe déjà"
             
             # Générer un mot de passe temporaire
             temp_password = generate_temp_password()
