@@ -1,5 +1,6 @@
 from extensions import db
 from sqlalchemy import and_
+from sqlalchemy.orm import joinedload
 from datetime import datetime
 
 
@@ -53,9 +54,9 @@ class Project(db.Model):
     @staticmethod
     def get_by_criteria(criteria, index, size):
         from models.partner import Partner
-        
+
         # Construire la requête avec options pour charger le partenaire
-        query = Project.query.options(db.joinedload(Project.partner))
+        query = Project.query.options(joinedload(Project.partner))
         conditions = [Project.is_deleted == False]
         
         if 'id' in criteria:
