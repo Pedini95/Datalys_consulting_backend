@@ -1,6 +1,5 @@
 from extensions import db
 from sqlalchemy import and_
-from sqlalchemy.orm import joinedload
 from datetime import datetime
 
 
@@ -55,10 +54,10 @@ class Project(db.Model):
     def get_by_criteria(criteria, index, size):
         from models.partner import Partner
 
-        # Construire la requête avec options pour charger le partenaire
-        query = Project.query.options(joinedload(Project.partner))
+        # Construire la requête de base
+        query = Project.query
         conditions = [Project.is_deleted == False]
-        
+
         if 'id' in criteria:
             conditions.append(Project.id == criteria['id'])
         if 'title' in criteria:
@@ -74,7 +73,7 @@ class Project(db.Model):
 
         query = query.filter(and_(*conditions))
         query = query.order_by(Project.id.desc())
-        
+
         total_items = query.count()
         query = query.offset(index * size).limit(size)
         return query.all(), total_items
