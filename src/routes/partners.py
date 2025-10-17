@@ -142,7 +142,7 @@ def create_partner():
             'code': 500
         }), 500
 
-@bp.route('/partners/update', methods=['PUT'])
+@bp.route('/partners/update', methods=['POST'])
 @require_auth
 def update_partner():
     """Mettre à jour un partenaire"""
