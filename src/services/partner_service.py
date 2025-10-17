@@ -194,12 +194,12 @@ class PartnerService:
     def update(self, partner_id: int, data: Dict[str, Any], user_id: Optional[int] = None) -> Tuple[Optional[Partner], bool, str]:
         """
         Mettre à jour un partner
-        
+
         Args:
             partner_id: ID du partner à mettre à jour
             data: Nouvelles données
             user_id: ID de l'utilisateur qui met à jour
-            
+
         Returns:
             Tuple (partner, succès, message)
         """
@@ -208,38 +208,67 @@ class PartnerService:
             partners, _ = self.model_class.get_by_criteria({'id': partner_id}, 0, 1)
             if not partners:
                 return None, False, f"{self.model_class.__name__} non trouvé"
-            
+
             partner = partners[0]
-            
+            old_email = partner.email  # Sauvegarder l'ancien email
+
             # Validation des doublons avant mise à jour (exclure le partenaire actuel)
             has_duplicates, error_msg = self._check_duplicates(
                 email=data.get('email'),
-                phone=data.get('phone'), 
+                phone=data.get('phone'),
                 name=data.get('name'),
                 address=data.get('address'),
                 exclude_id=partner_id
             )
-            
+
             if has_duplicates:
                 logger.warning(f"Tentative de mise à jour d'un partenaire avec des doublons: {error_msg}")
                 return None, False, error_msg
-            
+
+            # Si l'email change, vérifier qu'il n'existe pas déjà dans users
+            if 'email' in data and data['email'] != old_email:
+                from models import User
+                existing_user = User.query.filter_by(email=data['email']).first()
+                if existing_user:
+                    return None, False, f"Un utilisateur avec l'email '{data['email']}' existe déjà"
+
+            # Chercher l'utilisateur associé au partenaire (via l'ancien email)
+            from models import User
+            associated_user = None
+            if old_email:
+                associated_user = User.query.filter_by(email=old_email).first()
+
             # Gérer la suppression de l'ancien logo si un nouveau est fourni
             if 'logo_url' in data and data['logo_url'] and partner.logo_url:
                 # Supprimer l'ancien logo
                 file_upload_manager.delete_file(partner.logo_url)
                 logger.info(f"Ancien logo supprimé pour le partner {partner_id}: {partner.logo_url}")
-            
-            # Mettre à jour les champs
+
+            # Mettre à jour les champs du partenaire
             for key, value in data.items():
                 if hasattr(partner, key):
                     setattr(partner, key, value)
-            
+
             # Mettre à jour les champs d'audit
             update_audit_field(partner, user_id)
-            
+
+            # Synchroniser les informations avec l'utilisateur associé
+            if associated_user:
+                # Champs à synchroniser : name, email
+                if 'name' in data:
+                    associated_user.name = data['name']
+                    logger.info(f"Nom de l'utilisateur associé mis à jour: {data['name']}")
+
+                if 'email' in data:
+                    associated_user.email = data['email']
+                    logger.info(f"Email de l'utilisateur associé mis à jour: {data['email']}")
+
+                # Mettre à jour les champs d'audit de l'utilisateur
+                if user_id:
+                    update_audit_field(associated_user, user_id)
+
             db.session.commit()
-            
+
             return partner, True, f"{self.model_class.__name__} mis à jour avec succès"
             
         except SQLAlchemyError as e:

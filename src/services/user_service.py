@@ -108,12 +108,12 @@ class UserService:
     def update(self, user_id: int, data: Dict[str, Any], current_user_id: Optional[int] = None) -> Tuple[Optional[User], bool, str]:
         """
         Mettre à jour un user
-        
+
         Args:
             user_id: ID du user à mettre à jour
             data: Nouvelles données
             current_user_id: ID de l'utilisateur qui met à jour
-            
+
         Returns:
             Tuple (user, succès, message)
         """
@@ -122,9 +122,10 @@ class UserService:
             users, _ = self.model_class.get_by_criteria({'id': user_id}, 0, 1)
             if not users:
                 return None, False, f"{self.model_class.__name__} non trouvé"
-            
+
             user = users[0]
-            
+            old_email = user.email  # Sauvegarder l'ancien email
+
             # Gérer role_name -> role_id
             if 'role_name' in data:
                 role_name = data.pop('role_name')
@@ -132,25 +133,52 @@ class UserService:
                 if not roles:
                     return None, False, f"Rôle '{role_name}' non trouvé"
                 data['role_id'] = roles[0].id
-            
+
             # Le champ name reste tel quel - pas de séparation en first_name/last_name
             # car ces colonnes n'existent pas dans la table
-            
+
             # Hasher le mot de passe si fourni
             if 'password' in data:
                 password = data.pop('password')
                 data['password_hash'] = utilities.encrypt(password)
-            
-            # Mettre à jour les champs
+
+            # Si l'email change, vérifier qu'il n'existe pas déjà dans partners
+            from models import Partner
+            if 'email' in data and data['email'] != old_email:
+                existing_partner = Partner.query.filter_by(email=data['email']).first()
+                if existing_partner:
+                    return None, False, f"Un partenaire avec l'email '{data['email']}' existe déjà"
+
+            # Vérifier si l'utilisateur est un partenaire et chercher le partenaire associé
+            associated_partner = None
+            if old_email and user.role and user.role.name.lower() == 'partner':
+                associated_partner = Partner.query.filter_by(email=old_email).first()
+
+            # Mettre à jour les champs de l'utilisateur
             for key, value in data.items():
                 if hasattr(user, key):
                     setattr(user, key, value)
-            
+
             # Mettre à jour les champs d'audit
             update_audit_field(user, current_user_id)
-            
+
+            # Synchroniser les informations avec le partenaire associé
+            if associated_partner:
+                # Champs à synchroniser : name, email
+                if 'name' in data:
+                    associated_partner.name = data['name']
+                    logger.info(f"Nom du partenaire associé mis à jour: {data['name']}")
+
+                if 'email' in data:
+                    associated_partner.email = data['email']
+                    logger.info(f"Email du partenaire associé mis à jour: {data['email']}")
+
+                # Mettre à jour les champs d'audit du partenaire
+                if current_user_id:
+                    update_audit_field(associated_partner, current_user_id)
+
             db.session.commit()
-            
+
             return user, True, f"{self.model_class.__name__} mis à jour avec succès"
             
         except SQLAlchemyError as e:
