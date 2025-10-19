@@ -366,31 +366,37 @@ class AuthService:
     def get_current_user(self, token: str) -> Tuple[Optional[User], bool, str]:
         """
         Récupérer l'utilisateur actuel à partir du token
-        
+
         Args:
             token: Token JWT
-            
+
         Returns:
             Tuple (utilisateur, succès, message)
         """
         try:
             # Vérifier le token et récupérer les données utilisateur
             user_data, success, message = self.verify_token(token)
-            
+
             if not success or not user_data:
                 return None, False, message
-            
+
             # Récupérer l'objet utilisateur complet
             user_id = user_data.get('id')
             if not user_id:
                 return None, False, "ID utilisateur manquant"
-                
-            users, _ = self.model_class.get_by_criteria({'id': user_id}, 0, 1)
-            if not users:
+
+            # Utiliser une requête directe avec eager loading pour charger le role
+            from sqlalchemy.orm import joinedload
+            user = self.model_class.query.options(joinedload(self.model_class.role)).filter_by(
+                id=user_id,
+                is_deleted=False
+            ).first()
+
+            if not user:
                 return None, False, "Utilisateur non trouvé"
-            
-            return users[0], True, "Utilisateur récupéré avec succès"
-            
+
+            return user, True, "Utilisateur récupéré avec succès"
+
         except Exception as e:
             logger.error(f"Erreur lors de la récupération de l'utilisateur: {str(e)}")
             return None, False, f"Erreur lors de la récupération de l'utilisateur: {str(e)}"

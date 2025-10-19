@@ -17,26 +17,30 @@ folder_service = FolderService()
 @cross_origin()
 @require_auth
 def get_folders():
-    logging.info("**** Begin get_folders ****")
-    logging.info("/folders/getByCriteria")
-    r = request.get_json() or {}
-    logging.info("**** request input ****")
-    logging.info(r)
-    index = r.get('index', 0)
-    size = r.get('size', 10)
-    criteria = r.get('data', {})
-    
-    folders, total_items = folder_service.model_class.get_by_criteria(criteria, index, size)
-    if folders:
-        message = functional_error.MESSAGE_SUCCESS()
-    else:
-        message = functional_error.MESSAGE_DATA_EMPTY()
-    
-    response = {"items": [folder.as_dict() for folder in folders], "count": total_items, "message": message, "code": 200}
-    logging.info("**** response output ****")
-    logging.info(response)
-    logging.info("**** End get_folders ****")
-    return response
+    try:
+        logging.info("**** Begin get_folders ****")
+        logging.info("/folders/getByCriteria")
+        r = request.get_json() or {}
+        logging.info("**** request input ****")
+        logging.info(r)
+        index = r.get('index', 0)
+        size = r.get('size', 10)
+        criteria = r.get('data', {})
+
+        folders, total_items = folder_service.model_class.get_by_criteria(criteria, index, size)
+        if folders:
+            message = functional_error.MESSAGE_SUCCESS()
+        else:
+            message = functional_error.MESSAGE_DATA_EMPTY()
+
+        response = {"items": [folder.as_dict() for folder in folders], "count": total_items, "message": message, "code": 200}
+        logging.info("**** response output ****")
+        logging.info(response)
+        logging.info("**** End get_folders ****")
+        return response
+    except Exception as e:
+        logging.error(f"Erreur dans get_folders: {str(e)}", exc_info=True)
+        return {"status": "error", "message": f"Erreur lors de la récupération des dossiers: {str(e)}", "code": 500}, 500
 
 @bp.route('/folders/create', methods=['POST'])
 @cross_origin()
