@@ -8,9 +8,6 @@ import io
 import logging
 from datetime import datetime
 from typing import List, Dict, Any
-import openpyxl
-from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
-from openpyxl.utils import get_column_letter
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -133,6 +130,11 @@ class ReportGenerator:
             bytes: Contenu Excel
         """
         try:
+            # Import openpyxl uniquement pour la génération Excel
+            import openpyxl
+            from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+            from openpyxl.utils import get_column_letter
+
             wb = openpyxl.Workbook()
             ws = wb.active
             ws.title = "Incidents"
@@ -212,8 +214,11 @@ class ReportGenerator:
             logger.error(f"Erreur génération Excel : {str(e)}")
             raise
 
-    def _add_excel_stats(self, wb: openpyxl.Workbook, incidents: List[Any]):
+    def _add_excel_stats(self, wb, incidents: List[Any]):
         """Ajoute une feuille de statistiques dans le workbook Excel"""
+        # Import openpyxl pour les styles
+        from openpyxl.styles import Font
+
         ws_stats = wb.create_sheet("Statistiques")
 
         # Titre
