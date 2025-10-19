@@ -9,6 +9,7 @@ flask-httpauth
 pymysql
 itsdangerous
 xlsxwriter
+openpyxl
 requests
 python-dotenv
 flask-restx

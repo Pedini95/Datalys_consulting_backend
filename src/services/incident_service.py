@@ -536,12 +536,12 @@ class IncidentService:
     def update(self, incident_id: int, data: Dict[str, Any], user_id: Optional[int] = None) -> Tuple[Optional[Incident], bool, str]:
         """
         Mettre à jour un incident
-        
+
         Args:
             incident_id: ID du incident à mettre à jour
             data: Nouvelles données
             user_id: ID de l'utilisateur qui met à jour
-            
+
         Returns:
             Tuple (incident, succès, message)
         """
@@ -550,9 +550,9 @@ class IncidentService:
             incidents, _ = self.model_class.get_by_criteria({'id': incident_id}, 0, 1)
             if not incidents:
                 return None, False, f"{self.model_class.__name__} non trouvé"
-            
+
             incident = incidents[0]
-            
+
             # Traiter le user_name si fourni (au lieu de user_id)
             if 'user_name' in data and data['user_name']:
                 from models import User
@@ -564,7 +564,7 @@ class IncidentService:
                     logger.warning(f"Utilisateur non trouvé: {data['user_name']}")
                     return None, False, f"Utilisateur non trouvé: {data['user_name']}"
                 del data['user_name']
-            
+
             # Traiter le project_name si fourni (au lieu de project_id)
             if 'project_name' in data and data['project_name']:
                 from models import Project
@@ -576,19 +576,28 @@ class IncidentService:
                     logger.warning(f"Projet non trouvé: {data['project_name']}")
                     return None, False, f"Projet non trouvé: {data['project_name']}"
                 del data['project_name']
-            
+
+            # Valider que l'utilisateur assigné existe (assigned_to)
+            if 'assigned_to' in data and data['assigned_to']:
+                from models import User
+                assigned_user = User.query.filter_by(id=data['assigned_to'], is_deleted=False).first()
+                if not assigned_user:
+                    logger.warning(f"Utilisateur assigné non trouvé: ID={data['assigned_to']}")
+                    return None, False, f"L'utilisateur avec l'ID {data['assigned_to']} n'existe pas. Veuillez vérifier l'ID de l'utilisateur à assigner."
+                logger.info(f"Utilisateur assigné validé: {assigned_user.name} (ID: {assigned_user.id})")
+
             # Mettre à jour les champs
             for key, value in data.items():
                 if hasattr(incident, key):
                     setattr(incident, key, value)
-            
+
             # Mettre à jour les champs d'audit
             update_audit_field(incident, user_id)
-            
+
             db.session.commit()
-            
+
             return incident, True, f"{self.model_class.__name__} mis à jour avec succès"
-            
+
         except SQLAlchemyError as e:
             db.session.rollback()
             logger.error(f"Erreur lors de la mise à jour de {self.model_class.__name__}: {str(e)}")

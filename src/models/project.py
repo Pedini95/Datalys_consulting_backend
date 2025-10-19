@@ -32,22 +32,9 @@ class Project(db.Model):
                     data[column] = value.isoformat()
                 else:
                     data[column] = value
-        
-        # Ajouter les informations du partenaire si disponible
-        if self.partner_id:
-            try:
-                from models.partner import Partner
-                partner = Partner.query.filter_by(id=self.partner_id, is_deleted=False).first()
-                if partner:
-                    data['partner'] = partner.as_dict()
-                else:
-                    data['partner'] = None
-            except Exception:
-                # En cas d'erreur, on ne met pas le partenaire
-                data['partner'] = None
-        else:
-            data['partner'] = None
-            
+
+        # Ne pas charger automatiquement le partenaire ici
+        # Il sera chargé dans la route si nécessaire
         return data
 
     @staticmethod
