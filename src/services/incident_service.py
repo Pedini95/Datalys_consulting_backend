@@ -58,7 +58,7 @@ class IncidentService:
 
         data.update({
             'type': 'message',
-            'priority': data.get('priority', 'moyenne'),
+            'priority': data.get('priority', 'P3'),  # Utiliser P3 au lieu de 'moyenne' pour compatibilité SLA
             'status': 'ouvert',
             'category': 'communication'
         })
@@ -68,7 +68,7 @@ class IncidentService:
         
         if success and incident:
             # 🆕 Envoyer notification push selon le type d'utilisateur
-            if data.get('priority') in ['haute', 'critique']:
+            if data.get('priority') in ['P0', 'P1', 'P2']:  # Priorités hautes
                 self._send_push_notification_for_message(incident, str(data.get('priority')), user_id)
         
         return incident, success, message
@@ -100,7 +100,7 @@ class IncidentService:
 
         data.update({
             'type': 'support',
-            'priority': data.get('priority', 'moyenne'),
+            'priority': data.get('priority', 'P3'),  # Utiliser P3 au lieu de 'moyenne' pour compatibilité SLA
             'status': 'ouvert',
             'category': 'technique'
         })
@@ -109,7 +109,7 @@ class IncidentService:
         incident, success, message = self.create(data, user_id)
         
         # 🆕 Envoyer notification push si priorité haute/critique
-        if success and incident and data.get('priority') in ['haute', 'critique']:
+        if success and incident and data.get('priority') in ['P0', 'P1', 'P2']:  # Priorités hautes
             self._send_push_notification_for_support(incident, str(data.get('priority')))
         
         return incident, success, message
@@ -141,7 +141,7 @@ class IncidentService:
 
         data.update({
             'type': 'notification',
-            'priority': data.get('priority', 'haute'),
+            'priority': data.get('priority', 'P2'),  # Utiliser P2 (haute priorité) au lieu de 'haute'
             'status': 'ouvert',
             'category': 'officiel'
         })
