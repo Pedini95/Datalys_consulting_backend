@@ -48,6 +48,14 @@ class IncidentService:
         if 'recipient_id' in data:
             data['assigned_to'] = data.pop('recipient_id')
 
+        # Extraire incident_id si présent (peut être utilisé pour project_id ou parent_id)
+        # Par défaut, on l'ignore car on ne sait pas s'il s'agit d'un projet ou d'un incident parent
+        if 'incident_id' in data:
+            # Si vous voulez lier le message à un incident parent, utilisez parent_id
+            # Si vous voulez lier à un projet, utilisez project_id
+            # Pour l'instant, on supprime ce champ car il est ambigu
+            del data['incident_id']
+
         data.update({
             'type': 'message',
             'priority': data.get('priority', 'moyenne'),
@@ -87,6 +95,9 @@ class IncidentService:
         if 'recipient_id' in data:
             data['assigned_to'] = data.pop('recipient_id')
 
+        if 'incident_id' in data:
+            del data['incident_id']
+
         data.update({
             'type': 'support',
             'priority': data.get('priority', 'moyenne'),
@@ -125,6 +136,9 @@ class IncidentService:
         if 'recipient_id' in data:
             data['assigned_to'] = data.pop('recipient_id')
 
+        if 'incident_id' in data:
+            del data['incident_id']
+
         data.update({
             'type': 'notification',
             'priority': data.get('priority', 'haute'),
@@ -154,6 +168,9 @@ class IncidentService:
 
         if 'recipient_id' in data:
             data['assigned_to'] = data.pop('recipient_id')
+
+        if 'incident_id' in data:
+            del data['incident_id']
 
         # Vérifier que le message parent existe
         parent_messages, _ = self.model_class.get_by_criteria({'id': parent_id}, 0, 1)
