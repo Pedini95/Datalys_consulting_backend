@@ -111,13 +111,13 @@ def get_partner_dashboard(partner_id):
     logging.info(f"**** Begin get_partner_dashboard for partner {partner_id} ****")
     try:
         # Vérifier que l'utilisateur a accès à ce partenaire
-        user_role = g.current_user.role.name if hasattr(g.current_user, 'role') else 'user'
+        user_role = g.current_user.role.name if hasattr(g.current_user, 'role') and g.current_user.role else 'user'
         user_id = g.current_user.id
-        
+
         # Si l'utilisateur n'est pas admin, vérifier les permissions
         # Note: Pour l'instant, tous les users peuvent voir n'importe quel partenaire
         # À améliorer : ajouter un système de permissions plus fin si nécessaire
-        if user_role not in ['admin', 'manager']:
+        if user_role.lower() not in ['admin', 'manager']:
             # Les utilisateurs simples peuvent uniquement accéder via leur propre contexte
             # Pour le moment, on ne bloque pas mais on pourrait ajouter des restrictions
             pass
@@ -194,7 +194,7 @@ def get_client_dashboard():
     logging.info("**** Begin get_client_dashboard ****")
     try:
         user_id = g.current_user.id
-        user_role = g.current_user.role.name if hasattr(g.current_user, 'role') else 'user'
+        user_role = g.current_user.role.name if hasattr(g.current_user, 'role') and g.current_user.role else 'user'
 
         # Récupérer tous les incidents créés par cet utilisateur
         user_incidents, total_incidents = incident_service.getByCriteria({'user_id': user_id}, 0, 1000)
@@ -299,10 +299,10 @@ def get_admin_dashboard():
     logging.info("**** Begin get_admin_dashboard ****")
     try:
         # Vérifier que l'utilisateur est admin
-        user_role = g.current_user.role.name if hasattr(g.current_user, 'role') else 'user'
-        if user_role != 'admin':
+        user_role = g.current_user.role.name if hasattr(g.current_user, 'role') and g.current_user.role else 'user'
+        if user_role.lower() != 'admin':
             return jsonify({
-                "status": "error", 
+                "status": "error",
                 "message": "Accès réservé aux administrateurs"
             }), 403
         
