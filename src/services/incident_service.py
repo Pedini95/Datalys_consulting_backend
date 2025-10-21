@@ -28,21 +28,33 @@ class IncidentService:
     def create_message(self, data: Dict[str, Any], user_id: Optional[int] = None) -> Tuple[Optional[Incident], bool, str]:
         """
         Créer un message pour communiquer
-        
+
         Args:
             data: Données du message (title, description, project_id)
             user_id: ID de l'utilisateur qui envoie
-            
+
         Returns:
             Tuple (message, succès, message)
         """
+        # Nettoyer les champs non-valides pour le modèle Incident
+        if 'user' in data:
+            # Extraire user_id de l'objet user si présent
+            if isinstance(data['user'], dict) and 'id' in data['user']:
+                if not user_id:
+                    user_id = data['user']['id']
+            del data['user']
+
+        # Extraire recipient_id si présent (pour assigned_to)
+        if 'recipient_id' in data:
+            data['assigned_to'] = data.pop('recipient_id')
+
         data.update({
             'type': 'message',
             'priority': data.get('priority', 'moyenne'),
             'status': 'ouvert',
             'category': 'communication'
         })
-        
+
         # Créer le message
         incident, success, message = self.create(data, user_id)
         
@@ -57,21 +69,31 @@ class IncidentService:
     def create_support_request(self, data: Dict[str, Any], user_id: Optional[int] = None) -> Tuple[Optional[Incident], bool, str]:
         """
         Créer une demande de support technique
-        
+
         Args:
             data: Données de la demande (title, description, priority, project_id)
             user_id: ID de l'utilisateur qui demande
-            
+
         Returns:
             Tuple (demande, succès, message)
         """
+        # Nettoyer les champs non-valides pour le modèle Incident
+        if 'user' in data:
+            if isinstance(data['user'], dict) and 'id' in data['user']:
+                if not user_id:
+                    user_id = data['user']['id']
+            del data['user']
+
+        if 'recipient_id' in data:
+            data['assigned_to'] = data.pop('recipient_id')
+
         data.update({
             'type': 'support',
             'priority': data.get('priority', 'moyenne'),
             'status': 'ouvert',
             'category': 'technique'
         })
-        
+
         # Créer la demande de support
         incident, success, message = self.create(data, user_id)
         
@@ -85,14 +107,24 @@ class IncidentService:
     def create_notification(self, data: Dict[str, Any], user_id: Optional[int] = None) -> Tuple[Optional[Incident], bool, str]:
         """
         Créer une notification officielle
-        
+
         Args:
             data: Données de la notification (title, description, assigned_to)
             user_id: ID de l'admin qui envoie
-            
+
         Returns:
             Tuple (notification, succès, message)
         """
+        # Nettoyer les champs non-valides pour le modèle Incident
+        if 'user' in data:
+            if isinstance(data['user'], dict) and 'id' in data['user']:
+                if not user_id:
+                    user_id = data['user']['id']
+            del data['user']
+
+        if 'recipient_id' in data:
+            data['assigned_to'] = data.pop('recipient_id')
+
         data.update({
             'type': 'notification',
             'priority': data.get('priority', 'haute'),
@@ -104,22 +136,32 @@ class IncidentService:
     def reply_to_message(self, parent_id: int, data: Dict[str, Any], user_id: Optional[int] = None) -> Tuple[Optional[Incident], bool, str]:
         """
         Répondre à un message existant
-        
+
         Args:
             parent_id: ID du message parent
             data: Données de la réponse (title, description)
             user_id: ID de l'utilisateur qui répond
-            
+
         Returns:
             Tuple (réponse, succès, message)
         """
+        # Nettoyer les champs non-valides pour le modèle Incident
+        if 'user' in data:
+            if isinstance(data['user'], dict) and 'id' in data['user']:
+                if not user_id:
+                    user_id = data['user']['id']
+            del data['user']
+
+        if 'recipient_id' in data:
+            data['assigned_to'] = data.pop('recipient_id')
+
         # Vérifier que le message parent existe
         parent_messages, _ = self.model_class.get_by_criteria({'id': parent_id}, 0, 1)
         if not parent_messages:
             return None, False, "Message parent non trouvé"
-        
+
         parent = parent_messages[0]
-        
+
         data.update({
             'parent_id': parent_id,
             'type': parent.type,  # Même type que le parent
