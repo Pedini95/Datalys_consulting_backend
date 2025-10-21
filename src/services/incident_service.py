@@ -63,6 +63,10 @@ class IncidentService:
             'category': 'communication'
         })
 
+        # Ajouter user_id si fourni (pour identifier qui a créé le message)
+        if user_id and 'user_id' not in data:
+            data['user_id'] = user_id
+
         # Créer le message
         incident, success, message = self.create(data, user_id)
         
@@ -105,6 +109,10 @@ class IncidentService:
             'category': 'technique'
         })
 
+        # Ajouter user_id si fourni
+        if user_id and 'user_id' not in data:
+            data['user_id'] = user_id
+
         # Créer la demande de support
         incident, success, message = self.create(data, user_id)
         
@@ -145,6 +153,11 @@ class IncidentService:
             'status': 'ouvert',
             'category': 'officiel'
         })
+
+        # Ajouter user_id si fourni
+        if user_id and 'user_id' not in data:
+            data['user_id'] = user_id
+
         return self.create(data, user_id)
     
     def reply_to_message(self, parent_id: int, data: Dict[str, Any], user_id: Optional[int] = None) -> Tuple[Optional[Incident], bool, str]:
