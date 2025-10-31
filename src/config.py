@@ -65,6 +65,8 @@ class Config:
     # Configuration email supplémentaire
     SENDER_NAME = os.getenv('SENDER_NAME', 'Datalys Consulting')
     APP_URL = os.getenv('APP_URL', 'http://localhost:5000')
+
+    
     
     # Configuration Flask pour url_for
     SERVER_NAME = os.getenv('SERVER_NAME', 'localhost:5000')

@@ -201,15 +201,15 @@ def upload_logo():
     """
     try:
         logger.info("**** Begin upload_logo ****")
-        
-        # Vérifier si un fichier a été envoyé
-        if 'file' not in request.files:
+
+        # Vérifier si un fichier a été envoyé (accepte 'file' ou 'logo')
+        if 'file' not in request.files and 'logo' not in request.files:
             return jsonify({
                 'status': 'error',
                 'message': 'Aucun fichier fourni'
             }), 400
-        
-        file = request.files['file']
+
+        file = request.files.get('file') or request.files.get('logo')
         
         # Vérifier si le fichier est valide
         is_valid, message = file_upload_manager.validate_image_file(file)
