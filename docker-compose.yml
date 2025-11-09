@@ -1,1 +1,222 @@
-docker-compose.deploy.yml
+# ========================================
+# DATALYS CONSULTING - CONFIGURATION SÉCURISÉE
+# ========================================
+#
+# ✅ AMÉLIORATIONS DE SÉCURITÉ :
+# - Réseau privé isolé pour tous les services
+# - MySQL NON exposé publiquement (accessible uniquement en interne)
+# - Redis accessible uniquement en interne
+# - API exposée uniquement sur le port 8082
+# - Isolation réseau complète via bridge network
+#
+# ========================================
+
+services:
+  # 🗄️ BASE DE DONNÉES MYSQL (PRIVÉE)
+  mysql-db:
+    image: mysql:8.0
+    container_name: mysql-db
+    restart: unless-stopped
+    networks:
+      - datalys-network
+    # AUCUNE exposition publique ! MySQL accessible uniquement par les autres conteneurs
+    expose:
+      - "3306"
+    volumes:
+      # Réutilisation du volume MySQL existant pour préserver les données
+      - mysql_data:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-rootpassword}
+      - MYSQL_DATABASE=${DB_NAME:-datalys_consulting}
+      - MYSQL_USER=${DB_USER:-datalys}
+      - MYSQL_PASSWORD=${DB_PASSWORD:-datalysconsulting}
+      - TZ=UTC
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --bind-address=0.0.0.0
+      --max_connections=200
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-rootpassword}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    profiles:
+      - production
+      - development
+    labels:
+      - "com.datalys.service=mysql"
+      - "com.datalys.environment=${ENVIRONMENT:-production}"
+
+  # 🗄️ REDIS CACHE (PRIVÉ)
+  redis-db:
+    image: redis:7-alpine
+    container_name: redis-db
+    restart: unless-stopped
+    networks:
+      - datalys-network
+    # Redis accessible uniquement en interne
+    expose:
+      - "6379"
+    volumes:
+      - redis_data:/data
+    command: >
+      redis-server
+      --bind 0.0.0.0
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory ${REDIS_MAX_MEMORY:-256mb}
+      --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    profiles:
+      - production
+      - development
+    labels:
+      - "com.datalys.service=redis"
+      - "com.datalys.environment=${ENVIRONMENT:-production}"
+
+  # 🔧 SERVICE PRINCIPAL API (EXPOSITION CONTRÔLÉE)
+  datalys-api:
+    image: ${IMAGE_REGISTRY:-datalys_consulting_backend-datalys-api}:${IMAGE_TAG:-latest}
+    container_name: datalys-api
+    restart: unless-stopped
+    networks:
+      - datalys-network
+    # Exposition UNIQUEMENT du port 8082
+    ports:
+      - "8082:8082"
+    build:
+      context: .
+      dockerfile: src/Dockerfile.fast
+      args:
+        - BUILD_DATE=${BUILD_DATE:-}
+        - COMMIT_SHA=${COMMIT_SHA:-}
+    environment:
+      # Database - MySQL via réseau Docker privé
+      - DB_HOST=mysql-db
+      - DB_PORT=3306
+      - DB_NAME=${DB_NAME:-datalys_consulting}
+      - DB_USER=${DB_USER:-datalys}
+      - DB_PASSWORD=${DB_PASSWORD:-datalysconsulting}
+
+      # Redis - Via réseau Docker privé
+      - REDIS_HOST=redis-db
+      - REDIS_PORT=6379
+      - REDIS_DB=${REDIS_DB:-0}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+
+      # Email SMTP - Configuration SSL
+      - MAIL_SERVER=${MAIL_SERVER:-smtp.hostinger.com}
+      - MAIL_PORT=${MAIL_PORT:-465}
+      - MAIL_USE_SSL=${MAIL_USE_SSL:-True}
+      - MAIL_USE_TLS=${MAIL_USE_TLS:-False}
+      - MAIL_USERNAME=${MAIL_USERNAME:-appweb@datalysconsulting.com}
+      - MAIL_PASSWORD=${MAIL_PASSWORD:-Datalysconsulting@2025}
+      - MAIL_DEFAULT_SENDER=${MAIL_DEFAULT_SENDER:-appweb@datalysconsulting.com}
+
+      # App Config
+      - SECRET_KEY=${SECRET_KEY:-development-secret-change-in-production}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-jwt-secret-change-in-production}
+      - FLASK_ENV=${FLASK_ENV:-production}
+      - FLASK_DEBUG=${FLASK_DEBUG:-False}
+      - UPLOAD_FOLDER=/app/src/static/files
+
+      # Firebase Cloud Messaging (FCM) - Notifications Push
+      - FIREBASE_ENABLED=${FIREBASE_ENABLED:-True}
+      - FCM_AUTO_NOTIFY_HIGH_PRIORITY=${FCM_AUTO_NOTIFY_HIGH_PRIORITY:-True}
+      - FCM_AUTO_NOTIFY_CRITICAL_PRIORITY=${FCM_AUTO_NOTIFY_CRITICAL_PRIORITY:-True}
+
+      # Versioning & Monitoring
+      - APP_VERSION=${IMAGE_TAG:-latest}
+      - BUILD_DATE=${BUILD_DATE:-}
+      - COMMIT_SHA=${COMMIT_SHA:-}
+
+    volumes:
+      - ./src/logs:/app/src/logs
+      - ./uploads:/app/uploads
+      - ./src/static:/app/src/static:Z
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+      redis-db:
+        condition: service_healthy
+    profiles:
+      - production
+      - development
+    labels:
+      - "com.datalys.service=api"
+      - "com.datalys.version=${IMAGE_TAG:-latest}"
+      - "com.datalys.environment=${ENVIRONMENT:-production}"
+
+  # 🔄 AUTO-UPDATE (Production uniquement)
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    networks:
+      - datalys-network
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_POLL_INTERVAL=${WATCHTOWER_INTERVAL:-300}
+      - WATCHTOWER_INCLUDE_STOPPED=true
+      - WATCHTOWER_LABEL_ENABLE=true
+    profiles:
+      - production
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.datalys.service=watchtower"
+
+# 🌐 RÉSEAU PRIVÉ ISOLÉ
+networks:
+  datalys-network:
+    name: datalys-network
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+
+# 💾 VOLUMES PERSISTANTS
+volumes:
+  mysql_data:
+    # Volume externe créé à partir du volume MySQL existant
+    external: true
+    name: ${MYSQL_VOLUME_NAME:-595f747d43440b6435bf6909cfe3c021c7ea9ecb2b2a6bace9de6e36150abec5}
+  redis_data:
+    driver: local
+
+# 📋 EXEMPLES D'UTILISATION :
+# ==========================
+#
+# 🚀 Production :
+# docker-compose -f docker-compose.secure.yml --profile production up -d
+#
+# 🔧 Développement :
+# docker-compose -f docker-compose.secure.yml --profile development up -d
+#
+# 📊 Vérifier les ports exposés :
+# docker ps --format 'table {{.Names}}\t{{.Ports}}'
+#
+# 🔍 Vérifier la connectivité réseau :
+# docker exec datalys-api ping -c 2 mysql-db
+# docker exec datalys-api ping -c 2 redis-db
+#
+# ✅ SÉCURITÉ :
+# - MySQL accessible UNIQUEMENT en interne (pas d'exposition publique)
+# - Redis accessible UNIQUEMENT en interne
+# - API exposée sur le port 8082 uniquement
+# - Isolation réseau complète via bridge network privé

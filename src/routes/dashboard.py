@@ -110,9 +110,17 @@ def get_partner_dashboard(partner_id):
     """
     logging.info(f"**** Begin get_partner_dashboard for partner {partner_id} ****")
     try:
-        # Vérifier que l'utilisateur a accès à ce partenaire
+        # Étape 1: Récupérer les informations de l'utilisateur connecté
+        logging.debug("Étape 1: Récupération des infos utilisateur")
+        logging.debug(f"g.current_user: {g.current_user}")
+        logging.debug(f"g.current_user.id: {g.current_user.id}")
+        logging.debug(f"hasattr(g.current_user, 'role'): {hasattr(g.current_user, 'role')}")
+
         user_role = g.current_user.role.name if hasattr(g.current_user, 'role') and g.current_user.role else 'user'
         user_id = g.current_user.id
+
+        logging.debug(f"user_role: {user_role}")
+        logging.debug(f"user_id: {user_id}")
 
         # Si l'utilisateur n'est pas admin, vérifier les permissions
         # Note: Pour l'instant, tous les users peuvent voir n'importe quel partenaire
@@ -121,66 +129,108 @@ def get_partner_dashboard(partner_id):
             # Les utilisateurs simples peuvent uniquement accéder via leur propre contexte
             # Pour le moment, on ne bloque pas mais on pourrait ajouter des restrictions
             pass
-        
-        # Récupérer les données du partenaire
+
+        # Étape 2: Récupérer les données du partenaire
+        logging.debug(f"Étape 2: Récupération du partenaire ID={partner_id}")
         partners, _ = partner_service.getByCriteria({'id': partner_id}, 0, 1)
+        logging.debug(f"Nombre de partenaires trouvés: {len(partners)}")
+
         partner = partners[0] if partners else None
         if not partner:
+            logging.warning(f"Partenaire non trouvé: ID={partner_id}")
             return jsonify({
-                "status": "error", 
+                "status": "error",
                 "message": "Partenaire non trouvé"
             }), 404
-        
-        # Récupérer les projets du partenaire
-        projects, _ = project_service.getByCriteria({'partner_id': partner_id}, 0, 100)
 
-        # Récupérer les incidents liés aux projets du partenaire
+        logging.debug(f"Partenaire trouvé: {partner.name}")
+
+        # Étape 3: Récupérer les projets du partenaire
+        logging.debug(f"Étape 3: Récupération des projets pour partner_id={partner_id}")
+        projects, _ = project_service.getByCriteria({'partner_id': partner_id}, 0, 100)
+        logging.debug(f"Nombre de projets trouvés: {len(projects)}")
+
+        # Étape 4: Récupérer les incidents liés aux projets du partenaire
+        logging.debug("Étape 4: Récupération des incidents")
         project_ids = [p.id for p in projects]
+        logging.debug(f"IDs de projets: {project_ids}")
+
         all_incidents = []
         for project_id in project_ids:
+            logging.debug(f"Récupération des incidents pour project_id={project_id}")
             incidents_for_project, _ = incident_service.getByCriteria({'project_id': project_id}, 0, 1000)
+            logging.debug(f"Incidents trouvés pour project_id={project_id}: {len(incidents_for_project)}")
             all_incidents.extend(incidents_for_project)
+
         incidents = all_incidents
-        
-        # Calculer les statistiques
+        logging.debug(f"Total incidents: {len(incidents)}")
+
+        # Étape 5: Calculer les statistiques des projets
+        logging.debug("Étape 5: Calcul des statistiques des projets")
         project_stats = {
             "total": len(projects),
             "active": len([p for p in projects if p.is_active]),
             "completed": len([p for p in projects if not p.is_active])
         }
-        
+        logging.debug(f"project_stats: {project_stats}")
+
+        # Étape 6: Calculer les statistiques des incidents
+        logging.debug("Étape 6: Calcul des statistiques des incidents")
         incident_stats = _get_incident_stats(incidents)
-        
-        # Récupérer le résumé d'activité
+        logging.debug(f"incident_stats: {incident_stats}")
+
+        # Étape 7: Récupérer le résumé d'activité
+        logging.debug("Étape 7: Récupération du résumé d'activité")
         activity_summary = _get_activity_summary(partner_id, user_role, user_id)
-        
-        # Récupérer les statistiques d'activité détaillées
+        logging.debug(f"activity_summary: {activity_summary}")
+
+        # Étape 8: Récupérer les statistiques d'activité détaillées
+        logging.debug("Étape 8: Récupération des statistiques d'activité détaillées")
         activity_stats = get_user_activity_stats(user_id)
-        
+        logging.debug(f"activity_stats: {activity_stats}")
+
+        # Étape 9: Convertir les objets en dictionnaires
+        logging.debug("Étape 9: Conversion du partenaire en dictionnaire")
+        partner_dict = partner.as_dict()
+        logging.debug(f"partner_dict créé: clés={list(partner_dict.keys())}")
+
+        logging.debug("Étape 10: Conversion des projets en dictionnaires")
+        recent_projects = [p.as_dict() for p in projects[:5]]
+        logging.debug(f"recent_projects: {len(recent_projects)} projets")
+
+        logging.debug("Étape 11: Conversion des incidents en dictionnaires")
+        recent_incidents = [i.as_dict() for i in incidents[:5]]
+        logging.debug(f"recent_incidents: {len(recent_incidents)} incidents")
+
+        # Étape 12: Construire la réponse
+        logging.debug("Étape 12: Construction de la réponse")
         dashboard_data = {
-            "partner": partner.as_dict(),
+            "partner": partner_dict,
             "project_stats": project_stats,
             "incident_stats": incident_stats,
             "activity_summary": activity_summary,
             "activity_stats": activity_stats,
-            "recent_projects": [p.as_dict() for p in projects[:5]],
-            "recent_incidents": [i.as_dict() for i in incidents[:5]]
+            "recent_projects": recent_projects,
+            "recent_incidents": recent_incidents
         }
-        
+
         response = {
             "code": 200,
             "data": dashboard_data,
             "message": functional_error.MESSAGE_SUCCESS()
         }
-        
-        logging.info("**** End get_partner_dashboard ****")
+
+        logging.info("**** End get_partner_dashboard - SUCCESS ****")
         return jsonify(response)
-        
+
     except Exception as e:
-        logging.error(f"Erreur dans get_partner_dashboard: {str(e)}")
+        logging.error(f"ERREUR dans get_partner_dashboard: {str(e)}")
+        logging.error(f"Type d'erreur: {type(e).__name__}")
+        import traceback
+        logging.error(f"Traceback complet:\n{traceback.format_exc()}")
         return jsonify({
-            "status": "error", 
-            "message": "Erreur interne du serveur"
+            "status": "error",
+            "message": f"Erreur interne du serveur: {str(e)}"
         }), 500
 
 @bp.route('/dashboard/client', methods=['POST'])

@@ -46,13 +46,13 @@ def add_auth_protection_to_file(file_path):
                 # Ajouter @require_auth après @cross_origin
                 new_line = next_line.replace('@cross_origin()', '@cross_origin()\n@require_auth')
                 content = content.replace(next_line, new_line)
-                print(f"  ✅ Protégé: {match.group()}")
+                print(f"   Protégé: {match.group()}")
     
     # Sauvegarder le fichier
     with open(file_path, 'w', encoding='utf-8') as f:
         f.write(content)
     
-    print(f"  ✅ Fichier sécurisé: {file_path}")
+    print(f"   Fichier sécurisé: {file_path}")
 
 def main():
     """Fonction principale"""
@@ -79,8 +79,8 @@ def main():
             print(f"⚠️  Fichier non trouvé: {route_file}")
     
     print("\n" + "=" * 50)
-    print("✅ Sécurisation terminée !")
-    print("\n📋 Routes maintenant protégées :")
+    print("Sécurisation terminée !")
+    print("\n Routes maintenant protégées :")
     print("- POST /users/create, /users/update, /users/delete, /users/getByCriteria")
     print("- POST /projects/create, /projects/update, /projects/delete, /projects/getByCriteria")
     print("- POST /partners/create, /partners/update, /partners/delete, /partners/getByCriteria")
@@ -91,7 +91,7 @@ def main():
     print("- POST /user_project_permissions/create, /user_project_permissions/update, /user_project_permissions/delete, /user_project_permissions/getByCriteria")
     print("- POST /action_history/create, /action_history/update, /action_history/delete, /action_history/getByCriteria")
     
-    print("\n🔑 Routes publiques (non protégées) :")
+    print("\n Routes publiques (non protégées) :")
     print("- POST /auth/login")
     print("- POST /auth/reset-password-request")
     print("- GET /health-check")

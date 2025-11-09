@@ -29,7 +29,8 @@ RUN python -m pip install --no-cache-dir --timeout 600 \
     flask_request_id_header flask_mail flask-httpauth pymysql \
     itsdangerous xlsxwriter requests python-dotenv flask-restx \
     apscheduler pycryptodome pillow redis async-timeout tomli \
-    cryptography reportlab bcrypt pycryptodomex PyJWT
+    cryptography reportlab bcrypt pycryptodomex PyJWT \
+    gunicorn gevent
 
 # Copier le code et donner les droits au user
 COPY --chown=app:app src/ /app/src
@@ -42,29 +43,21 @@ RUN chown -R app:app /app/src/logs /app/src/static && \
 
 USER app
 
-# Créer le script de démarrage avec debug
+# Créer le script de démarrage avec Gunicorn
 RUN echo '#!/bin/bash' > /app/start.sh && \
     echo 'set -e' >> /app/start.sh && \
-    echo 'echo "🚀 Démarrage de l application Datalys Consulting..."' >> /app/start.sh && \
-    echo 'export PORT=8082' >> /app/start.sh && \
+    echo 'echo "🚀 Démarrage de l application Datalys Consulting avec Gunicorn..."' >> /app/start.sh && \
+    echo 'export PORT=${PORT:-8082}' >> /app/start.sh && \
     echo 'export ENV=production' >> /app/start.sh && \
     echo 'export PYTHONPATH=/app/src' >> /app/start.sh && \
     echo 'echo "✅ Environnement configuré"' >> /app/start.sh && \
     echo 'echo "🔍 Debug: Current working directory: $(pwd)"' >> /app/start.sh && \
     echo 'echo "🔍 Debug: Python path: $PYTHONPATH"' >> /app/start.sh && \
-    echo 'echo "🔍 Debug: Contents of /app/src/models:"' >> /app/start.sh && \
-    echo 'ls -la /app/src/models/' >> /app/start.sh && \
-    echo 'echo "🔍 Debug: Checking for role.py:"' >> /app/start.sh && \
-    echo 'ls -la /app/src/models/role.py || echo "role.py not found"' >> /app/start.sh && \
-    echo 'echo "🔍 Debug: Contents of models/__init__.py:"' >> /app/start.sh && \
-    echo 'cat /app/src/models/__init__.py || echo "Cannot read __init__.py"' >> /app/start.sh && \
-    echo 'echo "🔍 Debug: Checking all model files:"' >> /app/start.sh && \
-    echo 'ls -la /app/src/models/*.py' >> /app/start.sh && \
-    echo 'echo "🔍 Debug: Testing import directly:"' >> /app/start.sh && \
+    echo 'echo "🔍 Debug: Testing import:"' >> /app/start.sh && \
     echo 'cd /app/src && python -c "from models import Role; print(\"✅ Role imported successfully\")" || echo "❌ Import failed"' >> /app/start.sh && \
-    echo "echo \"🌐 Démarrage sur le port \$PORT\"" >> /app/start.sh && \
+    echo "echo \"🌐 Démarrage Gunicorn sur le port \$PORT\"" >> /app/start.sh && \
     echo 'cd /app/src' >> /app/start.sh && \
-    echo 'exec python run.py' >> /app/start.sh && \
+    echo 'exec gunicorn --config gunicorn_config.py app:app' >> /app/start.sh && \
     chmod +x /app/start.sh
 
 # Exposer le port

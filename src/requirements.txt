@@ -25,3 +25,5 @@ bcrypt
 pycryptodomex
 PyJWT
 firebase-admin
+gunicorn
+gevent

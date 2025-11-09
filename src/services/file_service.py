@@ -4,6 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from extensions import db
 import logging
 from utils.audit_utils import set_audit_fields, update_audit_field
+from utils.error_handler import handle_sqlalchemy_error, handle_general_error
 
 logger = logging.getLogger(__name__)
 
@@ -39,12 +40,12 @@ class FileService:
             
         except SQLAlchemyError as e:
             db.session.rollback()
-            logger.error(f"Erreur lors de la création de {self.model_class.__name__}: {str(e)}")
-            return None, False, f"Erreur lors de la création: {str(e)}"
+            error_msg = handle_sqlalchemy_error(e, "la création du fichier", data)
+            return None, False, error_msg
         except Exception as e:
             db.session.rollback()
-            logger.error(f"Erreur inattendue lors de la création de {self.model_class.__name__}: {str(e)}")
-            return None, False, f"Erreur inattendue: {str(e)}"
+            error_msg = handle_general_error(e, "la création du fichier")
+            return None, False, error_msg
     
     def update(self, file_id: int, data: Dict[str, Any], user_id: Optional[int] = None) -> Tuple[Optional[File], bool, str]:
         """
@@ -80,12 +81,12 @@ class FileService:
             
         except SQLAlchemyError as e:
             db.session.rollback()
-            logger.error(f"Erreur lors de la mise à jour de {self.model_class.__name__}: {str(e)}")
-            return None, False, f"Erreur lors de la mise à jour: {str(e)}"
+            error_msg = handle_sqlalchemy_error(e, "la mise à jour du fichier", data)
+            return None, False, error_msg
         except Exception as e:
             db.session.rollback()
-            logger.error(f"Erreur inattendue lors de la mise à jour de {self.model_class.__name__}: {str(e)}")
-            return None, False, f"Erreur inattendue: {str(e)}"
+            error_msg = handle_general_error(e, "la mise à jour du fichier")
+            return None, False, error_msg
     
     def delete(self, file_id: int, user_id: Optional[int] = None, hard_delete: bool = False) -> Tuple[bool, str]:
         """
@@ -125,12 +126,12 @@ class FileService:
             
         except SQLAlchemyError as e:
             db.session.rollback()
-            logger.error(f"Erreur lors de la suppression de {self.model_class.__name__}: {str(e)}")
-            return False, f"Erreur lors de la suppression: {str(e)}"
+            error_msg = handle_sqlalchemy_error(e, "la suppression du fichier")
+            return False, error_msg
         except Exception as e:
             db.session.rollback()
-            logger.error(f"Erreur inattendue lors de la suppression de {self.model_class.__name__}: {str(e)}")
-            return False, f"Erreur inattendue: {str(e)}"
+            error_msg = handle_general_error(e, "la suppression du fichier")
+            return False, error_msg
     
     def getByCriteria(self, criteria: Dict[str, Any], index: int = 0, size: int = 10) -> Tuple[list, int]:
         """

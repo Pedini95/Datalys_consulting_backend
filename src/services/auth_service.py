@@ -6,6 +6,7 @@ import logging
 from utils import utilities
 from utils import session_utils
 from utils.audit_utils import set_audit_fields, update_audit_field
+from utils.error_handler import handle_sqlalchemy_error, handle_general_error
 import jwt
 import datetime
 from config import Config
@@ -44,12 +45,12 @@ class AuthService:
             
         except SQLAlchemyError as e:
             db.session.rollback()
-            logger.error(f"Erreur lors de la création de {self.model_class.__name__}: {str(e)}")
-            return None, False, f"Erreur lors de la création: {str(e)}"
+            error_msg = handle_sqlalchemy_error(e, "la création de l'utilisateur", data)
+            return None, False, error_msg
         except Exception as e:
             db.session.rollback()
-            logger.error(f"Erreur inattendue lors de la création de {self.model_class.__name__}: {str(e)}")
-            return None, False, f"Erreur inattendue: {str(e)}"
+            error_msg = handle_general_error(e, "la création de l'utilisateur")
+            return None, False, error_msg
     
     def update(self, user_id: int, data: Dict[str, Any], current_user_id: Optional[int] = None) -> Tuple[Optional[User], bool, str]:
         """
@@ -85,12 +86,12 @@ class AuthService:
             
         except SQLAlchemyError as e:
             db.session.rollback()
-            logger.error(f"Erreur lors de la mise à jour de {self.model_class.__name__}: {str(e)}")
-            return None, False, f"Erreur lors de la mise à jour: {str(e)}"
+            error_msg = handle_sqlalchemy_error(e, "la mise à jour de l'utilisateur", data)
+            return None, False, error_msg
         except Exception as e:
             db.session.rollback()
-            logger.error(f"Erreur inattendue lors de la mise à jour de {self.model_class.__name__}: {str(e)}")
-            return None, False, f"Erreur inattendue: {str(e)}"
+            error_msg = handle_general_error(e, "la mise à jour de l'utilisateur")
+            return None, False, error_msg
     
     def delete(self, user_id: int, current_user_id: Optional[int] = None, hard_delete: bool = False) -> Tuple[bool, str]:
         """
@@ -130,12 +131,12 @@ class AuthService:
             
         except SQLAlchemyError as e:
             db.session.rollback()
-            logger.error(f"Erreur lors de la suppression de {self.model_class.__name__}: {str(e)}")
-            return False, f"Erreur lors de la suppression: {str(e)}"
+            error_msg = handle_sqlalchemy_error(e, "la suppression de l'utilisateur")
+            return False, error_msg
         except Exception as e:
             db.session.rollback()
-            logger.error(f"Erreur inattendue lors de la suppression de {self.model_class.__name__}: {str(e)}")
-            return False, f"Erreur inattendue: {str(e)}"
+            error_msg = handle_general_error(e, "la suppression de l'utilisateur")
+            return False, error_msg
     
     def getByCriteria(self, criteria: Dict[str, Any], index: int = 0, size: int = 10) -> Tuple[list, int]:
         """
@@ -276,8 +277,8 @@ class AuthService:
             return user_data, True, "Connexion réussie"
             
         except Exception as e:
-            logger.error(f"Erreur lors de l'authentification: {str(e)}")
-            return None, False, f"Erreur lors de l'authentification: {str(e)}"
+            error_msg = handle_general_error(e, "l'authentification")
+            return None, False, error_msg
 
     def verify_token(self, token: str) -> Tuple[Optional[Dict], bool, str]:
         """
@@ -334,8 +335,8 @@ class AuthService:
         except jwt.InvalidTokenError:
             return None, False, "Token invalide"
         except Exception as e:
-            logger.error(f"Erreur lors de la vérification du token: {str(e)}")
-            return None, False, f"Erreur lors de la vérification du token: {str(e)}"
+            error_msg = handle_general_error(e, "la vérification du token")
+            return None, False, error_msg
 
     def logout(self, user_id: int, token: str) -> Tuple[bool, str]:
         """
@@ -360,8 +361,8 @@ class AuthService:
                 return True, "Déconnexion réussie (session déjà expirée)"
                 
         except Exception as e:
-            logger.error(f"Erreur lors de la déconnexion: {str(e)}")
-            return False, f"Erreur lors de la déconnexion: {str(e)}"
+            error_msg = handle_general_error(e, "la déconnexion")
+            return False, error_msg
 
     def get_current_user(self, token: str) -> Tuple[Optional[User], bool, str]:
         """
@@ -398,8 +399,8 @@ class AuthService:
             return user, True, "Utilisateur récupéré avec succès"
 
         except Exception as e:
-            logger.error(f"Erreur lors de la récupération de l'utilisateur: {str(e)}")
-            return None, False, f"Erreur lors de la récupération de l'utilisateur: {str(e)}"
+            error_msg = handle_general_error(e, "la récupération de l'utilisateur")
+            return None, False, error_msg
 
     def reset_password_request(self, email: str) -> Tuple[bool, str]:
         """
@@ -523,8 +524,8 @@ class AuthService:
         except jwt.InvalidTokenError:
             return False, "Token de reset invalide"
         except Exception as e:
-            logger.error(f"Erreur lors de la confirmation de reset: {str(e)}")
-            return False, f"Erreur lors de la confirmation de reset: {str(e)}"
+            error_msg = handle_general_error(e, "la confirmation de réinitialisation")
+            return False, error_msg
 
     def change_password(self, user_id: int, current_password: str, new_password: str) -> Tuple[bool, str]:
         """
@@ -557,8 +558,8 @@ class AuthService:
             return True, "Mot de passe mis à jour avec succès"
             
         except Exception as e:
-            logger.error(f"Erreur lors du changement de mot de passe: {str(e)}")
-            return False, f"Erreur lors du changement de mot de passe: {str(e)}"
+            error_msg = handle_general_error(e, "le changement de mot de passe")
+            return False, error_msg
 
     def generate_token(self, user_id: int, email: str) -> str:
         """
