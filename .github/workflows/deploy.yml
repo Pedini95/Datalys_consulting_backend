@@ -92,14 +92,22 @@ jobs:
             echo ""
             
             echo "🚀 Étape 6/7: Démarrage du nouveau conteneur..."
+            # Créer le conteneur avec la bonne configuration
             docker run -d --name datalys-api \
-              --network bridge \
               -p 8082:8082 \
+              --add-host smtp.hostinger.com:172.65.255.143 \
               --env-file .env \
               --restart unless-stopped \
-              -e DB_HOST=172.17.0.2 \
               datalys_consulting_backend-datalys-api:latest
-            echo "✅ Nouveau conteneur démarré"
+
+            # Connecter au réseau MySQL
+            docker network connect datalys-network datalys-api || true
+
+            # Configurer les règles iptables pour SMTP
+            iptables -I DOCKER-USER -i docker0 -j ACCEPT 2>/dev/null || true
+            iptables -I DOCKER-USER -i br-+ -o eth0 -j ACCEPT 2>/dev/null || true
+
+            echo "✅ Nouveau conteneur démarré et configuré"
             echo ""
             
             echo "⏳ Étape 7/7: Vérification du démarrage (30s)..."
