@@ -9,8 +9,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 # Dépendances système minimales (curl pour healthchecks/diagnostic)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl ca-certificates \
+    curl ca-certificates wget \
  && rm -rf /var/lib/apt/lists/*
+
+# Réinstaller pip proprement pour éviter les corruptions
+RUN wget -q https://bootstrap.pypa.io/get-pip.py && \
+    python get-pip.py --force-reinstall && \
+    rm get-pip.py && \
+    pip --version
 
 # Créer l'utilisateur applicatif
 RUN groupadd -r app && useradd -r -g app -m -d /app -s /bin/bash app
@@ -21,7 +27,7 @@ RUN mkdir -p /app/src/logs /app/src/static/files /app/src/static/files/logos /ap
 
 # Installer les deps Python en root (dans /usr/local)
 COPY src/requirements.txt .
-RUN python -m pip install --upgrade pip setuptools wheel
+RUN pip install --upgrade pip setuptools wheel
 
 # Installer toutes les dépendances depuis requirements.txt
 RUN python -m pip install --no-cache-dir --timeout 600 -r requirements.txt
