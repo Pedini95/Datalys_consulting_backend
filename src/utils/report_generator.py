@@ -7,6 +7,7 @@ import csv
 import io
 import logging
 import os
+import base64
 from datetime import datetime
 from typing import List, Dict, Any
 from reportlab.lib import colors
@@ -16,8 +17,12 @@ from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, Image
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.utils import ImageReader
 
 logger = logging.getLogger(__name__)
+
+# Logo Datalys en base64
+DATALYS_LOGO_BASE64 = "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"
 
 
 class ReportGenerator:
@@ -303,18 +308,15 @@ class ReportGenerator:
 
             elements = []
 
-            # Logo Datalys
+            # Logo Datalys (base64)
             try:
-                logo_path = os.path.join(
-                    os.path.dirname(os.path.dirname(__file__)),
-                    'static', 'image', 'logodatalys_email.jpg'
-                )
-                if os.path.exists(logo_path):
-                    logo = Image(logo_path, width=2*inch, height=0.8*inch)
-                    elements.append(logo)
-                    elements.append(Spacer(1, 15))
+                logo_data = base64.b64decode(DATALYS_LOGO_BASE64)
+                logo_buffer = io.BytesIO(logo_data)
+                logo = Image(ImageReader(logo_buffer), width=2*inch, height=0.8*inch)
+                elements.append(logo)
+                elements.append(Spacer(1, 15))
             except Exception as e:
-                logger.warning(f"Logo non trouvé pour PDF: {str(e)}")
+                logger.warning(f"Erreur lors du chargement du logo pour PDF: {str(e)}")
 
             # Titre
             title_style = ParagraphStyle(
