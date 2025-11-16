@@ -93,7 +93,7 @@ services:
       - "8082:8082"
     build:
       context: .
-      dockerfile: src/Dockerfile.fast
+      dockerfile: src/Dockerfile
       args:
         - BUILD_DATE=${BUILD_DATE:-}
         - COMMIT_SHA=${COMMIT_SHA:-}
