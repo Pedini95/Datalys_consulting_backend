@@ -76,7 +76,32 @@ class EmailService:
         # Vérifier la configuration
         if not all([self.smtp_username, self.smtp_password, self.sender_email]):
             logger.warning("Configuration SMTP incomplète. Les emails ne seront pas envoyés.")
-    
+
+    def get_logo_base64(self) -> str:
+        """
+        Lire le logo et l'encoder en base64 pour l'intégrer dans les emails
+
+        Returns:
+            String base64 du logo au format data URI ou string vide si erreur
+        """
+        import base64
+        import os
+
+        try:
+            # Chemin vers le logo (relatif au fichier notification.py)
+            logo_path = os.path.join(
+                os.path.dirname(os.path.dirname(__file__)),
+                'static', 'image', 'logodatalys_email.jpg'
+            )
+
+            # Lire le fichier et encoder en base64
+            with open(logo_path, 'rb') as image_file:
+                encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+                return f"data:image/jpeg;base64,{encoded_string}"
+        except Exception as e:
+            logger.error(f"Erreur lors de l'encodage du logo: {str(e)}")
+            return ""
+
     def send_email(self, to_email: str, subject: str, html_content: str, 
                    text_content: Optional[str] = None, attachments: Optional[List[Dict]] = None) -> bool:
         """
@@ -355,7 +380,7 @@ class EmailService:
                 'mfa_code': mfa_code,
                 'login_date': now.strftime('%d/%m/%Y'),
                 'login_time': now.strftime('%H:%M:%S'),
-                'logo_url': 'https://datalysconsulting.com/logo.png'
+                'logo_url': self.get_logo_base64()
             }
             
             # Rendre le template HTML
@@ -434,7 +459,7 @@ class EmailService:
                 'created_at': incident_data.get('created_at', 'Maintenant'),
                 'incident_id': incident_data.get('incident_id', ''),
                 'app_url': Config.APP_URL or 'https://app.datalysconsulting.com',
-                'logo_url': 'https://datalysconsulting.com/logo.png'
+                'logo_url': self.get_logo_base64()
             }
             
             # Rendre le template HTML
