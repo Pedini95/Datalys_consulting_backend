@@ -324,30 +324,32 @@ class EmailService:
         
         return self.send_email(user_email, subject, html_content)
     
-    def send_partner_credentials_email(self, partner_email: str, partner_name: str, email: str, 
-                                     password: str, app_url: str) -> bool:
+    def send_partner_credentials_email(self, partner_email: str, partner_name: str, email: str,
+                                     password: str, app_url: str, client_code: Optional[str] = None) -> bool:
         """
         Envoyer un email avec les credentials d'un partenaire
-        
+
         Args:
-            partner_email: Email du partenaire
+            partner_email: Email du partenaire (destinataire)
             partner_name: Nom du partenaire
-            email: Email de connexion
+            email: Email de connexion (peut être le même que partner_email ou différent)
             password: Mot de passe temporaire
             app_url: URL de l'application
-            
+            client_code: Code client optionnel pour la connexion
+
         Returns:
             True si l'email a été envoyé
         """
         subject = f"Vos identifiants de connexion - {self.sender_name}"
-        
+
         # Utiliser le template Flask
         # Construire l'URL de connexion
         login_url = f"{app_url}/connexion" if app_url else "https://applicationweb.datalysconsulting.com/connexion"
 
         html_content = render_template('email_partner_credentials.html',
             partner_name=partner_name,
-            email=email,
+            partner_email=email,
+            client_code=client_code,
             password=password,
             login_url=login_url,
             app_url=app_url,

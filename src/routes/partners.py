@@ -97,9 +97,10 @@ def create_partner():
                     email_sent = email_service.send_partner_credentials_email(
                         partner_email=data.get('email', ''),
                         partner_name=data.get('name', 'Partenaire'),
-                        email=client_code,  # Utiliser le client_code comme identifiant de connexion
+                        email=data.get('email', ''),  # Email réel du partenaire
                         password=temp_password,
-                        app_url=app_url
+                        app_url=app_url,
+                        client_code=client_code  # Code client pour se connecter
                     )
                     
                     if email_sent:
