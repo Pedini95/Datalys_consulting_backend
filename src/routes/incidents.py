@@ -33,6 +33,7 @@ def get_incidents():
     
     # 🔒 SÉCURITÉ: Filtrer par utilisateur pour les messages et support
     incident_type = criteria.get('type')
+    logging.info(f"🔍 DEBUG: incident_type={incident_type}, user_id={g.current_user.id}, criteria={criteria}")
     if incident_type in ['message', 'support']:
         # Pour les messages et support, l'utilisateur ne voit que les siens
         # Filtrer par created_by (créateur) OU assigned_to (destinataire)
