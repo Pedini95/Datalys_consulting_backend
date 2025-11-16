@@ -182,7 +182,7 @@ def create_support_request():
 @require_auth
 def get_support_requests():
     """
-    Récupérer les demandes de support (admins: toutes / users: leurs propres demandes)
+    Récupérer les demandes de support (uniquement les siennes)
     """
     logging.info("**** Begin get_support_requests ****")
     try:

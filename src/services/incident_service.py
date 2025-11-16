@@ -300,6 +300,7 @@ class IncidentService:
     def get_support_requests(self, status: Optional[str] = None, user_id: Optional[int] = None, index: int = 0, size: int = 10) -> Tuple[list, int]:
         """
         Récupérer les demandes de support
+        Tous les utilisateurs (y compris les admins) ne voient que leurs propres demandes
 
         Args:
             status: Filtrer par statut (optionnel)
@@ -310,8 +311,6 @@ class IncidentService:
         Returns:
             Tuple (demandes, total)
         """
-        from models import User
-
         criteria = {
             'type': 'support',
             'is_active': True
@@ -319,15 +318,8 @@ class IncidentService:
         if status:
             criteria['status'] = status
 
-        # Vérifier si l'utilisateur est admin
-        is_admin = False
+        # Filtrer uniquement les demandes de l'utilisateur connecté
         if user_id:
-            user = User.query.filter_by(id=user_id).first()
-            if user and user.role and user.role.name == 'admin':
-                is_admin = True
-
-        # Si pas admin, filtrer uniquement ses propres demandes
-        if user_id and not is_admin:
             criteria['user_id'] = user_id
 
         return self.getByCriteria(criteria, index, size)
@@ -335,6 +327,7 @@ class IncidentService:
     def can_user_access_message(self, message_id: int, user_id: int) -> bool:
         """
         Vérifier si un utilisateur peut accéder à un message
+        Tous les utilisateurs (y compris les admins) ne voient que leurs propres messages
 
         Args:
             message_id: ID du message
@@ -343,23 +336,12 @@ class IncidentService:
         Returns:
             bool: True si l'utilisateur peut accéder au message
         """
-        from models import User
-
         # Récupérer le message
         messages, _ = self.getByCriteria({'id': message_id}, 0, 1)
         if not messages:
             return False
 
         message = messages[0]
-
-        # Récupérer l'utilisateur pour vérifier son rôle
-        user = User.query.filter_by(id=user_id).first()
-        if not user:
-            return False
-
-        # Les admins peuvent tout voir
-        if user.role and user.role.name == 'admin':
-            return True
 
         # L'utilisateur peut voir s'il est le créateur
         if message.user_id == user_id:
