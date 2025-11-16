@@ -379,8 +379,7 @@ class EmailService:
                 'user_email': user_email,
                 'mfa_code': mfa_code,
                 'login_date': now.strftime('%d/%m/%Y'),
-                'login_time': now.strftime('%H:%M:%S'),
-                'logo_url': self.get_logo_base64()
+                'login_time': now.strftime('%H:%M:%S')
             }
             
             # Rendre le template HTML
@@ -458,8 +457,7 @@ class EmailService:
                 'project_title': incident_data.get('project_title', 'N/A'),
                 'created_at': incident_data.get('created_at', 'Maintenant'),
                 'incident_id': incident_data.get('incident_id', ''),
-                'app_url': Config.APP_URL or 'https://app.datalysconsulting.com',
-                'logo_url': self.get_logo_base64()
+                'app_url': Config.APP_URL or 'https://app.datalysconsulting.com'
             }
             
             # Rendre le template HTML
