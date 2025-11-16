@@ -457,11 +457,12 @@ def refuse_solution(incident_id):
 
                 app_url = os.getenv('APP_URL', 'https://datalysconsulting.com')
                 sender_name = os.getenv('SENDER_NAME', 'Datalys Consulting')
+                sender_email = os.getenv('MAIL_DEFAULT_SENDER', 'noreply@datalysconsulting.com')
 
                 msg = Message(
                     subject=f"[REFUS] Solution refusée pour {incident.incident_number}",
                     recipients=[expert.email],
-                    sender=(sender_name, os.getenv('MAIL_DEFAULT_SENDER'))
+                    sender=(sender_name, sender_email)
                 )
 
                 msg.html = f"""
@@ -513,24 +514,21 @@ def refuse_solution(incident_id):
     # 6. Ajouter un message automatique dans le fil de discussion
     try:
         # Créer un message incident de type "refus de solution"
-        refusal_message = Incident(
-            title=f"Solution refusée (#{incident.refusal_count})",
-            description=f"**Raison du refus :**\n\n{refusal_reason}",
-            type='message',
-            status='nouveau',
-            priority=incident.priority,
-            user_id=user.get('id'),
-            project_id=incident.project_id,
-            assigned_to=incident.assigned_to,
-            parent_id=incident.id,  # Lier au incident parent
-            is_active=True,
-            is_deleted=False,
-            created_at=datetime.utcnow(),
-            created_by=user.get('id')
-        )
-
-        # Générer un numéro pour ce message
+        refusal_message = Incident()
         refusal_message.incident_number = Incident.generate_incident_number()
+        refusal_message.title = f"Solution refusée (#{incident.refusal_count})"
+        refusal_message.description = f"**Raison du refus :**\n\n{refusal_reason}"
+        refusal_message.type = 'message'
+        refusal_message.status = 'nouveau'
+        refusal_message.priority = incident.priority
+        refusal_message.user_id = user.get('id')
+        refusal_message.project_id = incident.project_id
+        refusal_message.assigned_to = incident.assigned_to
+        refusal_message.parent_id = incident.id  # Lier au incident parent
+        refusal_message.is_active = True
+        refusal_message.is_deleted = False
+        refusal_message.created_at = datetime.utcnow()
+        refusal_message.created_by = user.get('id')
 
         db.session.add(refusal_message)
         db.session.commit()
@@ -643,7 +641,7 @@ def export_incidents():
                 "code": 404
             }, 404
 
-        logging.info(f"Export de {len(incidents)} incidents au format {export_format}")
+        logging.info(f"Export de {len(incidents)}/{total_items} incidents au format {export_format}")
 
         # Générer le rapport selon le format
         from utils.report_generator import ReportGenerator
@@ -666,6 +664,13 @@ def export_incidents():
             mimetype = 'application/pdf'
             filename = f'incidents_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf'
             file_data = io.BytesIO(content)
+        
+        else:
+            return {
+                "status": "error",
+                "message": f"Format d'export non supporté : {export_format}",
+                "code": 400
+            }, 400
 
         file_data.seek(0)
 
