@@ -106,6 +106,9 @@ jobs:
               -p 8082:8082 \
               --add-host smtp.hostinger.com:172.65.255.143 \
               --env-file .env \
+              -v /root/Datalys_consulting_backend/src/logs:/app/src/logs \
+              -v /root/Datalys_consulting_backend/uploads:/app/uploads \
+              -v /root/Datalys_consulting_backend/src/static:/app/src/static \
               --restart unless-stopped \
               datalys_consulting_backend-datalys-api:latest
 
