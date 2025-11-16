@@ -125,7 +125,7 @@ services:
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-jwt-secret-change-in-production}
       - FLASK_ENV=${FLASK_ENV:-production}
       - FLASK_DEBUG=${FLASK_DEBUG:-False}
-      - UPLOAD_FOLDER=/app/src/static/files
+      - UPLOAD_FOLDER=/app/src/static
 
       # Firebase Cloud Messaging (FCM) - Notifications Push
       - FIREBASE_ENABLED=${FIREBASE_ENABLED:-True}
