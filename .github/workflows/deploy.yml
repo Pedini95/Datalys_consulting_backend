@@ -99,7 +99,14 @@ jobs:
             docker rm datalys-api || true
             echo "✅ Ancien conteneur supprimé"
             echo ""
-            
+
+            echo "📁 Étape 5.5/7: Création des dossiers et permissions..."
+            mkdir -p src/static/logos src/static/files src/static/projects src/static/incidents src/logs uploads
+            chown -R 999:999 src/static/logos src/static/files src/static/projects src/static/incidents src/logs uploads
+            chmod -R 775 src/static/logos src/static/files src/static/projects src/static/incidents src/logs uploads
+            echo "✅ Dossiers créés avec les bonnes permissions (UID/GID 999)"
+            echo ""
+
             echo "🚀 Étape 6/7: Démarrage du nouveau conteneur..."
             # Créer le conteneur avec la bonne configuration
             docker run -d --name datalys-api \
