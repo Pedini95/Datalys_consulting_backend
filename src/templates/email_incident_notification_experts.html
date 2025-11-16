@@ -172,7 +172,7 @@
     <div class="email-container">
         <!-- Header -->
         <div class="header">
-            <div class="alert-icon">🚨</div>
+            <div class="alert-icon"></div>
             <h1>NOUVEL INCIDENT CRÉÉ</h1>
             <p>Une intervention est requise</p>
         </div>
@@ -189,45 +189,45 @@
             <!-- Incident Details -->
             <div class="info-section">
                 <div class="info-row">
-                    <span class="info-label">📋 Titre :</span>
+                    <span class="info-label"> Titre :</span>
                     <span class="info-value">{{ incident_title }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">⚠️ Impact :</span>
+                    <span class="info-label"> Impact :</span>
                     <span class="info-value">{{ impact_label }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">🔧 Domaine :</span>
+                    <span class="info-label"> Domaine :</span>
                     <span class="info-value">{{ domain_label }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">👤 Déclarant :</span>
+                    <span class="info-label"> Déclarant :</span>
                     <span class="info-value">{{ declarant_name }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">🏢 Client :</span>
+                    <span class="info-label"> Client :</span>
                     <span class="info-value">{{ partner_name }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">📁 Projet :</span>
+                    <span class="info-label"> Projet :</span>
                     <span class="info-value">{{ project_title }}</span>
                 </div>
                 <div class="info-row">
-                    <span class="info-label">🕐 Créé le :</span>
+                    <span class="info-label"> Créé le :</span>
                     <span class="info-value">{{ created_at }}</span>
                 </div>
             </div>
 
             <!-- Description -->
             <div class="description-box">
-                <div class="description-title">📝 Description de l'incident :</div>
+                <div class="description-title"> Description de l'incident :</div>
                 <div class="description-text">{{ incident_description }}</div>
             </div>
 
             <!-- Urgency Notice for P0/P1 -->
             {% if priority in ['P0', 'P1'] %}
             <div class="urgency-notice">
-                <p>⚠️ Cet incident nécessite une prise en charge immédiate !</p>
+                <p> Cet incident nécessite une prise en charge immédiate !</p>
             </div>
             {% endif %}
         </div>

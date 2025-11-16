@@ -347,7 +347,7 @@ class EmailService:
             from flask import render_template
             from datetime import datetime
             
-            subject = f"🔐 Code de vérification - Datalys Consulting"
+            subject = f"Code de verification - Datalys Consulting"
             
             # Préparer les données pour le template
             now = datetime.now()
@@ -465,7 +465,7 @@ class EmailService:
         Returns:
             True si l'email a été envoyé
         """
-        subject = f"🚨 ALERTE INCIDENT - Projet {email_data.get('project_title', 'N/A')}"
+        subject = f"ALERTE INCIDENT - Projet {email_data.get('project_title', 'N/A')}"
         
         # Créer le contenu HTML de l'alerte
         html_content = f"""
