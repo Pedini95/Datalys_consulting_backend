@@ -65,14 +65,13 @@ class EmailService:
     def __init__(self):
         # Configuration SMTP depuis config.py
         from config import Config
-        config = Config()
-        
-        self.smtp_server = config.MAIL_SERVER
-        self.smtp_port = config.MAIL_PORT
-        self.smtp_username = config.MAIL_USERNAME
-        self.smtp_password = config.MAIL_PASSWORD
-        self.sender_email = config.MAIL_DEFAULT_SENDER
-        self.sender_name = config.SENDER_NAME
+
+        self.smtp_server = Config.MAIL_SERVER
+        self.smtp_port = Config.MAIL_PORT
+        self.smtp_username = Config.MAIL_USERNAME
+        self.smtp_password = Config.MAIL_PASSWORD
+        self.sender_email = Config.MAIL_DEFAULT_SENDER
+        self.sender_name = Config.SENDER_NAME
         
         # Vérifier la configuration
         if not all([self.smtp_username, self.smtp_password, self.sender_email]):
