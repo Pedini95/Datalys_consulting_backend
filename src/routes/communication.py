@@ -182,7 +182,7 @@ def create_support_request():
 @require_auth
 def get_support_requests():
     """
-    Récupérer les demandes de support (pour admins)
+    Récupérer les demandes de support (admins: toutes / users: leurs propres demandes)
     """
     logging.info("**** Begin get_support_requests ****")
     try:
@@ -190,9 +190,9 @@ def get_support_requests():
         index = r.get('index', 0)
         size = r.get('size', 10)
         status = r.get('data', {}).get('status')
-        
-        # Récupérer les demandes de support
-        requests, total_items = incident_service.get_support_requests(status, index, size)
+
+        # Récupérer les demandes de support (filtrage sécurisé par user_id)
+        requests, total_items = incident_service.get_support_requests(status, g.current_user.id, index, size)
         
         if requests:
             message = functional_error.MESSAGE_SUCCESS()
@@ -229,10 +229,10 @@ def send_notification():
     logging.info("**** Begin send_notification ****")
     try:
         data = request.get_json() or {}
-        
-        # Vérifier que l'utilisateur est admin (vous pouvez adapter selon votre logique de rôles)
-        # if g.current_user.role.name != 'admin':
-        #     return {"status": "error", "message": "Action non autorisée"}, 403
+
+        # Vérifier que l'utilisateur est admin
+        if not g.current_user.role or g.current_user.role.name != 'admin':
+            return {"status": "error", "message": "Action non autorisée - réservé aux administrateurs"}, 403
         
         # Valider les champs requis
         if not data.get('title'):
@@ -351,22 +351,21 @@ def get_conversation_thread():
         parent_id = r.get('parent_id')
         index = r.get('index', 0)
         size = r.get('size', 50)
-        
+
         if not parent_id:
             return {"status": "error", "message": "L'ID du message parent est requis"}, 400
-        
-        # Récupérer la conversation
-        messages, total_items = incident_service.get_conversation_thread(parent_id, index, size)
-        
-        if messages:
-            message = functional_error.MESSAGE_SUCCESS()
-        else:
-            message = functional_error.MESSAGE_DATA_EMPTY()
-        
+
+        # Récupérer la conversation (avec vérification de sécurité)
+        messages, total_items = incident_service.get_conversation_thread(parent_id, g.current_user.id, index, size)
+
+        # Si aucun message retourné, soit la conversation n'existe pas, soit l'utilisateur n'y a pas accès
+        if not messages:
+            return {"status": "error", "message": "Conversation non trouvée ou accès non autorisé"}, 403
+
         response = {
             "items": [msg.as_dict() for msg in messages],
             "count": total_items,
-            "message": message,
+            "message": functional_error.MESSAGE_SUCCESS(),
             "code": 200
         }
         

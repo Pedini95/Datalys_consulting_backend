@@ -297,38 +297,116 @@ class IncidentService:
             'is_active': True
         }, index, size)
     
-    def get_support_requests(self, status: Optional[str] = None, index: int = 0, size: int = 10) -> Tuple[list, int]:
+    def get_support_requests(self, status: Optional[str] = None, user_id: Optional[int] = None, index: int = 0, size: int = 10) -> Tuple[list, int]:
         """
         Récupérer les demandes de support
+
+        Args:
+            status: Filtrer par statut (optionnel)
+            user_id: ID de l'utilisateur qui demande (pour filtrage sécurisé)
+            index: Index de pagination
+            size: Taille de page
+
+        Returns:
+            Tuple (demandes, total)
         """
+        from models import User
+
         criteria = {
             'type': 'support',
             'is_active': True
         }
         if status:
             criteria['status'] = status
-            
+
+        # Vérifier si l'utilisateur est admin
+        is_admin = False
+        if user_id:
+            user = User.query.filter_by(id=user_id).first()
+            if user and user.role and user.role.name == 'admin':
+                is_admin = True
+
+        # Si pas admin, filtrer uniquement ses propres demandes
+        if user_id and not is_admin:
+            criteria['user_id'] = user_id
+
         return self.getByCriteria(criteria, index, size)
     
-    def get_conversation_thread(self, parent_id: int, index: int = 0, size: int = 50) -> Tuple[list, int]:
+    def can_user_access_message(self, message_id: int, user_id: int) -> bool:
+        """
+        Vérifier si un utilisateur peut accéder à un message
+
+        Args:
+            message_id: ID du message
+            user_id: ID de l'utilisateur
+
+        Returns:
+            bool: True si l'utilisateur peut accéder au message
+        """
+        from models import User
+
+        # Récupérer le message
+        messages, _ = self.getByCriteria({'id': message_id}, 0, 1)
+        if not messages:
+            return False
+
+        message = messages[0]
+
+        # Récupérer l'utilisateur pour vérifier son rôle
+        user = User.query.filter_by(id=user_id).first()
+        if not user:
+            return False
+
+        # Les admins peuvent tout voir
+        if user.role and user.role.name == 'admin':
+            return True
+
+        # L'utilisateur peut voir s'il est le créateur
+        if message.user_id == user_id:
+            return True
+
+        # L'utilisateur peut voir s'il est le créateur (via created_by)
+        if message.created_by == user_id:
+            return True
+
+        # L'utilisateur peut voir s'il est le destinataire
+        if message.assigned_to == user_id:
+            return True
+
+        return False
+
+    def get_conversation_thread(self, parent_id: int, user_id: int, index: int = 0, size: int = 50) -> Tuple[list, int]:
         """
         Récupérer toute la conversation (message + réponses)
+
+        Args:
+            parent_id: ID du message parent
+            user_id: ID de l'utilisateur qui demande l'accès
+            index: Index de pagination
+            size: Taille de page
+
+        Returns:
+            Tuple (messages, total)
         """
+        # Vérifier que l'utilisateur peut accéder au message parent
+        if not self.can_user_access_message(parent_id, user_id):
+            return [], 0
+
         # Récupérer le message parent et tous ses enfants
         all_messages = []
-        
+
         # Message parent
         parent_messages, _ = self.getByCriteria({'id': parent_id}, 0, 1)
         if parent_messages:
             all_messages.extend(parent_messages)
-        
+
         # Messages enfants
         child_messages, _ = self.getByCriteria({
             'parent_id': parent_id,
             'is_active': True
         }, index, size)
         all_messages.extend(child_messages)
-        
+
         return all_messages, len(all_messages)
 
     # ===============================
