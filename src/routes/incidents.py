@@ -1,4 +1,4 @@
-from flask import Blueprint, request, send_file
+from flask import Blueprint, request, send_file, g
 from services import IncidentService
 import logging
 from utils import functional_error, utilities
@@ -31,7 +31,42 @@ def get_incidents():
     size = r.get('size', 10)
     criteria = r.get('data', {})
     
-    incidents, total_items = incident_service.model_class.get_by_criteria(criteria, index, size)
+    # 🔒 SÉCURITÉ: Filtrer par utilisateur pour les messages et support
+    incident_type = criteria.get('type')
+    if incident_type in ['message', 'support']:
+        # Pour les messages et support, l'utilisateur ne voit que les siens
+        # Filtrer par created_by (créateur) OU assigned_to (destinataire)
+        from sqlalchemy import or_
+        from models.incident import Incident
+        
+        # Construire la requête avec filtrage utilisateur
+        query = Incident.query.filter_by(is_deleted=False)
+        
+        # Appliquer les critères de base
+        for key, value in criteria.items():
+            if key != 'type' and hasattr(Incident, key):
+                query = query.filter(getattr(Incident, key) == value)
+        
+        # Filtrer par type
+        if incident_type:
+            query = query.filter(Incident.type == incident_type)
+        
+        # 🔒 Filtrer par utilisateur: créateur OU destinataire
+        query = query.filter(
+            or_(
+                Incident.created_by == g.current_user.id,
+                Incident.assigned_to == g.current_user.id,
+                Incident.user_id == g.current_user.id
+            )
+        )
+        
+        # Pagination
+        total_items = query.count()
+        incidents = query.order_by(Incident.created_at.desc()).offset(index).limit(size).all()
+    else:
+        # Pour les autres types (incidents normaux), utiliser la méthode standard
+        incidents, total_items = incident_service.model_class.get_by_criteria(criteria, index, size)
+    
     if incidents:
         message = functional_error.MESSAGE_SUCCESS()
     else:
