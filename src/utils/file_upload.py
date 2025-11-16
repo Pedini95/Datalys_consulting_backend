@@ -237,13 +237,13 @@ class FileUploadManager:
         try:
             # Construire l'URL de base (utiliser APP_URL de la config)
             base_url = current_app.config.get('APP_URL', 'http://localhost:5000')
-            
+
             # Nettoyer le chemin
             relative_path = file_path.replace('\\', '/').lstrip('/')
-            
-            # Construire l'URL avec la route /files/serve
-            file_url = f"{base_url}/files/serve/{relative_path}"
-            
+
+            # Construire l'URL avec la route /api/files/serve (pour Nginx)
+            file_url = f"{base_url}/api/files/serve/{relative_path}"
+
             logger.info(f"Generated file URL: {file_url} from path: {file_path}")
             return file_url
             

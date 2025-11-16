@@ -126,6 +126,7 @@ services:
       - FLASK_ENV=${FLASK_ENV:-production}
       - FLASK_DEBUG=${FLASK_DEBUG:-False}
       - UPLOAD_FOLDER=/app/src/static
+      - APP_URL=https://applicationweb.datalysconsulting.com
 
       # Firebase Cloud Messaging (FCM) - Notifications Push
       - FIREBASE_ENABLED=${FIREBASE_ENABLED:-True}
