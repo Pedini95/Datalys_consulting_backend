@@ -342,11 +342,14 @@ class EmailService:
         subject = f"Vos identifiants de connexion - {self.sender_name}"
         
         # Utiliser le template Flask
-        #         logo_url = "https://datalysconsulting.com/static/image/logo.png"  # URL absolue
+        # Construire l'URL de connexion
+        login_url = f"{app_url}/connexion" if app_url else "https://applicationweb.datalysconsulting.com/connexion"
+
         html_content = render_template('email_partner_credentials.html',
             partner_name=partner_name,
             email=email,
             password=password,
+            login_url=login_url,
             app_url=app_url,
             sender_name=self.sender_name,
             sender_email=self.sender_email,
@@ -573,17 +576,19 @@ class EmailService:
         Returns:
             bool: True si envoyé avec succès
         """
-        subject = f"🚀 Bienvenue dans l'écosystème Datalys Consulting - Accès à votre espace partenaire"
-        
+        subject = f"Bienvenue dans l'écosystème Datalys Consulting - Accès à votre espace partenaire"
+
         # URL de l'application (configurable via variable d'environnement)
-        app_url = current_app.config.get('APP_URL', 'https://applicationweb.datalysconsulting.com/connexion')
-        
+        app_url = current_app.config.get('APP_URL', 'https://applicationweb.datalysconsulting.com')
+        login_url = f"{app_url}/connexion"
+
         # Utiliser le template Flask professionnel
         html_content = render_template('email_partner_credentials.html',
             email=partner_email,
             partner_name=partner_name,
             username=username,
             password=password,
+            login_url=login_url,
             app_url=app_url,
             sender_email=self.smtp_username,
             sender_name=self.sender_name
