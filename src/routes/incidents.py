@@ -524,12 +524,12 @@ def refuse_solution(incident_id):
 @bp.route('/incidents/export', methods=['POST'])
 @cross_origin()
 @require_auth
-@require_role(['admin', 'manager'])  # Réservé aux admins et managers
+@require_role('admin')  # Réservé aux admins
 def export_incidents():
     """
     Exporter les incidents dans différents formats (PDF, Excel, CSV)
 
-    Réservé aux administrateurs et managers.
+    Réservé aux administrateurs.
 
     Body:
     {
