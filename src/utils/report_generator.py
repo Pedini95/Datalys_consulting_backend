@@ -6,13 +6,14 @@ Formats supportés : PDF, Excel, CSV
 import csv
 import io
 import logging
+import os
 from datetime import datetime
 from typing import List, Dict, Any
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, Image
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
@@ -301,6 +302,19 @@ class ReportGenerator:
             )
 
             elements = []
+
+            # Logo Datalys
+            try:
+                logo_path = os.path.join(
+                    os.path.dirname(os.path.dirname(__file__)),
+                    'static', 'image', 'logodatalys_email.jpg'
+                )
+                if os.path.exists(logo_path):
+                    logo = Image(logo_path, width=2*inch, height=0.8*inch)
+                    elements.append(logo)
+                    elements.append(Spacer(1, 15))
+            except Exception as e:
+                logger.warning(f"Logo non trouvé pour PDF: {str(e)}")
 
             # Titre
             title_style = ParagraphStyle(
