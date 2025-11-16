@@ -98,8 +98,7 @@ class EmailService:
             message['From'] = f"{self.sender_name} <{self.sender_email}>"
             message['To'] = to_email
             message['Subject'] = subject
-            message['Content-Type'] = 'text/html; charset=UTF-8'
-            
+
             # Ajouter le contenu texte
             if text_content:
                 text_part = MIMEText(text_content, 'plain', 'utf-8')
@@ -147,8 +146,7 @@ class EmailService:
                 message['From'] = f"{self.sender_name} <{self.sender_email}>"
                 message['To'] = to_email
                 message['Subject'] = subject
-                message['Content-Type'] = 'text/html; charset=UTF-8'
-                
+
                 # Ajouter le contenu texte si fourni
                 if text_content:
                     text_part = MIMEText(text_content, 'plain', 'utf-8')
