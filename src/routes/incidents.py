@@ -591,6 +591,9 @@ def export_incidents():
 
     # Paramètres
     export_format = r.get('format', 'csv').lower()
+    # Normaliser certains alias de format
+    if export_format == 'xlsx':
+        export_format = 'excel'
     criteria = r.get('criteria', {})
     date_from = r.get('date_from')
     date_to = r.get('date_to')
@@ -600,7 +603,7 @@ def export_incidents():
     if export_format not in ['pdf', 'excel', 'csv']:
         return {
             "status": "error",
-            "message": "Format invalide. Formats acceptés : pdf, excel, csv",
+            "message": "Format invalide. Formats acceptés : pdf, excel (xlsx), csv",
             "code": 400
         }, 400
 
