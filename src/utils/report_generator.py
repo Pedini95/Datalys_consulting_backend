@@ -14,9 +14,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, Image
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 from reportlab.lib.utils import ImageReader
 
 logger = logging.getLogger(__name__)
@@ -312,14 +310,30 @@ class ReportGenerator:
             try:
                 # 1. Essayer de charger un fichier logo depuis src/static/image
                 project_root = os.getcwd()
-                logo_path = os.path.join(project_root, 'src', 'static', 'image', 'logo_datalys.png')
+                logo_dir = os.path.join(project_root, 'src', 'static', 'image')
 
-                if os.path.exists(logo_path):
+                # Noms de fichiers possibles (inclut ton fichier existant logodatalys_email.jpg)
+                candidate_files = [
+                    'logodatalys_email.jpg',
+                    'logo_datalys.png',
+                    'logo_datalys.jpg',
+                    'logo.png',
+                    'logo.jpg',
+                ]
+
+                logo_path = None
+                for name in candidate_files:
+                    path = os.path.join(logo_dir, name)
+                    if os.path.exists(path):
+                        logo_path = path
+                        break
+
+                if logo_path:
                     logger.info(f"Chargement du logo PDF depuis le fichier: {logo_path}")
                     logo = Image(logo_path, width=2*inch, height=0.8*inch)
                 else:
                     # 2. Fallback: utiliser le logo en base64 embarqué
-                    logger.info("Logo fichier introuvable, utilisation du logo base64 pour le PDF")
+                    logger.info("Aucun fichier logo trouvé, utilisation du logo base64 pour le PDF")
                     logo_data = base64.b64decode(DATALYS_LOGO_BASE64)
                     logo_buffer = io.BytesIO(logo_data)
                     logo = Image(ImageReader(logo_buffer), width=2*inch, height=0.8*inch)
