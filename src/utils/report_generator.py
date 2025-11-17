@@ -15,7 +15,6 @@ from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
-from reportlab.lib.utils import ImageReader
 
 logger = logging.getLogger(__name__)
 
@@ -309,8 +308,10 @@ class ReportGenerator:
             # Logo Datalys (fichier physique en priorité, base64 en secours)
             try:
                 # 1. Essayer de charger un fichier logo depuis src/static/image
-                project_root = os.getcwd()
-                logo_dir = os.path.join(project_root, 'src', 'static', 'image')
+                #    On part du chemin de ce fichier utils/report_generator.py pour être indépendant du cwd
+                current_dir = os.path.dirname(__file__)
+                project_root = os.path.dirname(current_dir)  # /app/src
+                logo_dir = os.path.join(project_root, 'static', 'image')
 
                 # Noms de fichiers possibles (inclut ton fichier existant logodatalys_email.jpg)
                 candidate_files = [
@@ -336,7 +337,8 @@ class ReportGenerator:
                     logger.info("Aucun fichier logo trouvé, utilisation du logo base64 pour le PDF")
                     logo_data = base64.b64decode(DATALYS_LOGO_BASE64)
                     logo_buffer = io.BytesIO(logo_data)
-                    logo = Image(ImageReader(logo_buffer), width=2*inch, height=0.8*inch)
+                    # Avec reportlab, on peut passer directement un buffer fichier
+                    logo = Image(logo_buffer, width=2*inch, height=0.8*inch)
 
                 elements.append(logo)
                 elements.append(Spacer(1, 15))
