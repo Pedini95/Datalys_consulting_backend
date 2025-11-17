@@ -168,6 +168,17 @@ class ReportGenerator:
 
             # Données
             for row_num, incident in enumerate(incidents, 2):
+                # Nom de l'utilisateur assigné (au lieu de l'ID)
+                assignee_name = ''
+                try:
+                    if hasattr(incident, 'assignee') and incident.assignee is not None:
+                        assignee_name = incident.assignee.name or ''
+                    elif hasattr(incident, 'assigned_to') and incident.assigned_to:
+                        # Fallback : éviter de planter, mais ne plus afficher l'ID si possible
+                        assignee_name = str(incident.assigned_to)
+                except Exception:
+                    assignee_name = ''
+
                 data = [
                     incident.incident_number or '',
                     incident.title or '',
@@ -177,7 +188,7 @@ class ReportGenerator:
                     incident.impact or '',
                     incident.domain or '',
                     incident.declarant_name or '',
-                    str(incident.assigned_to) if incident.assigned_to else '',
+                    assignee_name,
                     incident.created_at.strftime('%Y-%m-%d %H:%M') if incident.created_at else '',
                     incident.resolved_at.strftime('%Y-%m-%d %H:%M') if incident.resolved_at else '',
                     (incident.resolution_notes or '')[:200] + '...' if incident.resolution_notes and len(incident.resolution_notes) > 200 else (incident.resolution_notes or ''),
