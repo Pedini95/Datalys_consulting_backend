@@ -9,7 +9,7 @@ import logging
 import os
 import base64
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Any
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -308,11 +308,22 @@ class ReportGenerator:
 
             elements = []
 
-            # Logo Datalys (base64)
+            # Logo Datalys (fichier physique en priorité, base64 en secours)
             try:
-                logo_data = base64.b64decode(DATALYS_LOGO_BASE64)
-                logo_buffer = io.BytesIO(logo_data)
-                logo = Image(ImageReader(logo_buffer), width=2*inch, height=0.8*inch)
+                # 1. Essayer de charger un fichier logo depuis src/static/image
+                project_root = os.getcwd()
+                logo_path = os.path.join(project_root, 'src', 'static', 'image', 'logo_datalys.png')
+
+                if os.path.exists(logo_path):
+                    logger.info(f"Chargement du logo PDF depuis le fichier: {logo_path}")
+                    logo = Image(logo_path, width=2*inch, height=0.8*inch)
+                else:
+                    # 2. Fallback: utiliser le logo en base64 embarqué
+                    logger.info("Logo fichier introuvable, utilisation du logo base64 pour le PDF")
+                    logo_data = base64.b64decode(DATALYS_LOGO_BASE64)
+                    logo_buffer = io.BytesIO(logo_data)
+                    logo = Image(ImageReader(logo_buffer), width=2*inch, height=0.8*inch)
+
                 elements.append(logo)
                 elements.append(Spacer(1, 15))
             except Exception as e:
