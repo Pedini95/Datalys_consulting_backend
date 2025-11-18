@@ -20,8 +20,8 @@ class Partner(db.Model):
     created_by = db.Column(db.Integer, nullable=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     updated_by = db.Column(db.Integer, nullable=True)
-
-    projects = db.relationship('Project', lazy=True)
+    
+    projects = db.relationship('Project', back_populates='partner', lazy=True)
 
     __table_args__ = (
         Index('idx_partner_name_address', 'name', db.text('address(255)')),
