@@ -8,7 +8,7 @@ class Incident(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     
-    # ✅ NOUVEAU : Numéro d'incident auto-généré (INC-2025-00001)
+    #  NOUVEAU : Numéro d'incident auto-généré (INC-2025-00001)
     incident_number = db.Column(db.String(50), unique=True, nullable=False, index=True)
     
     title = db.Column(db.String(255), nullable=False)
@@ -24,13 +24,13 @@ class Incident(db.Model):
     # P3 : Incident ordinaire sans impact
     # P4 : Incident mineur
     
-    # ✅ NOUVEAU : Impact de l'incident
+    #  NOUVEAU : Impact de l'incident
     impact = db.Column(db.String(50), nullable=True)  # 'arret_service', 'service_degrade', 'majeur', 'mineur'
     
-    # ✅ NOUVEAU : Domaine concerné
+    #  NOUVEAU : Domaine concerné
     domain = db.Column(db.String(50), nullable=True)  # 'reseau', 'infrastructure', 'cloud', 'energie'
     
-    # ✅ NOUVEAU : Nom du déclarant
+    #  NOUVEAU : Nom du déclarant
     declarant_name = db.Column(db.String(255), nullable=True)
     
     status = db.Column(db.String(20), default='nouveau')  # 'nouveau', 'en_cours', 'en_attente', 'en_arbitrage', 'resolu', 'ferme'
@@ -56,12 +56,12 @@ class Incident(db.Model):
     resolved_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Qui a résolu
     resolved_at = db.Column(db.DateTime, nullable=True)  # Date de résolution
 
-    # ✅ NOUVEAU : Champs de refus de solution
+    #  NOUVEAU : Champs de refus de solution
     refusal_count = db.Column(db.Integer, default=0)  # Nombre de fois que le client a refusé la solution
     refusal_reason = db.Column(db.Text, nullable=True)  # Raison du dernier refus
     last_refusal_at = db.Column(db.DateTime, nullable=True)  # Date du dernier refus
 
-    # ✅ NOUVEAU : Champs SLA (Service Level Agreement)
+    #  NOUVEAU : Champs SLA (Service Level Agreement)
     taken_at = db.Column(db.DateTime, nullable=True)  # Date de prise en charge
     sla_prise_en_charge_deadline = db.Column(db.DateTime, nullable=True)  # Deadline prise en charge
     sla_resolution_deadline = db.Column(db.DateTime, nullable=True)  # Deadline résolution
@@ -104,7 +104,7 @@ class Incident(db.Model):
                 else:
                     data[column] = value
         
-        # ✅ Ajouter des métadonnées utiles
+        #  Ajouter des métadonnées utiles
         if self.priority:
             data['priority_label'] = self.get_priority_label()
         if self.status:
@@ -112,7 +112,7 @@ class Incident(db.Model):
         if self.impact:
             data['impact_label'] = self.get_impact_label()
         
-        # ✅ Ajouter les délais SLA calculés
+        #  Ajouter les délais SLA calculés
         if self.sla_prise_en_charge_deadline and not self.taken_at:
             data['temps_restant_prise_en_charge'] = self.calculate_time_remaining(self.sla_prise_en_charge_deadline)
         if self.sla_resolution_deadline and not self.resolved_at:
@@ -173,7 +173,7 @@ class Incident(db.Model):
         if 'category' in criteria:
             conditions.append(Incident.category == criteria['category'])
         
-        # ✅ Nouveaux critères de recherche
+        #  Nouveaux critères de recherche
         if 'impact' in criteria:
             conditions.append(Incident.impact == criteria['impact'])
         if 'domain' in criteria:

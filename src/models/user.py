@@ -13,10 +13,10 @@ class User(db.Model):
     is_temp_password = db.Column(db.Boolean, default=False)  # Gestion des mots de passe temporaires
     fcm_token = db.Column(db.String(255), nullable=True)  # Token Firebase Cloud Messaging pour notifications push
 
-    # ✅ NOUVEAU : Code client unique pour login sans email (évite problèmes de mobilité)
+    #  NOUVEAU : Code client unique pour login sans email (évite problèmes de mobilité)
     client_code = db.Column(db.String(50), unique=True, nullable=True, index=True)  # Format: DATALYS-2025-001
 
-    # ✅ NOUVEAU : Champs MFA (Multi-Factor Authentication)
+    #  NOUVEAU : Champs MFA (Multi-Factor Authentication)
     mfa_enabled = db.Column(db.Boolean, default=True)  # MFA activé par défaut pour la sécurité
     mfa_code = db.Column(db.String(10), nullable=True)  # Code temporaire (6 chiffres)
     mfa_code_expiry = db.Column(db.DateTime, nullable=True)  # Date d'expiration du code (5 minutes)

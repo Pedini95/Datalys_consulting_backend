@@ -10,7 +10,7 @@ echo ""
 
 # Vérifier que Python est installé
 if ! command -v python3 &> /dev/null; then
-    echo "❌ Python 3 n'est pas installé. Veuillez l'installer d'abord."
+    echo " Python 3 n'est pas installé. Veuillez l'installer d'abord."
     exit 1
 fi
 
@@ -19,7 +19,7 @@ echo ""
 
 # Vérifier que pip est installé
 if ! command -v pip3 &> /dev/null; then
-    echo "❌ pip3 n'est pas installé. Veuillez l'installer d'abord."
+    echo " pip3 n'est pas installé. Veuillez l'installer d'abord."
     exit 1
 fi
 
@@ -34,7 +34,7 @@ pip3 install openpyxl==3.1.2
 if [ $? -eq 0 ]; then
     echo "✓ openpyxl installé avec succès"
 else
-    echo "❌ Erreur lors de l'installation de openpyxl"
+    echo " Erreur lors de l'installation de openpyxl"
     exit 1
 fi
 
@@ -42,7 +42,7 @@ pip3 install reportlab==4.0.7
 if [ $? -eq 0 ]; then
     echo "✓ reportlab installé avec succès"
 else
-    echo "❌ Erreur lors de l'installation de reportlab"
+    echo " Erreur lors de l'installation de reportlab"
     exit 1
 fi
 
@@ -50,13 +50,13 @@ pip3 install Pillow==10.1.0
 if [ $? -eq 0 ]; then
     echo "✓ Pillow installé avec succès"
 else
-    echo "❌ Erreur lors de l'installation de Pillow"
+    echo " Erreur lors de l'installation de Pillow"
     exit 1
 fi
 
 echo ""
 echo "========================================="
-echo "✅ Installation terminée avec succès !"
+echo " Installation terminée avec succès !"
 echo "========================================="
 echo ""
 echo "Vous pouvez maintenant générer des rapports en utilisant:"

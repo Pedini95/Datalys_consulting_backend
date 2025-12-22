@@ -220,7 +220,7 @@ def verify_mfa():
         user_data = user.as_dict()
         user_data['token'] = token
         
-        logger.info(f"✅ MFA validé avec succès pour {user.email}")
+        logger.info(f" MFA validé avec succès pour {user.email}")
         logger.info("**** End verify_mfa ****")
         
         return {"status": "success", "data": user_data, "message": "Connexion réussie"}, 200
