@@ -357,18 +357,18 @@ def reset_password_request():
         logging.info("**** reset password request input ****")
         data = request.get_json()
         logging.info(data)
-        
+
         if not data:
             return {"status": "error", "message": "Données manquantes"}, 400
-        
+
         email = data.get('email')
-        
+
         if not email:
             return {"status": "error", "message": "Email requis"}, 400
-        
+
         # Demander le reset de mot de passe
         success, message = auth_service.reset_password_request(email)
-        
+
         if success:
             response = {
                 "status": "success",
@@ -379,9 +379,53 @@ def reset_password_request():
             return jsonify(response), 200
         else:
             return {"status": "error", "message": message}, 400
-            
+
     except Exception as e:
         logger.error(f"Erreur lors de la demande de reset: {str(e)}")
+        return {"status": "error", "message": "Erreur interne du serveur"}, 500
+
+
+@bp.route('/auth/reset-password', methods=['POST'])
+@cross_origin()
+@rate_limit(max_requests=10, window=300)  # 10 tentatives par 5 minutes
+def reset_password():
+    """
+    Route pour effectuer le reset de mot de passe avec le token
+    """
+    try:
+        logging.info("**** reset password input ****")
+        data = request.get_json()
+        logging.info(data)
+
+        if not data:
+            return {"status": "error", "message": "Données manquantes"}, 400
+
+        token = data.get('token')
+        new_password = data.get('new_password')
+
+        if not token or not new_password:
+            return {"status": "error", "message": "Token et nouveau mot de passe requis"}, 400
+
+        # Valider le nouveau mot de passe
+        if len(new_password) < 8:
+            return {"status": "error", "message": "Le mot de passe doit contenir au moins 8 caractères"}, 400
+
+        # Effectuer le reset de mot de passe
+        success, message = auth_service.reset_password_confirm(token, new_password)
+
+        if success:
+            response = {
+                "status": "success",
+                "message": message
+            }
+            logging.info("**** reset password response ****")
+            logging.info(response)
+            return jsonify(response), 200
+        else:
+            return {"status": "error", "message": message}, 400
+
+    except Exception as e:
+        logger.error(f"Erreur lors du reset de mot de passe: {str(e)}")
         return {"status": "error", "message": "Erreur interne du serveur"}, 500
 
 
