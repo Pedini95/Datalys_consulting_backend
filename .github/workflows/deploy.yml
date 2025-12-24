@@ -46,7 +46,13 @@ jobs:
           SSH_HOST: ${{ secrets.HOSTINGER_HOST }}
           SSH_USER: ${{ secrets.HOSTINGER_USERNAME }}
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key \
+              -o StrictHostKeyChecking=no \
+              -o ServerAliveInterval=60 \
+              -o ServerAliveCountMax=10 \
+              -o TCPKeepAlive=yes \
+              -o ConnectTimeout=300 \
+              $SSH_USER@$SSH_HOST << 'ENDSSH'
             set -e
             
             echo "════════════════════════════════════════════════════════════"
@@ -95,35 +101,35 @@ jobs:
             echo "✅ Fichier .env présent"
             echo ""
             
-            echo "🐳 Étape 4/7: Reconstruction de l'image Docker..."
-            echo "🗑️  Suppression de l'image existante..."
-            docker rmi datalys_consulting_backend-datalys-api:latest || true
-
-            echo "🧹 Nettoyage complet du cache Docker..."
-            docker builder prune -af || true
-            docker system prune -f || true
-            echo "✅ Cache nettoyé"
-
-            echo "🔨 Build SANS cache (installation complète des dépendances)..."
-            export DOCKER_BUILDKIT=0
-            docker build --no-cache -t datalys_consulting_backend-datalys-api:latest -f src/Dockerfile .
-            echo "✅ Image Docker construite sans cache"
-            echo ""
-            
-            echo "🔄 Étape 5/7: Arrêt du conteneur actuel..."
+            echo "🔄 Étape 4/7: Arrêt du conteneur actuel..."
             docker stop datalys-api || true
             docker rm datalys-api || true
             echo "✅ Ancien conteneur supprimé"
             echo ""
 
-            echo "📁 Étape 5.5/7: Création des dossiers et permissions..."
+            echo "🐳 Étape 5/7: Reconstruction de l'image Docker..."
+            echo "🔨 Build de l'image Docker (avec cache pour accélérer)..."
+            # On utilise BuildKit pour un build plus rapide
+            export DOCKER_BUILDKIT=1
+            docker build -t datalys_consulting_backend-datalys-api:latest -f src/Dockerfile . 2>&1 | \
+              while IFS= read -r line; do
+                echo "$line"
+                # Envoyer un keepalive toutes les 10 lignes
+                if [ $((RANDOM % 10)) -eq 0 ]; then
+                  echo "🔄 Build en cours..."
+                fi
+              done
+            echo "✅ Image Docker construite"
+            echo ""
+
+            echo "📁 Étape 6/7: Création des dossiers et permissions..."
             mkdir -p src/static/logos src/static/files src/static/projects src/static/incidents src/logs uploads
             chown -R 999:999 src/static/logos src/static/files src/static/projects src/static/incidents src/logs uploads
             chmod -R 775 src/static/logos src/static/files src/static/projects src/static/incidents src/logs uploads
             echo "✅ Dossiers créés avec les bonnes permissions (UID/GID 999)"
             echo ""
 
-            echo "🚀 Étape 6/7: Démarrage du nouveau conteneur..."
+            echo "🚀 Étape 7/7: Démarrage du nouveau conteneur..."
             # Créer le conteneur avec la bonne configuration
             docker run -d --name datalys-api \
               -p 8082:8082 \
@@ -144,8 +150,8 @@ jobs:
 
             echo "✅ Nouveau conteneur démarré et configuré"
             echo ""
-            
-            echo "⏳ Étape 7/7: Vérification du démarrage (30s)..."
+
+            echo "⏳ Vérification du démarrage (30s)..."
             sleep 30
             
             # Vérifier que le conteneur tourne
