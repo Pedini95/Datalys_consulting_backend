@@ -16,21 +16,37 @@ jobs:
         uses: actions/checkout@v3
       
       - name: 🔐 Setup SSH
-        uses: webfactory/ssh-agent@v0.8.0
-        with:
-          ssh-private-key: ${{ secrets.HOSTINGER_SSH_KEY }}
-      
+        env:
+          SSH_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
+          SSH_HOST: ${{ secrets.HOSTINGER_HOST }}
+        run: |
+          if [ -z "$SSH_KEY" ]; then
+            echo "❌ Erreur: HOSTINGER_SSH_KEY secret n'est pas configuré"
+            exit 1
+          fi
+          if [ -z "$SSH_HOST" ]; then
+            echo "❌ Erreur: HOSTINGER_HOST secret n'est pas configuré"
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          eval $(ssh-agent -s)
+          ssh-add ~/.ssh/deploy_key
+          echo "✅ SSH configuré avec succès"
+
       - name: 📦 Add server to known hosts
         run: |
-          mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.HOSTINGER_HOST }} >> ~/.ssh/known_hosts
+          echo "✅ Serveur ajouté aux known hosts"
       
       - name: 🚀 Deploy to server
         env:
           SSH_HOST: ${{ secrets.HOSTINGER_HOST }}
           SSH_USER: ${{ secrets.HOSTINGER_USERNAME }}
         run: |
-          ssh $SSH_USER@$SSH_HOST << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST << 'ENDSSH'
             set -e
             
             echo "════════════════════════════════════════════════════════════"
@@ -39,7 +55,7 @@ jobs:
             echo ""
             
             # Variables
-            APP_DIR="/root/datalys-backend"
+            APP_DIR="/root/Datalys_consulting_backend"
             BACKUP_DIR="/backup/deployments"
             TIMESTAMP=$(date +%Y%m%d_%H%M%S)
             REPO_URL="https://github.com/Pedini95/Datalys_consulting_backend.git"
