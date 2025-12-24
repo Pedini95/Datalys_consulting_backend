@@ -79,6 +79,16 @@ jobs:
             echo ""
             
             echo "📥 Étape 2/7: Récupération du code depuis Git..."
+
+            # Sauvegarder le .env s'il existe
+            if [ -f "$APP_DIR/.env" ]; then
+              echo "💾 Sauvegarde du fichier .env existant..."
+              cp $APP_DIR/.env /tmp/.env.backup
+              ENV_BACKED_UP=true
+            else
+              ENV_BACKED_UP=false
+            fi
+
             if [ -d "$APP_DIR/.git" ]; then
               cd $APP_DIR
               git fetch origin
@@ -91,11 +101,24 @@ jobs:
               cd $APP_DIR
               echo "✅ Repository cloné"
             fi
+
+            # Restaurer le .env
+            if [ "$ENV_BACKED_UP" = true ]; then
+              echo "♻️  Restauration du fichier .env..."
+              cp /tmp/.env.backup .env
+              rm /tmp/.env.backup
+              echo "✅ Fichier .env restauré"
+            fi
             echo ""
-            
+
             echo "🔒 Étape 3/7: Vérification du fichier .env..."
             if [ ! -f .env ]; then
-              echo "⚠️  Fichier .env manquant - création nécessaire"
+              echo "❌ ERREUR: Fichier .env manquant"
+              echo "Le fichier .env doit être créé manuellement sur le serveur à cet emplacement:"
+              echo "  $APP_DIR/.env"
+              echo ""
+              echo "Créez ce fichier avec toutes les variables d'environnement nécessaires,"
+              echo "puis relancez le déploiement."
               exit 1
             fi
             echo "✅ Fichier .env présent"
