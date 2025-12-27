@@ -10,7 +10,9 @@ bind = f"0.0.0.0:{os.getenv('PORT', '8082')}"
 backlog = 2048
 
 ##### Worker Processes
-workers = int(os.getenv('GUNICORN_WORKERS', multiprocessing.cpu_count() * 2 + 1))
+# Utiliser 2 workers par défaut (optimisé pour VPS) au lieu de cpu_count() * 2 + 1
+# Pour éviter la saturation CPU sur des serveurs à faible capacité
+workers = int(os.getenv('GUNICORN_WORKERS', 2))
 worker_class = 'gevent'  # Async workers for better concurrency
 worker_connections = 1000
 max_requests = 1000  # Restart workers after this many requests (prevents memory leaks)
