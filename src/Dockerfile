@@ -32,6 +32,9 @@ RUN pip install --upgrade pip setuptools wheel
 # Installer toutes les dépendances depuis requirements.txt
 RUN python -m pip install --no-cache-dir --timeout 600 -r requirements.txt
 
+# Fix: Réinstaller click pour corriger toute corruption potentielle
+RUN pip install --force-reinstall --no-deps click
+
 # Copier le code et donner les droits au user
 COPY --chown=app:app src/ /app/src
 COPY --chown=app:app scripts/ /app/scripts
