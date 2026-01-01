@@ -133,6 +133,65 @@ def reply_to_message():
         logging.error(f"Erreur dans reply_to_message: {str(e)}")
         return {"status": "error", "message": "Erreur interne du serveur"}, 500
 
+@bp.route('/messages/delete', methods=['POST'])
+@cross_origin()
+@require_auth
+def delete_message():
+    """
+    Supprimer un message
+    Règles:
+    - Les utilisateurs peuvent supprimer leurs propres messages
+    - Les admins et managers peuvent supprimer n'importe quel message
+    """
+    logging.info("**** Begin delete_message ****")
+    try:
+        from models.incident import Incident
+
+        data = request.get_json() or {}
+        message_id = data.get('id')
+
+        if not message_id:
+            return {"status": "error", "message": "L'ID du message est requis"}, 400
+
+        # Récupérer le message
+        message = Incident.query.filter_by(id=message_id, is_deleted=False).first()
+
+        if not message:
+            return {"status": "error", "message": "Message non trouvé"}, 404
+
+        # Vérifier que c'est bien un message (type 'message', 'support' ou 'notification')
+        if message.type not in ['message', 'support', 'notification']:
+            return {"status": "error", "message": "Cet élément n'est pas un message"}, 400
+
+        # Vérifier les droits de suppression
+        user_role = g.current_user.role.name if hasattr(g.current_user, 'role') and g.current_user.role else 'user'
+        is_admin_or_manager = user_role in ['admin', 'manager']
+        is_owner = message.created_by == g.current_user.id
+
+        if not (is_owner or is_admin_or_manager):
+            return {"status": "error", "message": "Vous n'êtes pas autorisé à supprimer ce message"}, 403
+
+        # Supprimer le message (suppression logique)
+        success, message_text = incident_service.delete(message_id, g.current_user.id, hard_delete=False)
+
+        if success:
+            response = {
+                "code": 200,
+                "message": functional_error.MESSAGE_SUCCESS()
+            }
+            logging.info(f"Message {message_id} supprimé par l'utilisateur {g.current_user.id}")
+        else:
+            response = {"status": "error", "message": message_text}, 500
+
+        logging.info("**** response output ****")
+        logging.info(response)
+        logging.info("**** End delete_message ****")
+        return response
+
+    except Exception as e:
+        logging.error(f"Erreur dans delete_message: {str(e)}")
+        return {"status": "error", "message": "Erreur interne du serveur"}, 500
+
 # ===============================
 # ROUTES POUR SUPPORT
 # ===============================
