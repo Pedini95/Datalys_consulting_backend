@@ -564,11 +564,11 @@ class AuthService:
     def generate_token(self, user_id: int, email: str) -> str:
         """
         Générer un nouveau token JWT
-        
+
         Args:
             user_id: ID de l'utilisateur
             email: Email de l'utilisateur
-            
+
         Returns:
             Token JWT
         """
@@ -577,9 +577,9 @@ class AuthService:
             users, _ = self.model_class.get_by_criteria({'id': user_id}, 0, 1)
             if not users:
                 raise Exception("Utilisateur non trouvé")
-            
+
             user = users[0]
-            
+
             # Générer le token JWT
             token_data = {
                 'user_id': user.id,
@@ -587,12 +587,77 @@ class AuthService:
                 'name': user.name,
                 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=2)
             }
-            
+
             secret_key = Config.SECRET_KEY or 'default-secret-key'
             token = jwt.encode(token_data, secret_key, algorithm='HS256')
-            
+
             return token
-            
+
         except Exception as e:
             logger.error(f"Erreur lors de la génération du token: {str(e)}")
             raise e
+
+    def resend_mfa_code(self, identifier: str) -> Tuple[bool, str]:
+        """
+        Renvoyer le code MFA pour un utilisateur
+
+        Args:
+            identifier: Email OU code client de l'utilisateur
+
+        Returns:
+            Tuple (succès, message)
+        """
+        try:
+            # Rechercher l'utilisateur par email OU code client
+            from sqlalchemy import or_
+            from utils import utilities
+
+            user = self.model_class.query.filter(
+                or_(
+                    self.model_class.email == identifier,
+                    self.model_class.client_code == identifier
+                ),
+                self.model_class.is_deleted == False
+            ).first()
+
+            if not user:
+                # Pour des raisons de sécurité, ne pas révéler si l'utilisateur existe
+                return False, "Aucune demande de code MFA en attente pour cet identifiant"
+
+            # Vérifier si l'utilisateur est actif
+            if not user.is_active:
+                return False, "Compte désactivé"
+
+            # Vérifier si MFA est activé pour cet utilisateur
+            mfa_enabled = getattr(user, 'mfa_enabled', True)
+            if not mfa_enabled:
+                return False, "L'authentification multi-facteurs n'est pas activée pour ce compte"
+
+            # Générer un nouveau code MFA à 6 chiffres
+            mfa_code = utilities.generate_numeric_code(6)
+
+            # Sauvegarder le nouveau code et sa date d'expiration (5 minutes)
+            user.mfa_code = mfa_code
+            user.mfa_code_expiry = datetime.datetime.utcnow() + datetime.timedelta(minutes=5)
+            user.mfa_code_attempts = 0  # Réinitialiser le compteur de tentatives
+            db.session.commit()
+
+            # Envoyer le code par email
+            from utils.notification import EmailService
+            email_service = EmailService()
+            email_sent = email_service.send_mfa_code_email(
+                user_email=user.email,
+                user_name=user.name,
+                mfa_code=mfa_code
+            )
+
+            if email_sent:
+                logger.info(f"Code MFA renvoyé à {user.email}")
+                return True, "Un nouveau code de vérification a été envoyé à votre adresse email"
+            else:
+                logger.error(f"Échec du renvoi du code MFA à {user.email}")
+                return False, "Erreur lors de l'envoi du code. Veuillez réessayer."
+
+        except Exception as e:
+            error_msg = handle_general_error(e, "le renvoi du code MFA")
+            return False, error_msg

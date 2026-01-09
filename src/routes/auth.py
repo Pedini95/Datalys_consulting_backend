@@ -105,21 +105,21 @@ def verify_mfa():
     logger.info("**** Begin verify_mfa ****")
     try:
         data = request.get_json()
-        
+
         if not data:
             return {"status": "error", "message": "Données manquantes"}, 400
-        
+
         # Support de l'ancien format (user_id) et du nouveau format (identifier)
         user_id = data.get('user_id')
         identifier = data.get('identifier')
         mfa_code = data.get('mfa_code')
-        
+
         if not mfa_code:
             return {"status": "error", "message": "mfa_code requis"}, 400
-        
+
         if not user_id and not identifier:
             return {"status": "error", "message": "identifier (email ou code client) requis"}, 400
-        
+
         # Récupérer l'utilisateur
         from models import User
         from extensions import db
@@ -128,7 +128,7 @@ def verify_mfa():
         import datetime
         from utils import session_utils
         from sqlalchemy import or_
-        
+
         # Récupérer l'utilisateur par user_id (ancien format) ou identifier (nouveau format)
         if user_id:
             logger.info(f"Vérification MFA avec user_id: {user_id}")
@@ -142,55 +142,55 @@ def verify_mfa():
                 ),
                 User.is_deleted == False
             ).first()
-        
+
         if not user:
             return {"status": "error", "message": "Utilisateur non trouvé"}, 404
-        
+
         # Vérifier que l'utilisateur est actif
         if not user.is_active:
             return {"status": "error", "message": "Compte désactivé"}, 401
-        
+
         # Vérifier que le code MFA existe
         if not user.mfa_code:
             return {"status": "error", "message": "Aucun code MFA en attente"}, 400
-        
+
         # Vérifier l'expiration du code
         if datetime.datetime.utcnow() > user.mfa_code_expiry:
             user.mfa_code = None
             user.mfa_code_expiry = None
             db.session.commit()
             return {"status": "error", "message": "Code expiré. Veuillez vous reconnecter."}, 401
-        
+
         # Vérifier le nombre de tentatives
         if user.mfa_code_attempts >= 3:
             user.mfa_code = None
             user.mfa_code_expiry = None
             db.session.commit()
             return {"status": "error", "message": "Trop de tentatives échouées. Veuillez vous reconnecter."}, 401
-        
+
         # Vérifier le code
         if user.mfa_code != mfa_code:
             user.mfa_code_attempts += 1
             db.session.commit()
             remaining_attempts = 3 - user.mfa_code_attempts
             return {
-                "status": "error", 
+                "status": "error",
                 "message": f"Code incorrect. {remaining_attempts} tentative(s) restante(s)"
             }, 401
-        
+
         # ✅ Code valide : Générer le token JWT
         logger.info(f"Code MFA valide pour l'utilisateur {user.email}")
-        
+
         token_data = {
             'user_id': user.id,
             'email': user.email,
             'name': user.name,
             'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=2)
         }
-        
+
         secret_key = Config.SECRET_KEY or 'default-secret-key'
         token = jwt.encode(token_data, secret_key, algorithm='HS256')
-        
+
         # Créer la session Redis
         user_data_for_session = {
             'id': user.id,
@@ -198,36 +198,73 @@ def verify_mfa():
             'name': user.name,
             'role_name': user.role.name if user.role else None
         }
-        
+
         session_created = session_utils.create_user_session(
             user_id=user.id,
             user_data=user_data_for_session,
             token=token
         )
-        
+
         if not session_created:
             logger.error(f"Impossible de créer la session Redis pour l'utilisateur {user.id}")
         else:
             logger.info(f"Session Redis créée avec succès pour l'utilisateur {user.id}")
-        
+
         # Nettoyer le code MFA
         user.mfa_code = None
         user.mfa_code_expiry = None
         user.mfa_code_attempts = 0
         db.session.commit()
-        
+
         # Préparer la réponse
         user_data = user.as_dict()
         user_data['token'] = token
-        
+
         logger.info(f" MFA validé avec succès pour {user.email}")
         logger.info("**** End verify_mfa ****")
-        
+
         return {"status": "success", "data": user_data, "message": "Connexion réussie"}, 200
-        
+
     except Exception as e:
         logger.error(f"Erreur lors de la vérification MFA: {str(e)}")
         return {"status": "error", "message": "Erreur interne du serveur"}, 500
+
+
+@bp.route('/auth/resend-mfa-code', methods=['POST'])
+@cross_origin()
+@rate_limit(max_requests=5, window=300)  # 5 renvois par 5 minutes max
+def resend_mfa_code():
+    """
+    Route pour renvoyer le code MFA
+    """
+    logger.info("**** Begin resend_mfa_code ****")
+    try:
+        data = request.get_json()
+
+        if not data:
+            return {"status": "error", "message": "Données manquantes"}, 400
+
+        # Récupérer l'identifiant (email ou code client)
+        identifier = data.get('identifier') or data.get('email')
+
+        if not identifier:
+            return {"status": "error", "message": "Identifiant (email ou code client) requis"}, 400
+
+        # Appeler le service pour renvoyer le code
+        success, message = auth_service.resend_mfa_code(identifier)
+
+        if success:
+            logger.info(f"Code MFA renvoyé avec succès pour {identifier}")
+            return {"status": "success", "message": message}, 200
+        else:
+            logger.warning(f"Échec du renvoi du code MFA pour {identifier}: {message}")
+            return {"status": "error", "message": message}, 400
+
+    except Exception as e:
+        logger.error(f"Erreur lors du renvoi du code MFA: {str(e)}")
+        return {"status": "error", "message": "Erreur interne du serveur"}, 500
+    finally:
+        logger.info("**** End resend_mfa_code ****")
 
 
 @bp.route('/auth/change-temp-password', methods=['POST'])
