@@ -6,10 +6,8 @@ import os
 import multiprocessing
 
 # Server Socket
-# Use Unix socket for better reliability and performance
-# Falls back to TCP port if GUNICORN_SOCKET env var is not set
-socket_path = os.getenv('GUNICORN_SOCKET', '/tmp/gunicorn.sock')
-bind = f"unix:{socket_path}" if socket_path.startswith('/') else f"0.0.0.0:{os.getenv('PORT', '8082')}"
+# Use TCP port for Docker networking compatibility
+bind = f"0.0.0.0:{os.getenv('PORT', '8082')}"
 
 
 backlog = 2048
