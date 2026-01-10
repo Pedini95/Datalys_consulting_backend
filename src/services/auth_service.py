@@ -234,7 +234,10 @@ class AuthService:
                     'requires_mfa': True,
                     'user_id': user.id,
                     'email': user.email,
-                    'message': 'Code de vérification envoyé par email'
+                    'message': 'Code de vérification envoyé par email',
+                    'code_expires_in': 5,  # minutes
+                    'can_resend_code': True,
+                    'resend_endpoint': '/auth/resend-mfa-code'
                 }, True, "MFA requis"
             
             # Si MFA désactivé, générer le token JWT directement
