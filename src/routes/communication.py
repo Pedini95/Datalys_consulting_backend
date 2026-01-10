@@ -397,6 +397,67 @@ def mark_notification_read():
 # ROUTES POUR CONVERSATIONS
 # ===============================
 
+@bp.route('/conversations/by-ticket', methods=['POST'])
+@cross_origin()
+@require_auth
+def get_conversation_by_ticket():
+    """
+    Récupérer une conversation par numéro de ticket (ex: INC-2025-00001)
+    """
+    logging.info("**** Begin get_conversation_by_ticket ****")
+    try:
+        from models.incident import Incident
+
+        r = request.get_json() or {}
+        ticket_number = r.get('ticket_number')
+
+        if not ticket_number:
+            return {"status": "error", "message": "Le numéro de ticket est requis"}, 400
+
+        # Rechercher le ticket par numéro
+        ticket = Incident.query.filter_by(
+            incident_number=ticket_number,
+            is_deleted=False
+        ).first()
+
+        if not ticket:
+            return {"status": "error", "message": f"Ticket {ticket_number} non trouvé"}, 404
+
+        # Vérifier les droits d'accès
+        user_role = g.current_user.role.name if hasattr(g.current_user, 'role') and g.current_user.role else 'user'
+        is_admin_or_manager = user_role in ['admin', 'manager']
+        is_creator = ticket.created_by == g.current_user.id
+
+        if not (is_creator or is_admin_or_manager):
+            return {"status": "error", "message": "Accès non autorisé à ce ticket"}, 403
+
+        # Récupérer tous les messages du thread
+        thread_messages = ticket.get_thread_messages(include_self=True)
+
+        response = {
+            "items": [msg.as_dict() for msg in thread_messages],
+            "count": len(thread_messages),
+            "ticket_info": {
+                "ticket_number": ticket.incident_number,
+                "title": ticket.title,
+                "status": ticket.status,
+                "priority": ticket.priority,
+                "type": ticket.type,
+                "created_at": ticket.created_at.isoformat() if ticket.created_at else None
+            },
+            "message": functional_error.MESSAGE_SUCCESS(),
+            "code": 200
+        }
+
+        logging.info("**** response output ****")
+        logging.info(response)
+        logging.info("**** End get_conversation_by_ticket ****")
+        return response
+
+    except Exception as e:
+        logging.error(f"Erreur dans get_conversation_by_ticket: {str(e)}")
+        return {"status": "error", "message": "Erreur interne du serveur"}, 500
+
 @bp.route('/conversations/thread', methods=['POST'])
 @cross_origin()
 @require_auth
@@ -435,4 +496,67 @@ def get_conversation_thread():
         
     except Exception as e:
         logging.error(f"Erreur dans get_conversation_thread: {str(e)}")
+        return {"status": "error", "message": "Erreur interne du serveur"}, 500
+
+@bp.route('/conversations/list-threads', methods=['POST'])
+@cross_origin()
+@require_auth
+def list_conversation_threads():
+    """
+    Liste tous les threads de conversation (messages principaux uniquement)
+    avec le numéro de ticket et le nombre de réponses
+    """
+    logging.info("**** Begin list_conversation_threads ****")
+    try:
+        from models.incident import Incident
+
+        r = request.get_json() or {}
+        index = r.get('index', 0)
+        size = r.get('size', 20)
+        message_type = r.get('type', 'message')  # 'message', 'support', 'incident'
+
+        # Construire la requête pour récupérer uniquement les messages principaux (parent_id is None)
+        query = Incident.query.filter(
+            Incident.is_deleted == False,
+            Incident.parent_id == None,  # Seulement les messages principaux
+            Incident.type == message_type
+        )
+
+        # Filtrer par utilisateur si ce n'est pas un admin/manager
+        user_role = g.current_user.role.name if hasattr(g.current_user, 'role') and g.current_user.role else 'user'
+        is_admin_or_manager = user_role in ['admin', 'manager']
+
+        if not is_admin_or_manager:
+            # Les utilisateurs normaux voient uniquement leurs propres threads
+            query = query.filter(Incident.created_by == g.current_user.id)
+
+        # Trier par date de création (plus récent d'abord)
+        query = query.order_by(Incident.created_at.desc())
+
+        # Pagination
+        total_items = query.count()
+        threads = query.offset(index * size).limit(size).all()
+
+        # Formater la réponse avec les informations de ticket
+        thread_list = []
+        for thread in threads:
+            thread_data = thread.as_dict()
+            # Ajouter des informations supplémentaires sur le thread
+            thread_data['unread_replies'] = sum(1 for child in thread.children if not child.is_read and child.created_by != g.current_user.id)
+            thread_list.append(thread_data)
+
+        response = {
+            "items": thread_list,
+            "count": total_items,
+            "message": functional_error.MESSAGE_SUCCESS() if threads else functional_error.MESSAGE_DATA_EMPTY(),
+            "code": 200
+        }
+
+        logging.info("**** response output ****")
+        logging.info(f"Found {total_items} threads")
+        logging.info("**** End list_conversation_threads ****")
+        return response
+
+    except Exception as e:
+        logging.error(f"Erreur dans list_conversation_threads: {str(e)}")
         return {"status": "error", "message": "Erreur interne du serveur"}, 500 

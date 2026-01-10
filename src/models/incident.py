@@ -103,7 +103,7 @@ class Incident(db.Model):
                     data[column] = value.isoformat()
                 else:
                     data[column] = value
-        
+
         #  Ajouter des métadonnées utiles
         if self.priority:
             data['priority_label'] = self.get_priority_label()
@@ -111,13 +111,27 @@ class Incident(db.Model):
             data['status_color'] = self.get_status_color()
         if self.impact:
             data['impact_label'] = self.get_impact_label()
-        
+
         #  Ajouter les délais SLA calculés
         if self.sla_prise_en_charge_deadline and not self.taken_at:
             data['temps_restant_prise_en_charge'] = self.calculate_time_remaining(self.sla_prise_en_charge_deadline)
         if self.sla_resolution_deadline and not self.resolved_at:
             data['temps_restant_resolution'] = self.calculate_time_remaining(self.sla_resolution_deadline)
-        
+
+        #  Ajouter le numéro de ticket parent pour les réponses/messages
+        if self.parent_id:
+            parent_ticket = self.get_parent_ticket()
+            if parent_ticket:
+                data['parent_ticket_number'] = parent_ticket.incident_number
+                data['parent_ticket_title'] = parent_ticket.title
+                data['thread_ticket_number'] = parent_ticket.incident_number  # Numéro du ticket du thread
+        else:
+            # Si c'est le message principal, son propre numéro est le numéro du thread
+            data['thread_ticket_number'] = self.incident_number
+
+        # Compter le nombre de réponses
+        data['replies_count'] = len(self.children) if self.children else 0
+
         return data
     
     def get_priority_label(self):
@@ -152,6 +166,59 @@ class Incident(db.Model):
             'mineur': 'Impact mineur'
         }
         return labels.get(self.impact, self.impact)
+
+    def get_parent_ticket(self):
+        """
+        Récupère le ticket parent (le message principal du thread)
+        Remonte la chaîne des parents jusqu'au message principal
+        """
+        if not self.parent_id:
+            return self
+
+        parent = Incident.query.get(self.parent_id)
+        if not parent:
+            return None
+
+        # Si le parent a lui-même un parent, on continue de remonter
+        if parent.parent_id:
+            return parent.get_parent_ticket()
+
+        return parent
+
+    def get_thread_messages(self, include_self=True):
+        """
+        Récupère tous les messages d'un thread (le message principal + toutes les réponses)
+        Retourne une liste ordonnée chronologiquement
+        """
+        # Si c'est une réponse, remonter au parent
+        parent_ticket = self.get_parent_ticket()
+
+        # Récupérer tous les messages du thread
+        if include_self and parent_ticket.id == self.id:
+            # On est déjà le parent
+            messages = [parent_ticket]
+        elif include_self:
+            messages = [parent_ticket, self]
+        else:
+            messages = [parent_ticket]
+
+        # Ajouter toutes les réponses récursivement
+        def get_all_children(incident):
+            children = []
+            for child in incident.children:
+                if not child.is_deleted:
+                    children.append(child)
+                    children.extend(get_all_children(child))
+            return children
+
+        all_children = get_all_children(parent_ticket)
+        messages.extend(all_children)
+
+        # Enlever les doublons et trier par date de création
+        unique_messages = list({msg.id: msg for msg in messages}.values())
+        unique_messages.sort(key=lambda x: x.created_at)
+
+        return unique_messages
 
     @staticmethod
     def get_by_criteria(criteria, index, size):
