@@ -1,3 +1,4 @@
+click>=8.1.7
 Flask
 Flask-SQLAlchemy
 flask_migrate
