@@ -30,10 +30,10 @@ COPY src/requirements.txt .
 RUN pip install --upgrade pip setuptools wheel
 
 # Installer toutes les dépendances depuis requirements.txt
-RUN python -m pip install --no-cache-dir --timeout 600 -r requirements.txt
-
-# Fix: Réinstaller click pour corriger toute corruption potentielle
-RUN pip install --force-reinstall --no-deps click
+# On installe en une seule passe pour éviter les corruptions
+RUN python -m pip install --no-cache-dir --timeout 600 --upgrade -r requirements.txt && \
+    python -c "import click; print('✅ click version:', click.__version__)" && \
+    python -c "import flask; print('✅ Flask version:', flask.__version__)"
 
 # Copier le code et donner les droits au user
 COPY --chown=app:app src/ /app/src
