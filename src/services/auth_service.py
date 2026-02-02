@@ -183,9 +183,15 @@ class AuthService:
             if not user:
                 return None, False, "Identifiant ou mot de passe incorrect"
             
-            # Vérifier le mot de passe avec la même méthode de hashage que lors de la création (SHA1)
-            if user.password_hash != utilities.encrypt(password):
+            # Vérifier le mot de passe avec bcrypt (supporte aussi SHA1 legacy)
+            if not utilities.verify_password(password, user.password_hash):
                 return None, False, "Identifiant ou mot de passe incorrect"
+
+            # Migration automatique SHA1 → bcrypt si nécessaire
+            if utilities.needs_password_rehash(user.password_hash):
+                user.password_hash = utilities.hash_password(password)
+                db.session.commit()
+                logger.info(f"Mot de passe migré vers bcrypt pour l'utilisateur {user.id}")
             
             # Vérifier si l'utilisateur est actif
             if not user.is_active:
@@ -550,12 +556,12 @@ class AuthService:
             
             user = users[0]
             
-            # Vérifier le mot de passe actuel
-            if user.password_hash != utilities.encrypt(current_password):
+            # Vérifier le mot de passe actuel (supporte bcrypt et SHA1 legacy)
+            if not utilities.verify_password(current_password, user.password_hash):
                 return False, "Mot de passe actuel incorrect"
-            
-            # Mettre à jour le mot de passe
-            user.password_hash = utilities.encrypt(new_password)
+
+            # Mettre à jour le mot de passe avec bcrypt
+            user.password_hash = utilities.hash_password(new_password)
             db.session.commit()
             
             return True, "Mot de passe mis à jour avec succès"

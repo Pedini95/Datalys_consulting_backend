@@ -401,7 +401,74 @@ class EmailService:
         except Exception as e:
             logger.error(f"Erreur lors de la préparation de l'email MFA pour {user_email}: {str(e)}")
             return False
-    
+
+    def send_temp_password_email(self, user_email: str, user_name: str, temp_password: str) -> bool:
+        """
+        Envoyer un email avec le mot de passe temporaire
+
+        Args:
+            user_email: Email de l'utilisateur
+            user_name: Nom de l'utilisateur
+            temp_password: Mot de passe temporaire
+
+        Returns:
+            True si l'email a été envoyé avec succès
+        """
+        try:
+            from datetime import datetime
+
+            subject = "Votre nouveau mot de passe temporaire - Datalys Consulting"
+
+            now = datetime.now()
+            html_content = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <style>
+                    body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                    .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                    .header {{ background-color: #2c3e50; color: white; padding: 20px; text-align: center; }}
+                    .content {{ padding: 20px; background-color: #f9f9f9; }}
+                    .password-box {{ background-color: #e8f4f8; border: 2px solid #3498db; padding: 15px; text-align: center; margin: 20px 0; border-radius: 5px; }}
+                    .password {{ font-size: 24px; font-weight: bold; color: #2c3e50; letter-spacing: 2px; }}
+                    .warning {{ background-color: #fff3cd; border: 1px solid #ffc107; padding: 10px; border-radius: 5px; margin-top: 15px; }}
+                    .footer {{ text-align: center; padding: 20px; color: #666; font-size: 12px; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>Datalys Consulting</h1>
+                    </div>
+                    <div class="content">
+                        <p>Bonjour <strong>{user_name}</strong>,</p>
+                        <p>Un administrateur a reinitialise votre mot de passe. Voici votre nouveau mot de passe temporaire :</p>
+                        <div class="password-box">
+                            <span class="password">{temp_password}</span>
+                        </div>
+                        <div class="warning">
+                            <strong>Important :</strong> Ce mot de passe est temporaire. Vous serez invite a le changer lors de votre prochaine connexion.
+                        </div>
+                        <p>Date de reinitialisation : {now.strftime('%d/%m/%Y a %H:%M')}</p>
+                    </div>
+                    <div class="footer">
+                        <p>Cet email a ete envoye automatiquement. Merci de ne pas y repondre.</p>
+                        <p>&copy; {now.year} Datalys Consulting - Tous droits reserves</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+
+            self.send_email_async(user_email, subject, html_content)
+            logger.info(f"Email mot de passe temporaire programme pour {user_email}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Erreur lors de l'envoi de l'email mot de passe temporaire pour {user_email}: {str(e)}")
+            return False
+
     def send_incident_notification_to_experts(self, expert_email: str, expert_name: str, incident_data: Dict[str, Any]) -> bool:
         """
         Envoyer un email de notification aux experts (Admin/Manager) lors de la création d'un incident

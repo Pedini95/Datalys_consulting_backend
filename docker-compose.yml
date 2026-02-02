@@ -111,7 +111,7 @@ services:
       - REDIS_DB=${REDIS_DB:-0}
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
 
-      # Email SMTP - Configuration SSL
+      # Email SMTP - Configuration (Hostinger ou OVH selon .env)
       - MAIL_SERVER=${MAIL_SERVER:-smtp.hostinger.com}
       - MAIL_PORT=${MAIL_PORT:-465}
       - MAIL_USE_SSL=${MAIL_USE_SSL:-True}

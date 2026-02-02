@@ -14,11 +14,11 @@ import os
 import shutil
 import json
 from werkzeug.utils import secure_filename
+import bcrypt
 
 
 from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth
 # from models.user import User
-from Crypto.Cipher import AES
 from Cryptodome.Cipher import AES
 
 import requests
@@ -340,11 +340,83 @@ def validate_and_standardize_phone(phone, country_code='+33'):
 def convert_byte_array_to_hex_string(byte_array):
     return ''.join(['{:02x}'.format(byte) for byte in byte_array])
 
-def encrypt(string):
+# ============================================
+# HACHAGE DE MOT DE PASSE SÉCURISÉ (bcrypt)
+# ============================================
+
+def hash_password(password: str) -> str:
+    """
+    Hache un mot de passe avec bcrypt (sécurisé).
+
+    Args:
+        password: Mot de passe en clair
+
+    Returns:
+        Hash bcrypt du mot de passe
+    """
+    password_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt(rounds=12)
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    return hashed.decode('utf-8')
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """
+    Vérifie un mot de passe contre son hash.
+    Supporte bcrypt (nouveau) et SHA1 (legacy, pour migration).
+
+    Args:
+        plain_password: Mot de passe en clair
+        hashed_password: Hash stocké en base
+
+    Returns:
+        True si le mot de passe correspond
+    """
+    # Vérification bcrypt (nouveau format - commence par $2b$)
+    if hashed_password.startswith('$2b$') or hashed_password.startswith('$2a$'):
+        try:
+            return bcrypt.checkpw(
+                plain_password.encode('utf-8'),
+                hashed_password.encode('utf-8')
+            )
+        except Exception:
+            return False
+
+    # Fallback SHA1 legacy (pour compatibilité avec anciens comptes)
+    # À SUPPRIMER après migration complète des utilisateurs
+    legacy_hash = encrypt_sha1_legacy(plain_password)
+    return legacy_hash == hashed_password
+
+def encrypt_sha1_legacy(string: str) -> str:
+    """
+    DEPRECATED: Hash SHA1 legacy - NE PAS UTILISER pour nouveaux mots de passe.
+    Conservé uniquement pour vérifier les anciens comptes pendant la migration.
+    """
     sha1 = hashlib.sha1()
     sha1.update(string.encode('utf-8'))
     hashed_bytes = sha1.digest()
     return convert_byte_array_to_hex_string(hashed_bytes)
+
+def encrypt(string: str) -> str:
+    """
+    Fonction principale de hachage - utilise maintenant bcrypt.
+
+    IMPORTANT: Cette fonction retourne maintenant un hash bcrypt.
+    Pour la vérification, utilisez verify_password().
+    """
+    return hash_password(string)
+
+def needs_password_rehash(hashed_password: str) -> bool:
+    """
+    Vérifie si un mot de passe doit être re-hashé (migration SHA1 → bcrypt).
+
+    Args:
+        hashed_password: Hash actuel stocké en base
+
+    Returns:
+        True si le hash est en format legacy (SHA1)
+    """
+    # Les hash bcrypt commencent par $2b$ ou $2a$
+    return not (hashed_password.startswith('$2b$') or hashed_password.startswith('$2a$'))
 
 def is_date_valid(date):
     try:

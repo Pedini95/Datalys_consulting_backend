@@ -49,9 +49,9 @@ Suite à l'attaque ransomware du 12 octobre 2025, plusieurs mesures de sécurit�
 
 ## 🌐 Accès Production
 
-- **API:** http://82.112.253.137:8082
-- **Health Check:** http://82.112.253.137:8082/health
-- **Serveur:** VPS Hostinger (82.112.253.137)
+- **API:** http://152.228.130.133:8082
+- **Health Check:** http://152.228.130.133:8082/health
+- **Serveur:** VPS OVH (152.228.130.133) - Strasbourg, France
 
 ## 📚 Documentation
 
@@ -105,7 +105,7 @@ scripts/
    ↓
 3. GitHub Actions déploie automatiquement (2-3 min)
    ↓
-4. Vérifier sur http://82.112.253.137:8082
+4. Vérifier sur http://152.228.130.133:8082
 ```
 
 ## 🛠️ Technologies
@@ -115,7 +115,7 @@ scripts/
 - **Cache:** Redis
 - **Auth:** JWT + MFA (TOTP)
 - **Notifications:** Firebase Cloud Messaging
-- **Email:** SMTP (Hostinger)
+- **Email:** SMTP (Hostinger/OVH)
 - **Deployment:** Docker, GitHub Actions
 - **Security:** Fail2ban, UFW, Scrypt hashing
 
