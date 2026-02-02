@@ -46,7 +46,7 @@ RUN chown -R app:app /app/src/logs /app/src/static && \
 
 USER app
 
-# Créer le script de démarrage avec Gunicorn
+# ##Créer le script de démarrage avec Gunicorn
 RUN echo '#!/bin/bash' > /app/start.sh && \
     echo 'set -e' >> /app/start.sh && \
     echo 'echo " Démarrage de l application Datalys Consulting avec Gunicorn..."' >> /app/start.sh && \
