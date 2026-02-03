@@ -127,8 +127,8 @@ jobs:
             echo ""
             
             echo "🔄 Étape 4/7: Arrêt du conteneur actuel..."
-            docker stop datalys-api || true
-            docker rm datalys-api || true
+            sudo docker stop datalys-api || true
+            sudo docker rm datalys-api || true
             echo "✅ Ancien conteneur supprimé"
             echo ""
 
@@ -136,7 +136,7 @@ jobs:
             echo "🔨 Build de l'image Docker (avec cache pour accélérer)..."
             # On utilise BuildKit pour un build plus rapide
             export DOCKER_BUILDKIT=1
-            docker build -t datalys_consulting_backend-datalys-api:latest -f src/Dockerfile . 2>&1 | \
+            sudo docker build -t datalys_consulting_backend-datalys-api:latest -f src/Dockerfile . 2>&1 | \
               while IFS= read -r line; do
                 echo "$line"
                 # Envoyer un keepalive toutes les 10 lignes
@@ -149,14 +149,14 @@ jobs:
 
             echo "📁 Étape 6/7: Création des dossiers et permissions..."
             mkdir -p src/static/logos src/static/files src/static/projects src/static/incidents src/logs uploads
-            chown -R 999:999 src/static/logos src/static/files src/static/projects src/static/incidents src/logs uploads
+            sudo chown -R 1000:1000 src/static/logos src/static/files src/static/projects src/static/incidents src/logs uploads
             chmod -R 775 src/static/logos src/static/files src/static/projects src/static/incidents src/logs uploads
-            echo "✅ Dossiers créés avec les bonnes permissions (UID/GID 999)"
+            echo "✅ Dossiers créés avec les bonnes permissions"
             echo ""
 
             echo "🚀 Étape 7/7: Démarrage du nouveau conteneur..."
             # Créer le conteneur avec la bonne configuration
-            docker run -d --name datalys-api \
+            sudo docker run -d --name datalys-api \
               -p 8082:8082 \
               --env-file .env \
               -v /home/ubuntu/Datalys_consulting_backend/src/logs:/app/src/logs \
@@ -166,22 +166,22 @@ jobs:
               datalys_consulting_backend-datalys-api:latest
 
             # Connecter au réseau MySQL
-            docker network connect datalys-network datalys-api || true
+            sudo docker network connect datalys-network datalys-api || true
 
             # Configurer les règles iptables pour SMTP
-            iptables -I DOCKER-USER -i docker0 -j ACCEPT 2>/dev/null || true
-            iptables -I DOCKER-USER -i br-+ -o eth0 -j ACCEPT 2>/dev/null || true
+            sudo iptables -I DOCKER-USER -i docker0 -j ACCEPT 2>/dev/null || true
+            sudo iptables -I DOCKER-USER -i br-+ -o eth0 -j ACCEPT 2>/dev/null || true
 
             echo "✅ Nouveau conteneur démarré et configuré"
             echo ""
 
             echo "⏳ Vérification du démarrage (30s)..."
             sleep 30
-            
+
             # Vérifier que le conteneur tourne
-            if docker ps | grep -q datalys-api; then
+            if sudo docker ps | grep -q datalys-api; then
               echo "✅ Conteneur actif"
-              
+
               # Test de santé
               if curl -s http://localhost:8082/health > /dev/null 2>&1; then
                 echo "✅ API opérationnelle"
@@ -191,7 +191,7 @@ jobs:
             else
               echo "❌ ERREUR: Le conteneur n'est pas démarré"
               echo "Logs du conteneur:"
-              docker logs datalys-api --tail 50
+              sudo docker logs datalys-api --tail 50
               exit 1
             fi
             
@@ -206,7 +206,7 @@ jobs:
             echo "   • Backup: $BACKUP_DIR/backup_$TIMESTAMP"
             echo ""
             echo "🔍 Vérifications:"
-            docker ps --filter name=datalys-api --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+            sudo docker ps --filter name=datalys-api --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
             echo ""
           ENDSSH
       
