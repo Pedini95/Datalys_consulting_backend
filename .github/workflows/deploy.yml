@@ -64,7 +64,7 @@ jobs:
             
             # Variables
             APP_DIR="/home/ubuntu/Datalys_consulting_backend"
-            BACKUP_DIR="/backup/deployments"
+            BACKUP_DIR="/home/ubuntu/backups/deployments"
             TIMESTAMP=$(date +%Y%m%d_%H%M%S)
             REPO_URL="https://github.com/Pedini95/Datalys_consulting_backend.git"
             
