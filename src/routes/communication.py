@@ -1,5 +1,6 @@
 from flask import Blueprint, request, g
 from services.incident_service import IncidentService
+from sqlalchemy import or_
 import logging
 from utils import functional_error
 from flask_cors import cross_origin
@@ -427,8 +428,9 @@ def get_conversation_by_ticket():
         user_role = g.current_user.role.name if hasattr(g.current_user, 'role') and g.current_user.role else 'user'
         is_admin_or_manager = user_role in ['admin', 'manager']
         is_creator = ticket.created_by == g.current_user.id
+        is_recipient = ticket.assigned_to == g.current_user.id
 
-        if not (is_creator or is_admin_or_manager):
+        if not (is_creator or is_recipient or is_admin_or_manager):
             return {"status": "error", "message": "Accès non autorisé à ce ticket"}, 403
 
         # Récupérer tous les messages du thread
@@ -527,8 +529,13 @@ def list_conversation_threads():
         is_admin_or_manager = user_role in ['admin', 'manager']
 
         if not is_admin_or_manager:
-            # Les utilisateurs normaux voient uniquement leurs propres threads
-            query = query.filter(Incident.created_by == g.current_user.id)
+            # Les utilisateurs normaux voient leurs threads créés OU reçus
+            query = query.filter(
+                or_(
+                    Incident.created_by == g.current_user.id,
+                    Incident.assigned_to == g.current_user.id
+                )
+            )
 
         # Trier par date de création (plus récent d'abord)
         query = query.order_by(Incident.created_at.desc())

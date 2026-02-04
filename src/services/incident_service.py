@@ -1,6 +1,7 @@
 from models import Incident
 from typing import Dict, Any, Optional, Tuple
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import or_
 from extensions import db
 import logging
 from datetime import datetime
@@ -279,12 +280,26 @@ class IncidentService:
     def get_messages_for_user(self, user_id: int, index: int = 0, size: int = 10) -> Tuple[list, int]:
         """
         Récupérer tous les messages pour un utilisateur spécifique
+        Inclut les messages créés PAR l'utilisateur ET les messages reçus (assigned_to)
         """
-        return self.getByCriteria({
-            'created_by': user_id,  # Chercher dans created_by au lieu de user_id
-            'type': 'message',
-            'is_active': True
-        }, index, size)
+        try:
+            query = self.model_class.query.filter(
+                self.model_class.type == 'message',
+                self.model_class.is_active == True,
+                self.model_class.is_deleted == False,
+                or_(
+                    self.model_class.created_by == user_id,  # Messages créés par l'utilisateur
+                    self.model_class.assigned_to == user_id   # Messages reçus par l'utilisateur
+                )
+            ).order_by(self.model_class.created_at.desc())
+
+            total = query.count()
+            messages = query.offset(index * size).limit(size).all()
+
+            return messages, total
+        except Exception as e:
+            logger.error(f"Erreur lors de la récupération des messages: {str(e)}")
+            return [], 0
     
     def get_unread_notifications(self, user_id: int, index: int = 0, size: int = 10) -> Tuple[list, int]:
         """
