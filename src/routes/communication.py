@@ -73,7 +73,7 @@ def broadcast_message():
         logging.info(data)
 
         # Vérifier que l'utilisateur est admin ou manager
-        user_role = g.current_user.role.name if hasattr(g.current_user, 'role') and g.current_user.role else 'user'
+        user_role = g.current_user.role.name.lower() if hasattr(g.current_user, 'role') and g.current_user.role else 'user'
         if user_role not in ['admin', 'manager']:
             return {"status": "error", "message": "Action réservée aux administrateurs et managers"}, 403
 
@@ -220,7 +220,7 @@ def delete_message():
             return {"status": "error", "message": "Cet élément n'est pas un message"}, 400
 
         # Identifier le rôle de l'utilisateur par rapport au message
-        user_role = g.current_user.role.name if hasattr(g.current_user, 'role') and g.current_user.role else 'user'
+        user_role = g.current_user.role.name.lower() if hasattr(g.current_user, 'role') and g.current_user.role else 'user'
         is_admin_or_manager = user_role in ['admin', 'manager']
         is_sender = message.created_by == g.current_user.id
         is_recipient = message.assigned_to == g.current_user.id
@@ -364,7 +364,7 @@ def send_notification():
         data = request.get_json() or {}
 
         # Vérifier que l'utilisateur est admin
-        if not g.current_user.role or g.current_user.role.name != 'admin':
+        if not g.current_user.role or g.current_user.role.name.lower() != 'admin':
             return {"status": "error", "message": "Action non autorisée - réservé aux administrateurs"}, 403
         
         # Valider les champs requis
@@ -498,7 +498,7 @@ def get_conversation_by_ticket():
             return {"status": "error", "message": f"Ticket {ticket_number} non trouvé"}, 404
 
         # Vérifier les droits d'accès
-        user_role = g.current_user.role.name if hasattr(g.current_user, 'role') and g.current_user.role else 'user'
+        user_role = g.current_user.role.name.lower() if hasattr(g.current_user, 'role') and g.current_user.role else 'user'
         is_admin_or_manager = user_role in ['admin', 'manager']
         is_creator = ticket.created_by == g.current_user.id
         is_recipient = ticket.assigned_to == g.current_user.id
@@ -598,7 +598,7 @@ def list_conversation_threads():
         )
 
         # Filtrer par utilisateur si ce n'est pas un admin/manager
-        user_role = g.current_user.role.name if hasattr(g.current_user, 'role') and g.current_user.role else 'user'
+        user_role = g.current_user.role.name.lower() if hasattr(g.current_user, 'role') and g.current_user.role else 'user'
         is_admin_or_manager = user_role in ['admin', 'manager']
 
         if not is_admin_or_manager:
