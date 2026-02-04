@@ -78,7 +78,60 @@ class IncidentService:
                 self._send_push_notification_for_message(incident, str(data.get('priority')), user_id)
         
         return incident, success, message
-    
+
+    def broadcast_message(self, data: Dict[str, Any], recipient_ids: list, user_id: Optional[int] = None) -> Tuple[list, bool, str]:
+        """
+        Envoyer un message à plusieurs utilisateurs (broadcast)
+
+        Args:
+            data: Données du message (title, description)
+            recipient_ids: Liste des IDs des destinataires ou ["all"] pour tous
+            user_id: ID de l'utilisateur qui envoie
+
+        Returns:
+            Tuple (liste des messages créés, succès, message)
+        """
+        from models import User
+
+        created_messages = []
+        errors = []
+
+        # Si "all" est spécifié, récupérer tous les utilisateurs actifs
+        if recipient_ids == ["all"] or recipient_ids == "all":
+            users = User.query.filter_by(is_active=True, is_deleted=False).all()
+            recipient_ids = [u.id for u in users if u.id != user_id]  # Exclure l'expéditeur
+
+        if not recipient_ids:
+            return [], False, "Aucun destinataire spécifié"
+
+        # Créer un message pour chaque destinataire
+        for recipient_id in recipient_ids:
+            # Vérifier que l'utilisateur existe
+            recipient = User.query.filter_by(id=recipient_id, is_active=True, is_deleted=False).first()
+            if not recipient:
+                errors.append(f"Utilisateur {recipient_id} non trouvé")
+                continue
+
+            # Copier les données pour chaque message
+            message_data = data.copy()
+            message_data['recipient_id'] = recipient_id
+
+            # Créer le message
+            message, success, msg = self.create_message(message_data, user_id)
+
+            if success and message:
+                created_messages.append(message)
+            else:
+                errors.append(f"Erreur pour utilisateur {recipient_id}: {msg}")
+
+        if created_messages:
+            success_msg = f"{len(created_messages)} message(s) envoyé(s) avec succès"
+            if errors:
+                success_msg += f". {len(errors)} erreur(s): {', '.join(errors)}"
+            return created_messages, True, success_msg
+        else:
+            return [], False, f"Aucun message envoyé. Erreurs: {', '.join(errors)}"
+
     @audit_action('CREATE', 'support')
     def create_support_request(self, data: Dict[str, Any], user_id: Optional[int] = None) -> Tuple[Optional[Incident], bool, str]:
         """

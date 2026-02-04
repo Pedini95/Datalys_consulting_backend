@@ -58,6 +58,58 @@ def send_message():
         logging.error(f"Erreur dans send_message: {str(e)}")
         return {"status": "error", "message": "Erreur interne du serveur"}, 500
 
+@bp.route('/messages/broadcast', methods=['POST'])
+@cross_origin()
+@require_auth
+def broadcast_message():
+    """
+    Envoyer un message à plusieurs utilisateurs (broadcast)
+    Réservé aux admins et managers
+    """
+    logging.info("**** Begin broadcast_message ****")
+    try:
+        data = request.get_json() or {}
+        logging.info("**** request input ****")
+        logging.info(data)
+
+        # Vérifier que l'utilisateur est admin ou manager
+        user_role = g.current_user.role.name if hasattr(g.current_user, 'role') and g.current_user.role else 'user'
+        if user_role not in ['admin', 'manager']:
+            return {"status": "error", "message": "Action réservée aux administrateurs et managers"}, 403
+
+        # Valider les champs requis
+        if not data.get('title'):
+            return {"status": "error", "message": "Le titre est requis"}, 400
+        if not data.get('description'):
+            return {"status": "error", "message": "La description est requise"}, 400
+        if not data.get('recipient_ids'):
+            return {"status": "error", "message": "Les destinataires sont requis (recipient_ids: [1,2,3] ou 'all')"}, 400
+
+        # Extraire les destinataires
+        recipient_ids = data.pop('recipient_ids')
+
+        # Envoyer le broadcast
+        messages, success, message_text = incident_service.broadcast_message(data, recipient_ids, g.current_user.id)
+
+        if success and messages:
+            response = {
+                "code": 200,
+                "items": [msg.as_dict() for msg in messages],
+                "count": len(messages),
+                "message": message_text
+            }
+        else:
+            response = {"status": "error", "message": message_text}, 400
+
+        logging.info("**** response output ****")
+        logging.info(f"Broadcast: {len(messages) if messages else 0} messages envoyés")
+        logging.info("**** End broadcast_message ****")
+        return response
+
+    except Exception as e:
+        logging.error(f"Erreur dans broadcast_message: {str(e)}")
+        return {"status": "error", "message": "Erreur interne du serveur"}, 500
+
 @bp.route('/messages/my-messages', methods=['POST'])
 @cross_origin()
 @require_auth
