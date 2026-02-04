@@ -298,7 +298,7 @@ class ReportGenerator:
 
         Args:
             incidents: Liste des incidents
-            include_stats: Inclure les statistiques
+            include_stats: Inclure les statistiques (ignoré pour PDF, toujours simplifié)
 
         Returns:
             bytes: Contenu PDF
@@ -318,13 +318,10 @@ class ReportGenerator:
 
             # Logo Datalys (fichier physique en priorité, base64 en secours)
             try:
-                # 1. Essayer de charger un fichier logo depuis src/static/image
-                #    On part du chemin de ce fichier utils/report_generator.py pour être indépendant du cwd
                 current_dir = os.path.dirname(__file__)
-                project_root = os.path.dirname(current_dir)  # /app/src
+                project_root = os.path.dirname(current_dir)
                 logo_dir = os.path.join(project_root, 'static', 'image')
 
-                # Noms de fichiers possibles (inclut ton fichier existant logodatalys_email.jpg)
                 candidate_files = [
                     'logodatalys_email.jpg',
                     'logo_datalys.png',
@@ -344,11 +341,9 @@ class ReportGenerator:
                     logger.info(f"Chargement du logo PDF depuis le fichier: {logo_path}")
                     logo = Image(logo_path, width=2*inch, height=0.8*inch)
                 else:
-                    # 2. Fallback: utiliser le logo en base64 embarqué
                     logger.info("Aucun fichier logo trouvé, utilisation du logo base64 pour le PDF")
                     logo_data = base64.b64decode(DATALYS_LOGO_BASE64)
                     logo_buffer = io.BytesIO(logo_data)
-                    # Avec reportlab, on peut passer directement un buffer fichier
                     logo = Image(logo_buffer, width=2*inch, height=0.8*inch)
 
                 elements.append(logo)
@@ -362,31 +357,27 @@ class ReportGenerator:
                 parent=self.styles['Heading1'],
                 fontSize=18,
                 textColor=colors.HexColor('#4472C4'),
-                spaceAfter=30,
+                spaceAfter=10,
                 alignment=1  # Centre
             )
-            elements.append(Paragraph(f"RAPPORT D'INCIDENTS", title_style))
-            elements.append(Paragraph(f"Généré le {datetime.now().strftime('%d/%m/%Y à %H:%M')}", self.styles['Normal']))
-            elements.append(Spacer(1, 20))
+            elements.append(Paragraph("RAPPORT D'INCIDENTS", title_style))
 
-            # Statistiques en haut si demandées
-            if include_stats:
-                stats_data = self._generate_stats_data(incidents)
-                stats_table = Table(stats_data, colWidths=[2*inch, 1.5*inch])
-                stats_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4472C4')),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, 0), 12),
-                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                    ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.black)
-                ]))
-                elements.append(stats_table)
-                elements.append(Spacer(1, 20))
+            # Sous-titre avec date et nombre d'incidents
+            subtitle_style = ParagraphStyle(
+                'Subtitle',
+                parent=self.styles['Normal'],
+                fontSize=10,
+                textColor=colors.HexColor('#666666'),
+                alignment=1,
+                spaceAfter=20
+            )
+            elements.append(Paragraph(
+                f"Généré le {datetime.now().strftime('%d/%m/%Y à %H:%M')} - {len(incidents)} incident(s)",
+                subtitle_style
+            ))
+            elements.append(Spacer(1, 10))
 
-            # Tableau des incidents
+            # Tableau des incidents (sans tableau de statistiques)
             data = [['N°', 'Titre', 'Statut', 'Priorité', 'Domaine', 'Créé le', 'Résolu le']]
 
             for incident in incidents:
