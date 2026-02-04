@@ -93,6 +93,9 @@ jobs:
 
             if [ -d "$APP_DIR/.git" ]; then
               cd $APP_DIR
+              # Corriger les permissions pour permettre git reset
+              sudo chown -R ubuntu:ubuntu $APP_DIR/src/static 2>/dev/null || true
+              sudo chown -R ubuntu:ubuntu $APP_DIR/src/image 2>/dev/null || true
               git fetch origin
               git reset --hard origin/develop
               echo "✅ Code mis à jour via git pull"
