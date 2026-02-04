@@ -1,6 +1,6 @@
 from flask import Blueprint, request, g
 from services.incident_service import IncidentService
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 import logging
 from utils import functional_error
 from flask_cors import cross_origin
@@ -191,14 +191,17 @@ def reply_to_message():
 @require_auth
 def delete_message():
     """
-    Supprimer un message
+    Supprimer un message (suppression individuelle)
     Règles:
-    - Les utilisateurs peuvent supprimer leurs propres messages
-    - Les admins et managers peuvent supprimer n'importe quel message
+    - L'expéditeur peut supprimer de son côté (deleted_by_sender)
+    - Le destinataire peut supprimer de son côté (deleted_by_recipient)
+    - Le message est complètement supprimé uniquement si les deux l'ont supprimé
+    - Les admins peuvent supprimer définitivement pour tout le monde
     """
     logging.info("**** Begin delete_message ****")
     try:
         from models.incident import Incident
+        from extensions import db
 
         data = request.get_json() or {}
         message_id = data.get('id')
@@ -216,25 +219,43 @@ def delete_message():
         if message.type not in ['message', 'support', 'notification']:
             return {"status": "error", "message": "Cet élément n'est pas un message"}, 400
 
-        # Vérifier les droits de suppression
+        # Identifier le rôle de l'utilisateur par rapport au message
         user_role = g.current_user.role.name if hasattr(g.current_user, 'role') and g.current_user.role else 'user'
         is_admin_or_manager = user_role in ['admin', 'manager']
-        is_owner = message.created_by == g.current_user.id
+        is_sender = message.created_by == g.current_user.id
+        is_recipient = message.assigned_to == g.current_user.id
 
-        if not (is_owner or is_admin_or_manager):
+        # Vérifier les droits de suppression
+        if not (is_sender or is_recipient or is_admin_or_manager):
             return {"status": "error", "message": "Vous n'êtes pas autorisé à supprimer ce message"}, 403
 
-        # Supprimer le message (suppression logique)
-        success, message_text = incident_service.delete(message_id, g.current_user.id, hard_delete=False)
-
-        if success:
-            response = {
-                "code": 200,
-                "message": functional_error.MESSAGE_SUCCESS()
-            }
-            logging.info(f"Message {message_id} supprimé par l'utilisateur {g.current_user.id}")
+        # Suppression selon le rôle
+        if is_admin_or_manager and not (is_sender or is_recipient):
+            # Admin supprime définitivement pour tout le monde
+            message.is_deleted = True
+            message.deleted_by_sender = True
+            message.deleted_by_recipient = True
+            logging.info(f"Message {message_id} supprimé définitivement par admin {g.current_user.id}")
         else:
-            response = {"status": "error", "message": message_text}, 500
+            # Suppression individuelle
+            if is_sender:
+                message.deleted_by_sender = True
+                logging.info(f"Message {message_id} supprimé par l'expéditeur {g.current_user.id}")
+            if is_recipient:
+                message.deleted_by_recipient = True
+                logging.info(f"Message {message_id} supprimé par le destinataire {g.current_user.id}")
+
+            # Si les deux ont supprimé, marquer comme supprimé globalement
+            if message.deleted_by_sender and message.deleted_by_recipient:
+                message.is_deleted = True
+                logging.info(f"Message {message_id} supprimé des deux côtés, marqué comme supprimé")
+
+        db.session.commit()
+
+        response = {
+            "code": 200,
+            "message": functional_error.MESSAGE_SUCCESS()
+        }
 
         logging.info("**** response output ****")
         logging.info(response)
@@ -582,10 +603,19 @@ def list_conversation_threads():
 
         if not is_admin_or_manager:
             # Les utilisateurs normaux voient leurs threads créés OU reçus
+            # mais pas ceux qu'ils ont supprimés de leur côté
             query = query.filter(
                 or_(
-                    Incident.created_by == g.current_user.id,
-                    Incident.assigned_to == g.current_user.id
+                    # Messages créés par l'utilisateur (non supprimés par lui)
+                    and_(
+                        Incident.created_by == g.current_user.id,
+                        Incident.deleted_by_sender == False
+                    ),
+                    # Messages reçus par l'utilisateur (non supprimés par lui)
+                    and_(
+                        Incident.assigned_to == g.current_user.id,
+                        Incident.deleted_by_recipient == False
+                    )
                 )
             )
 

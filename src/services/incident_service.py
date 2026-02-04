@@ -1,7 +1,7 @@
 from models import Incident
 from typing import Dict, Any, Optional, Tuple
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 from extensions import db
 import logging
 from datetime import datetime
@@ -334,15 +334,26 @@ class IncidentService:
         """
         Récupérer tous les messages pour un utilisateur spécifique
         Inclut les messages créés PAR l'utilisateur ET les messages reçus (assigned_to)
+        Exclut les messages supprimés individuellement par l'utilisateur
         """
         try:
+            # Filtrer les messages où l'utilisateur est expéditeur OU destinataire
+            # mais exclure ceux qu'il a supprimés de son côté
             query = self.model_class.query.filter(
                 self.model_class.type == 'message',
                 self.model_class.is_active == True,
                 self.model_class.is_deleted == False,
                 or_(
-                    self.model_class.created_by == user_id,  # Messages créés par l'utilisateur
-                    self.model_class.assigned_to == user_id   # Messages reçus par l'utilisateur
+                    # Messages créés par l'utilisateur (non supprimés par lui)
+                    and_(
+                        self.model_class.created_by == user_id,
+                        self.model_class.deleted_by_sender == False
+                    ),
+                    # Messages reçus par l'utilisateur (non supprimés par lui)
+                    and_(
+                        self.model_class.assigned_to == user_id,
+                        self.model_class.deleted_by_recipient == False
+                    )
                 )
             ).order_by(self.model_class.created_at.desc())
 

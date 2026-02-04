@@ -71,6 +71,10 @@ class Incident(db.Model):
     # Champs existants
     is_active = db.Column(db.Boolean, default=True)
     is_deleted = db.Column(db.Boolean, default=False)
+
+    # Suppression individuelle pour messages (expéditeur/destinataire)
+    deleted_by_sender = db.Column(db.Boolean, default=False)
+    deleted_by_recipient = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     created_by = db.Column(db.Integer, nullable=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -94,7 +98,8 @@ class Incident(db.Model):
             'refusal_count', 'refusal_reason', 'last_refusal_at',
             'taken_at', 'sla_prise_en_charge_deadline', 'sla_resolution_deadline',
             'sla_prise_en_charge_status', 'sla_resolution_status',
-            'is_active', 'is_deleted', 'created_at', 'created_by', 'updated_at', 'updated_by'
+            'is_active', 'is_deleted', 'deleted_by_sender', 'deleted_by_recipient',
+            'created_at', 'created_by', 'updated_at', 'updated_by'
         ]
         for column in columns:
             value = getattr(self, column, None)
