@@ -37,27 +37,41 @@ def get_incidents():
     if incident_type in ['message', 'support']:
         # Pour les messages et support, l'utilisateur ne voit que les siens
         # Filtrer par created_by (créateur) OU assigned_to (destinataire)
-        from sqlalchemy import or_
+        # ET respecter les suppressions individuelles (deleted_by_sender / deleted_by_recipient)
+        from sqlalchemy import or_, and_
         from models.incident import Incident
-        
+
         # Construire la requête avec filtrage utilisateur
         query = Incident.query.filter_by(is_deleted=False)
-        
+
         # Appliquer les critères de base
         for key, value in criteria.items():
             if key != 'type' and hasattr(Incident, key):
                 query = query.filter(getattr(Incident, key) == value)
-        
+
         # Filtrer par type
         if incident_type:
             query = query.filter(Incident.type == incident_type)
-        
+
         # 🔒 Filtrer par utilisateur: créateur OU destinataire
+        # AVEC respect des suppressions individuelles
         query = query.filter(
             or_(
-                Incident.created_by == g.current_user.id,
-                Incident.assigned_to == g.current_user.id,
-                Incident.user_id == g.current_user.id
+                # Messages créés par l'utilisateur (non supprimés par lui en tant qu'expéditeur)
+                and_(
+                    Incident.created_by == g.current_user.id,
+                    Incident.deleted_by_sender == False
+                ),
+                # Messages reçus par l'utilisateur (non supprimés par lui en tant que destinataire)
+                and_(
+                    Incident.assigned_to == g.current_user.id,
+                    Incident.deleted_by_recipient == False
+                ),
+                # Messages où user_id est l'utilisateur (cas legacy, non supprimés)
+                and_(
+                    Incident.user_id == g.current_user.id,
+                    Incident.deleted_by_sender == False
+                )
             )
         )
         
