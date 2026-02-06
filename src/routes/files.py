@@ -286,7 +286,7 @@ def upload_file():
             # Créer l'enregistrement dans la base de données
             file_data = {
                 'name': file.filename,
-                'file_url': file_path,
+                'file_url': file_url,
                 'is_public': is_public,
                 'is_active': True
             }
@@ -449,7 +449,7 @@ def upload_incident_file(incident_id):
             # Créer l'enregistrement dans la base de données
             file_data = {
                 'name': file.filename,
-                'file_url': file_path,
+                'file_url': file_url,
                 'incident_id': incident_id,  # Lier au incident
                 'is_public': False,  # Fichiers incidents non publics par défaut
                 'is_active': True
