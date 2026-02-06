@@ -110,8 +110,31 @@ def format_sse(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data)}\n\n"
 
 
-@bp.route('/events/stream', methods=['GET'])
-@cross_origin(supports_credentials=True)
+def get_cors_headers():
+    """Retourner les headers CORS pour SSE"""
+    origin = request.headers.get('Origin', '*')
+    # Liste des origines autorisées
+    allowed_origins = [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'https://applicationweb.datalysconsulting.com'
+    ]
+    # Utiliser l'origine de la requête si elle est autorisée, sinon '*'
+    if origin in allowed_origins:
+        cors_origin = origin
+    else:
+        cors_origin = '*'
+
+    return {
+        'Access-Control-Allow-Origin': cors_origin,
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Max-Age': '86400'
+    }
+
+
+@bp.route('/events/stream', methods=['GET', 'OPTIONS'])
 def event_stream():
     """
     Endpoint SSE pour recevoir les notifications en temps réel
@@ -131,6 +154,12 @@ def event_stream():
     - 'heartbeat': Ping toutes les 30 secondes pour garder la connexion active
     - 'error': Erreur d'authentification
     """
+    # Gérer les requêtes OPTIONS (preflight CORS)
+    if request.method == 'OPTIONS':
+        response = Response('', status=200)
+        response.headers.update(get_cors_headers())
+        return response
+
     # Valider le token depuis les query params
     user, success, error_message = validate_token_from_query()
 
@@ -142,14 +171,17 @@ def event_stream():
                 'code': 401
             })
 
+        error_headers = {
+            'Cache-Control': 'no-cache',
+            'Content-Type': 'text/event-stream'
+        }
+        error_headers.update(get_cors_headers())
+
         return Response(
             error_generator(),
             mimetype='text/event-stream',
             status=401,
-            headers={
-                'Cache-Control': 'no-cache',
-                'Access-Control-Allow-Origin': '*'
-            }
+            headers=error_headers
         )
 
     user_id = user.id
@@ -201,15 +233,19 @@ def event_stream():
         finally:
             remove_connection(user_id, user_queue)
 
+    # Construire les headers SSE avec CORS
+    sse_headers = {
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no',  # Désactiver le buffering nginx
+        'Content-Type': 'text/event-stream'
+    }
+    sse_headers.update(get_cors_headers())
+
     return Response(
         generate(),
         mimetype='text/event-stream',
-        headers={
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'X-Accel-Buffering': 'no',  # Désactiver le buffering nginx
-            'Access-Control-Allow-Origin': '*'
-        }
+        headers=sse_headers
     )
 
 
