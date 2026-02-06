@@ -58,6 +58,86 @@ def send_message():
         logging.error(f"Erreur dans send_message: {str(e)}")
         return {"status": "error", "message": "Erreur interne du serveur"}, 500
 
+
+@bp.route('/messages/send-to-admins', methods=['POST'])
+@cross_origin()
+@require_auth
+def send_message_to_admins():
+    """
+    Envoyer un message à tous les administrateurs et managers
+    Accessible à tous les utilisateurs authentifiés (partenaires inclus)
+
+    Body:
+    {
+        "title": "Titre du message",
+        "description": "Contenu du message",
+        "priority": "P3" (optionnel, défaut P3)
+    }
+    """
+    logging.info("**** Begin send_message_to_admins ****")
+    try:
+        from models import User, Role
+
+        data = request.get_json() or {}
+        logging.info("**** request input ****")
+        logging.info(data)
+
+        # Valider les champs requis
+        if not data.get('title'):
+            return {"status": "error", "message": "Le titre est requis"}, 400
+        if not data.get('description'):
+            return {"status": "error", "message": "La description est requise"}, 400
+
+        # Récupérer tous les admins et managers actifs
+        admins = User.query.join(Role).filter(
+            Role.name.in_(['Admin', 'Manager']),
+            User.is_active == True,
+            User.is_deleted == False
+        ).all()
+
+        if not admins:
+            return {"status": "error", "message": "Aucun administrateur disponible"}, 404
+
+        # Exclure l'expéditeur s'il est admin
+        admin_ids = [admin.id for admin in admins if admin.id != g.current_user.id]
+
+        if not admin_ids:
+            return {"status": "error", "message": "Aucun autre administrateur disponible"}, 404
+
+        # Envoyer le message à tous les admins via broadcast
+        messages, success, message_text = incident_service.broadcast_message(
+            data.copy(),
+            admin_ids,
+            g.current_user.id
+        )
+
+        if success and messages:
+            # Informations sur l'expéditeur
+            sender_name = g.current_user.name or g.current_user.email
+
+            response = {
+                "code": 200,
+                "items": [msg.as_dict() for msg in messages],
+                "count": len(messages),
+                "message": f"Message envoyé à {len(messages)} administrateur(s)",
+                "sender": {
+                    "id": g.current_user.id,
+                    "name": sender_name
+                }
+            }
+        else:
+            response = {"status": "error", "message": message_text}, 400
+
+        logging.info("**** response output ****")
+        logging.info(f"Message envoyé à {len(messages) if messages else 0} admins par {g.current_user.email}")
+        logging.info("**** End send_message_to_admins ****")
+        return response
+
+    except Exception as e:
+        logging.error(f"Erreur dans send_message_to_admins: {str(e)}")
+        return {"status": "error", "message": "Erreur interne du serveur"}, 500
+
+
 @bp.route('/messages/broadcast', methods=['POST'])
 @cross_origin()
 @require_auth
