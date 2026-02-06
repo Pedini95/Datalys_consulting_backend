@@ -454,20 +454,24 @@ def _get_partner_statistics():
     """Statistiques par partenaire pour admins"""
     try:
         from models import Partner, Project
-        
-        partners = Partner.query.all()
+
+        partners = Partner.query.filter_by(is_deleted=False).all()
         stats = []
-        
+
         for partner in partners:
             projects = Project.query.filter(Project.partner_id == partner.id).all()
             partner_stat = {
                 "partner_id": partner.id,
                 "partner_name": partner.name,
+                "logo_url": partner.logo_url,
+                "email": partner.email,
+                "phone": partner.phone,
                 "total_projects": len(projects),
-                "active_projects": len([p for p in projects if p.is_active])
+                "active_projects": len([p for p in projects if p.is_active]),
+                "is_active": partner.is_active
             }
             stats.append(partner_stat)
-        
+
         return stats
     except Exception as e:
         logger.error(f"Erreur statistiques partenaires: {e}")
