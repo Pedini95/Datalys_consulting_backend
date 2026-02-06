@@ -367,14 +367,38 @@ class IncidentService:
     
     def get_unread_notifications(self, user_id: int, index: int = 0, size: int = 10) -> Tuple[list, int]:
         """
-        Récupérer les notifications non lues pour un utilisateur
+        Récupérer les notifications et messages non lus pour un utilisateur
+        Inclut:
+        - Les notifications (type='notification') assignées à l'utilisateur
+        - Les messages (type='message') reçus par l'utilisateur (non supprimés de son côté)
         """
-        return self.getByCriteria({
-            'assigned_to': user_id,
-            'type': 'notification',
-            'is_read': False,
-            'is_active': True
-        }, index, size)
+        try:
+            # Requête pour récupérer notifications ET messages non lus
+            query = self.model_class.query.filter(
+                self.model_class.assigned_to == user_id,
+                self.model_class.is_read == False,
+                self.model_class.is_active == True,
+                self.model_class.is_deleted == False,
+                or_(
+                    # Notifications classiques
+                    self.model_class.type == 'notification',
+                    # Messages non supprimés par le destinataire
+                    and_(
+                        self.model_class.type == 'message',
+                        self.model_class.deleted_by_recipient == False
+                    ),
+                    # Demandes de support
+                    self.model_class.type == 'support'
+                )
+            ).order_by(self.model_class.created_at.desc())
+
+            total = query.count()
+            notifications = query.offset(index * size).limit(size).all()
+
+            return notifications, total
+        except Exception as e:
+            logger.error(f"Erreur lors de la récupération des notifications: {str(e)}")
+            return [], 0
     
     def get_support_requests(self, status: Optional[str] = None, user_id: Optional[int] = None, index: int = 0, size: int = 10) -> Tuple[list, int]:
         """
