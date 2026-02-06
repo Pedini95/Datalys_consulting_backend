@@ -260,6 +260,198 @@ def get_supported_countries():
             'code': 500
         }), 500
 
+@bp.route('/partners/upload-logo', methods=['POST'])
+@require_auth
+def upload_partner_logo():
+    """
+    Uploader un logo pour un partenaire
+
+    Form data:
+    - partner_id: ID du partenaire
+    - logo: fichier image (PNG, JPG, JPEG, GIF)
+    """
+    from flask import g
+    from werkzeug.utils import secure_filename
+    import os
+    import uuid
+    from datetime import datetime
+    from extensions import db
+
+    current_user = g.current_user
+
+    try:
+        partner_id = request.form.get('partner_id')
+
+        if not partner_id:
+            return jsonify({
+                'message': {'message': 'ID du partenaire requis', 'code': 400},
+                'code': 400
+            }), 400
+
+        if 'logo' not in request.files:
+            return jsonify({
+                'message': {'message': 'Aucun fichier logo fourni', 'code': 400},
+                'code': 400
+            }), 400
+
+        file = request.files['logo']
+
+        if file.filename == '':
+            return jsonify({
+                'message': {'message': 'Aucun fichier sélectionné', 'code': 400},
+                'code': 400
+            }), 400
+
+        # Vérifier le type de fichier
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+        file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+
+        if file_ext not in allowed_extensions:
+            return jsonify({
+                'message': {'message': f'Type de fichier non autorisé. Types acceptés: {", ".join(allowed_extensions)}', 'code': 400},
+                'code': 400
+            }), 400
+
+        # Récupérer le partenaire
+        partner = Partner.query.filter_by(id=partner_id, is_deleted=False).first()
+
+        if not partner:
+            return jsonify({
+                'message': {'message': 'Partenaire non trouvé', 'code': 404},
+                'code': 404
+            }), 404
+
+        # Supprimer l'ancien logo si existant
+        if partner.logo_url:
+            old_logo_path = os.path.join('/app/src/static/files/logos', os.path.basename(partner.logo_url))
+            if os.path.exists(old_logo_path):
+                try:
+                    os.remove(old_logo_path)
+                    logging.info(f"Ancien logo supprimé: {old_logo_path}")
+                except Exception as e:
+                    logging.warning(f"Impossible de supprimer l'ancien logo: {e}")
+
+        # Générer un nom unique pour le fichier
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        unique_id = str(uuid.uuid4())[:8]
+        filename = f"{timestamp}_{unique_id}.{file_ext}"
+
+        # Créer le dossier si nécessaire
+        upload_folder = '/app/src/static/files/logos'
+        os.makedirs(upload_folder, exist_ok=True)
+
+        # Sauvegarder le fichier
+        file_path = os.path.join(upload_folder, filename)
+        file.save(file_path)
+
+        # Mettre à jour le partenaire avec l'URL du logo
+        logo_url = f"/static/files/logos/{filename}"
+        partner.logo_url = logo_url
+        partner.updated_by = current_user.id
+        partner.updated_at = datetime.utcnow()
+
+        db.session.commit()
+
+        logging.info(f"Logo uploadé pour partenaire {partner_id}: {logo_url}")
+
+        return jsonify({
+            'data': {
+                'logo_url': logo_url,
+                'partner_id': partner_id
+            },
+            'message': {'message': 'Logo uploadé avec succès', 'code': 200},
+            'code': 200
+        })
+
+    except Exception as e:
+        logging.error(f"Erreur lors de l'upload du logo: {str(e)}")
+        return jsonify({
+            'message': {'message': f'Erreur lors de la sauvegarde: {str(e)}', 'code': 500},
+            'code': 500
+        }), 500
+
+
+@bp.route('/partners/delete-logo', methods=['POST'])
+@require_auth
+def delete_partner_logo():
+    """
+    Supprimer le logo d'un partenaire
+
+    Body:
+    {
+        "partner_id": 123
+    }
+    """
+    from flask import g
+    import os
+    from datetime import datetime
+    from extensions import db
+
+    current_user = g.current_user
+
+    try:
+        data = request.get_json()
+        partner_id = data.get('partner_id') or data.get('id')
+
+        if not partner_id:
+            return jsonify({
+                'message': {'message': 'ID du partenaire requis', 'code': 400},
+                'code': 400
+            }), 400
+
+        # Récupérer le partenaire
+        partner = Partner.query.filter_by(id=partner_id, is_deleted=False).first()
+
+        if not partner:
+            return jsonify({
+                'message': {'message': 'Partenaire non trouvé', 'code': 404},
+                'code': 404
+            }), 404
+
+        if not partner.logo_url:
+            return jsonify({
+                'message': {'message': 'Ce partenaire n\'a pas de logo', 'code': 400},
+                'code': 400
+            }), 400
+
+        # Supprimer le fichier physique
+        logo_filename = os.path.basename(partner.logo_url)
+        logo_path = os.path.join('/app/src/static/files/logos', logo_filename)
+
+        if os.path.exists(logo_path):
+            try:
+                os.remove(logo_path)
+                logging.info(f"Fichier logo supprimé: {logo_path}")
+            except Exception as e:
+                logging.warning(f"Impossible de supprimer le fichier logo: {e}")
+
+        # Mettre à jour le partenaire
+        old_logo_url = partner.logo_url
+        partner.logo_url = None
+        partner.updated_by = current_user.id
+        partner.updated_at = datetime.utcnow()
+
+        db.session.commit()
+
+        logging.info(f"Logo supprimé pour partenaire {partner_id}: {old_logo_url}")
+
+        return jsonify({
+            'data': {
+                'partner_id': partner_id,
+                'deleted_logo': old_logo_url
+            },
+            'message': {'message': 'Logo supprimé avec succès', 'code': 200},
+            'code': 200
+        })
+
+    except Exception as e:
+        logging.error(f"Erreur lors de la suppression du logo: {str(e)}")
+        return jsonify({
+            'message': {'message': f'Erreur lors de la suppression: {str(e)}', 'code': 500},
+            'code': 500
+        }), 500
+
+
 @bp.route('/partners/validate-phone', methods=['POST'])
 @require_auth
 def validate_phone_number_route():
