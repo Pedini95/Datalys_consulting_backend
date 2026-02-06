@@ -71,12 +71,15 @@ class IncidentService:
 
         # Créer le message
         incident, success, message = self.create(data, user_id)
-        
+
         if success and incident:
             # 🆕 Envoyer notification push selon le type d'utilisateur
             if data.get('priority') in ['P0', 'P1', 'P2']:  # Priorités hautes
                 self._send_push_notification_for_message(incident, str(data.get('priority')), user_id)
-        
+
+            # 🆕 Envoyer notification SSE au destinataire
+            self._send_sse_notification(incident, 'new_message', user_id)
+
         return incident, success, message
 
     def broadcast_message(self, data: Dict[str, Any], recipient_ids: list, user_id: Optional[int] = None) -> Tuple[list, bool, str]:
@@ -981,7 +984,49 @@ class IncidentService:
             logger.info(f"✅ Notification push envoyée pour support {incident.id}")
         else:
             logger.warning(f"⚠️ Échec notification push pour support {incident.id}")
-    
+
+    def _send_sse_notification(self, incident: Incident, event_type: str, sender_id: Optional[int] = None):
+        """
+        Envoyer une notification SSE au destinataire d'un message/notification
+
+        Args:
+            incident: L'incident/message créé
+            event_type: Type d'événement ('new_message', 'new_notification', 'message_deleted')
+            sender_id: ID de l'expéditeur (pour ne pas lui envoyer la notification)
+        """
+        try:
+            from routes.sse import notify_user, notify_admins
+
+            # Préparer les données de notification
+            notification_data = {
+                'id': incident.id,
+                'incident_number': incident.incident_number,
+                'title': incident.title,
+                'description': incident.description[:100] if incident.description else None,
+                'type': incident.type,
+                'priority': incident.priority,
+                'created_by': incident.created_by,
+                'assigned_to': incident.assigned_to,
+                'created_at': incident.created_at.isoformat() if incident.created_at else None
+            }
+
+            # Si le message a un destinataire spécifique
+            if incident.assigned_to and incident.assigned_to != sender_id:
+                success = notify_user(incident.assigned_to, event_type, notification_data)
+                if success:
+                    logger.info(f"📡 SSE: Notification '{event_type}' envoyée à user {incident.assigned_to}")
+                else:
+                    logger.debug(f"📡 SSE: User {incident.assigned_to} non connecté")
+            else:
+                # Pas de destinataire spécifique, notifier les admins
+                count = notify_admins(event_type, notification_data)
+                logger.info(f"📡 SSE: Notification '{event_type}' envoyée à {count} admins")
+
+        except ImportError:
+            logger.debug("SSE non disponible (module non importé)")
+        except Exception as e:
+            logger.error(f"Erreur lors de l'envoi de notification SSE: {str(e)}")
+
     def getByCriteria(self, criteria: Dict[str, Any], index: int = 0, size: int = 10) -> Tuple[list, int]:
         """
         Récupérer des incidents selon des critères

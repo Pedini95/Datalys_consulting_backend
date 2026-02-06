@@ -99,7 +99,7 @@ from models import *
 
 
 # Importer les routes ici pour éviter les imports circulaires
-from routes import roles, users, partners, projects, incidents, folders, folders_with_upload, files, user_project_permissions, action_history, auth, health_check, session_routes, communication, fcm_routes, action_history_readonly, dashboard
+from routes import roles, users, partners, projects, incidents, folders, folders_with_upload, files, user_project_permissions, action_history, auth, health_check, session_routes, communication, fcm_routes, action_history_readonly, dashboard, sse
 
 # Enregistrer les blueprints
 app.register_blueprint(roles.bp)
@@ -119,6 +119,7 @@ app.register_blueprint(communication.bp)
 app.register_blueprint(fcm_routes.bp)
 app.register_blueprint(action_history_readonly.bp)
 app.register_blueprint(dashboard.bp)
+app.register_blueprint(sse.bp)
 
 # scheduler = BackgroundScheduler()
 # scheduler.add_job(func=seamfix_treatment.create_seamfix_treatment_job, trigger="interval", seconds=120, id="create_seamfix_treatment_job", replace_existing=True)
