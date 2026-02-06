@@ -8,6 +8,7 @@ import time
 import logging
 from .auth import require_auth
 from services.incident_service import IncidentService
+from services.auth_service import AuthService
 from queue import Queue
 from threading import Lock
 
@@ -20,6 +21,31 @@ bp = Blueprint('sse', __name__)
 active_connections = {}
 connections_lock = Lock()
 
+auth_service = AuthService()
+
+
+def validate_token_from_query():
+    """
+    Valider le token depuis les query parameters
+    Utilisé pour SSE car EventSource ne supporte pas les headers personnalisés
+
+    Returns:
+        Tuple (user, success, error_message)
+    """
+    token = request.args.get('token')
+
+    if not token:
+        return None, False, "Token manquant. Utilisez ?token=<votre_token>"
+
+    # Valider le token
+    user, success, message = auth_service.get_current_user(token)
+
+    if not success:
+        return None, False, message
+
+    return user, True, None
+
+
 def add_connection(user_id: int, queue: Queue):
     """Ajouter une connexion SSE pour un utilisateur"""
     with connections_lock:
@@ -27,6 +53,7 @@ def add_connection(user_id: int, queue: Queue):
             active_connections[user_id] = []
         active_connections[user_id].append(queue)
         logger.info(f"SSE: Connexion ajoutée pour user {user_id}. Total: {len(active_connections[user_id])}")
+
 
 def remove_connection(user_id: int, queue: Queue):
     """Retirer une connexion SSE"""
@@ -39,6 +66,7 @@ def remove_connection(user_id: int, queue: Queue):
                     del active_connections[user_id]
             except ValueError:
                 pass
+
 
 def notify_user(user_id: int, event_type: str, data: dict):
     """
@@ -56,6 +84,7 @@ def notify_user(user_id: int, event_type: str, data: dict):
             logger.info(f"SSE: Notification '{event_type}' envoyée à user {user_id}")
             return True
     return False
+
 
 def notify_admins(event_type: str, data: dict):
     """Envoyer une notification à tous les admins connectés"""
@@ -75,6 +104,7 @@ def notify_admins(event_type: str, data: dict):
     logger.info(f"SSE: Notification '{event_type}' envoyée à {count} admins")
     return count
 
+
 def format_sse(event: str, data: dict) -> str:
     """Formater un message SSE"""
     return f"event: {event}\ndata: {json.dumps(data)}\n\n"
@@ -82,22 +112,47 @@ def format_sse(event: str, data: dict) -> str:
 
 @bp.route('/events/stream', methods=['GET'])
 @cross_origin(supports_credentials=True)
-@require_auth
 def event_stream():
     """
     Endpoint SSE pour recevoir les notifications en temps réel
 
-    Le client se connecte et reste connecté. Le serveur envoie des événements
-    quand il y a des notifications.
+    Le client se connecte via:
+    GET /events/stream?token=<JWT_TOKEN>
+
+    Le token est passé en query parameter car EventSource ne supporte pas
+    les headers personnalisés.
 
     Événements envoyés:
     - 'connected': Confirmation de connexion
+    - 'initial_notifications': Notifications non lues existantes
     - 'new_message': Nouveau message reçu
     - 'new_notification': Nouvelle notification
     - 'message_deleted': Un message a été supprimé
     - 'heartbeat': Ping toutes les 30 secondes pour garder la connexion active
+    - 'error': Erreur d'authentification
     """
-    user_id = g.current_user.id
+    # Valider le token depuis les query params
+    user, success, error_message = validate_token_from_query()
+
+    if not success:
+        # Retourner une erreur SSE au lieu d'un JSON
+        def error_generator():
+            yield format_sse('error', {
+                'message': error_message,
+                'code': 401
+            })
+
+        return Response(
+            error_generator(),
+            mimetype='text/event-stream',
+            status=401,
+            headers={
+                'Cache-Control': 'no-cache',
+                'Access-Control-Allow-Origin': '*'
+            }
+        )
+
+    user_id = user.id
     user_queue = Queue()
 
     def generate():
@@ -107,6 +162,7 @@ def event_stream():
             # Envoyer confirmation de connexion
             yield format_sse('connected', {
                 'user_id': user_id,
+                'user_name': user.name,
                 'message': 'Connexion SSE établie'
             })
 
@@ -117,6 +173,11 @@ def event_stream():
                 yield format_sse('initial_notifications', {
                     'count': count,
                     'items': [n.as_dict() for n in notifications]
+                })
+            else:
+                yield format_sse('initial_notifications', {
+                    'count': 0,
+                    'items': []
                 })
 
             last_heartbeat = time.time()
@@ -171,4 +232,26 @@ def test_notification():
         'code': 200,
         'message': 'Notification de test envoyée' if success else 'Aucune connexion SSE active',
         'sse_connected': success
+    }
+
+
+@bp.route('/events/status', methods=['GET'])
+@cross_origin()
+@require_auth
+def sse_status():
+    """
+    Vérifier le statut des connexions SSE
+    Retourne le nombre de connexions actives
+    """
+    with connections_lock:
+        total_connections = sum(len(queues) for queues in active_connections.values())
+        user_count = len(active_connections)
+
+    return {
+        'code': 200,
+        'data': {
+            'total_connections': total_connections,
+            'connected_users': user_count,
+            'current_user_connected': g.current_user.id in active_connections
+        }
     }
