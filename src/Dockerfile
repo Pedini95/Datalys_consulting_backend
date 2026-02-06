@@ -22,8 +22,16 @@ RUN wget -q https://bootstrap.pypa.io/get-pip.py && \
 RUN groupadd -r app && useradd -r -g app -m -d /app -s /bin/bash app
 WORKDIR /app
 
-# Dossiers nécessaires - nouvelle structure propre
-RUN mkdir -p /app/src/logs /app/src/static/files /app/src/static/logos /app/src/static/projects /app/src/static/incidents
+# Dossiers nécessaires - structure complète avec tous les sous-dossiers
+RUN mkdir -p /app/src/logs \
+    /app/src/static/files \
+    /app/src/static/files/files \
+    /app/src/static/files/logos \
+    /app/src/static/files/projects \
+    /app/src/static/files/incidents \
+    /app/src/static/logos \
+    /app/src/static/projects \
+    /app/src/static/incidents
 
 # Installer les deps Python en root (dans /usr/local)
 COPY src/requirements.txt .
@@ -39,10 +47,9 @@ RUN python -m pip install --no-cache-dir --timeout 600 --upgrade -r requirements
 COPY --chown=app:app src/ /app/src
 COPY --chown=app:app scripts/ /app/scripts
 
-# S'assurer que l'utilisateur app a les permissions d'écriture
+# S'assurer que l'utilisateur app a les permissions d'écriture sur tous les dossiers
 RUN chown -R app:app /app/src/logs /app/src/static && \
-    chmod -R 775 /app/src/logs /app/src/static && \
-    chmod -R 775 /app/src/static/files
+    chmod -R 777 /app/src/logs /app/src/static
 
 USER app
 
