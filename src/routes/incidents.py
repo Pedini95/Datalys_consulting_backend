@@ -253,7 +253,17 @@ def update_incidents():
         
         if 'is_active' in data:
             processed_data['is_active'] = data.get('is_active')
-        
+
+        # Validation anticipée : motif_attente obligatoire pour 'en_attente'
+        if processed_data.get('status') == 'en_attente':
+            motif = processed_data.get('motif_attente') or data.get('motif_attente')
+            if not motif or not str(motif).strip():
+                return {
+                    "status": "error",
+                    "message": "Le motif d'attente (motif_attente) est obligatoire pour passer l'incident en statut 'En attente'.",
+                    "code": 400
+                }, 400
+
         processed_datas.append(processed_data)
     
     items = []
@@ -448,6 +458,20 @@ def refuse_solution(incident_id):
     incident.updated_at = datetime.utcnow()
     incident.updated_by = user.get('id')
 
+    # Enregistrer dans l'historique
+    try:
+        from models.incident_history import IncidentHistory
+        IncidentHistory.record(
+            incident_id=incident_id,
+            new_status='en_cours',
+            old_status='resolu',
+            action_type='refusal',
+            comment=f"Refus #{incident.refusal_count} : {refusal_reason}",
+            user_id=user.get('id')
+        )
+    except Exception as e:
+        logging.error(f"Erreur historique refus : {str(e)}")
+
     try:
         db.session.commit()
         logging.info(f"Incident {incident.incident_number} réouvert après refus de solution (refus #{incident.refusal_count})")
@@ -565,6 +589,40 @@ def refuse_solution(incident_id):
     logging.info("**** response output ****")
     logging.info(response)
     logging.info("**** End refuse_solution ****")
+    return response
+
+
+# ✅ NOUVELLE ROUTE : Historique complet de résolution d'un incident
+@bp.route('/incidents/<int:incident_id>/history', methods=['GET'])
+@cross_origin()
+@require_auth
+def get_incident_history(incident_id):
+    """
+    Retourne l'historique complet des changements de statut d'un incident.
+
+    Chaque entrée documente : qui a changé quoi, quand, avec quel commentaire/motif.
+    """
+    logging.info(f"**** Begin get_incident_history (id={incident_id}) ****")
+
+    from models.incident import Incident
+    from models.incident_history import IncidentHistory
+
+    incident = Incident.query.filter_by(id=incident_id, is_deleted=False).first()
+    if not incident:
+        return {"status": "error", "message": "Incident non trouvé.", "code": 404}, 404
+
+    history = IncidentHistory.get_by_incident(incident_id)
+
+    response = {
+        "code": 200,
+        "message": functional_error.MESSAGE_SUCCESS(),
+        "incident_number": incident.incident_number,
+        "current_status": incident.status,
+        "history": [entry.as_dict() for entry in history],
+        "count": len(history)
+    }
+
+    logging.info(f"**** End get_incident_history ({len(history)} entrées) ****")
     return response
 
 

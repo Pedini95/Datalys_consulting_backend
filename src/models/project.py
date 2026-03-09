@@ -16,6 +16,13 @@ class Project(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     updated_by = db.Column(db.Integer, nullable=True)
 
+    # Clôture manuelle
+    closed_at = db.Column(db.DateTime, nullable=True)
+    closed_by = db.Column(db.Integer, nullable=True)
+    closure_reason = db.Column(db.Text, nullable=True)
+    reopened_at = db.Column(db.DateTime, nullable=True)
+    reopened_by = db.Column(db.Integer, nullable=True)
+
     # Relations
     partner = db.relationship('Partner', back_populates='projects', lazy=True)
     incidents = db.relationship('Incident', backref='project', lazy=True)
@@ -24,7 +31,8 @@ class Project(db.Model):
 
     def as_dict(self):
         data = {}
-        columns = ['id', 'title', 'partner_id', 'is_active', 'is_deleted', 'created_at', 'created_by', 'updated_at', 'updated_by']
+        columns = ['id', 'title', 'partner_id', 'is_active', 'is_deleted', 'created_at', 'created_by', 'updated_at', 'updated_by',
+                   'closed_at', 'closed_by', 'closure_reason', 'reopened_at', 'reopened_by']
         for column in columns:
             value = getattr(self, column, None)
             if value is not None:

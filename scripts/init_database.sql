@@ -116,6 +116,13 @@ CREATE TABLE IF NOT EXISTS projects (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     updated_by INT NULL,
 
+    -- Clôture manuelle
+    closed_at DATETIME NULL,
+    closed_by INT NULL,
+    closure_reason TEXT NULL,
+    reopened_at DATETIME NULL,
+    reopened_by INT NULL,
+
     INDEX idx_projects_title (title),
     INDEX idx_projects_partner_id (partner_id),
 
@@ -285,6 +292,27 @@ CREATE TABLE IF NOT EXISTS action_history (
     INDEX idx_ah_created_at (created_at),
 
     CONSTRAINT fk_ah_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------
+-- Table: incident_history (dépend de: incidents, users)
+-- -----------------------------------------
+CREATE TABLE IF NOT EXISTS incident_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    incident_id INT NOT NULL,
+    user_id INT NULL,
+    old_status VARCHAR(30) NULL,
+    new_status VARCHAR(30) NOT NULL,
+    action_type VARCHAR(50) NOT NULL DEFAULT 'status_change',
+    comment TEXT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_by INT NULL,
+
+    INDEX idx_ih_incident_id (incident_id),
+    INDEX idx_ih_created_at (created_at),
+
+    CONSTRAINT fk_ih_incident FOREIGN KEY (incident_id) REFERENCES incidents(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_ih_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ========================================

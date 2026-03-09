@@ -17,6 +17,7 @@ from .folder import Folder
 from .file import File
 from .user_project_permission import UserProjectPermission
 from .action_history import ActionHistory
+from .incident_history import IncidentHistory
 
 __all__ = [
     'Role',
@@ -27,5 +28,6 @@ __all__ = [
     'Folder',
     'File',
     'UserProjectPermission',
-    'ActionHistory'
+    'ActionHistory',
+    'IncidentHistory'
 ] 

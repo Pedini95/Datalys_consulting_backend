@@ -4,6 +4,7 @@ import logging
 from utils import functional_error, utilities
 from flask_cors import cross_origin
 from .auth import require_auth
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -169,6 +170,98 @@ def update_projects():
     logging.info(response)
     logging.info("**** End update_projects ****")
     return response
+
+@bp.route('/projects/<int:project_id>/close', methods=['POST'])
+@cross_origin()
+@require_auth
+def close_project(project_id):
+    """
+    Clôture manuelle d'un projet.
+
+    Body:
+    {
+        "user": {"id": 1},
+        "closure_reason": "Projet terminé avec succès."
+    }
+    """
+    logging.info(f"**** Begin close_project (id={project_id}) ****")
+    r = request.get_json() or {}
+    user = r.get('user', {})
+    closure_reason = (r.get('closure_reason') or '').strip()
+
+    if not closure_reason:
+        return {"status": "error", "message": "Le motif de clôture est obligatoire.", "code": 400}, 400
+
+    from models.project import Project
+    from extensions import db
+
+    project = Project.query.filter_by(id=project_id, is_deleted=False).first()
+    if not project:
+        return {"status": "error", "message": "Projet non trouvé.", "code": 404}, 404
+
+    if not project.is_active:
+        return {"status": "error", "message": "Le projet est déjà clôturé.", "code": 400}, 400
+
+    project.is_active = False
+    project.closed_at = datetime.utcnow()
+    project.closed_by = user.get('id')
+    project.closure_reason = closure_reason
+    project.updated_at = datetime.utcnow()
+    project.updated_by = user.get('id')
+
+    try:
+        db.session.commit()
+        logging.info(f"Projet {project_id} clôturé par user {user.get('id')}")
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Erreur clôture projet {project_id}: {str(e)}")
+        return {"status": "error", "message": f"Erreur lors de la clôture : {str(e)}", "code": 500}, 500
+
+    return {"code": 200, "message": functional_error.MESSAGE_SUCCESS(), "data": project.as_dict()}
+
+
+@bp.route('/projects/<int:project_id>/reopen', methods=['POST'])
+@cross_origin()
+@require_auth
+def reopen_project(project_id):
+    """
+    Réouverture manuelle d'un projet clôturé.
+
+    Body:
+    {
+        "user": {"id": 1}
+    }
+    """
+    logging.info(f"**** Begin reopen_project (id={project_id}) ****")
+    r = request.get_json() or {}
+    user = r.get('user', {})
+
+    from models.project import Project
+    from extensions import db
+
+    project = Project.query.filter_by(id=project_id, is_deleted=False).first()
+    if not project:
+        return {"status": "error", "message": "Projet non trouvé.", "code": 404}, 404
+
+    if project.is_active:
+        return {"status": "error", "message": "Le projet est déjà actif.", "code": 400}, 400
+
+    project.is_active = True
+    project.reopened_at = datetime.utcnow()
+    project.reopened_by = user.get('id')
+    project.updated_at = datetime.utcnow()
+    project.updated_by = user.get('id')
+
+    try:
+        db.session.commit()
+        logging.info(f"Projet {project_id} réouvert par user {user.get('id')}")
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Erreur réouverture projet {project_id}: {str(e)}")
+        return {"status": "error", "message": f"Erreur lors de la réouverture : {str(e)}", "code": 500}, 500
+
+    return {"code": 200, "message": functional_error.MESSAGE_SUCCESS(), "data": project.as_dict()}
+
 
 @bp.route('/projects/delete', methods=['POST'])
 @cross_origin()

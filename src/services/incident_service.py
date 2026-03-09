@@ -561,7 +561,22 @@ class IncidentService:
             incident = self.model_class(**data)
             db.session.add(incident)
             db.session.flush()  # Pour obtenir l'ID de l'incident
-            
+
+            # Enregistrer l'entrée initiale dans l'historique (uniquement pour les incidents)
+            if incident.type == 'incident':
+                try:
+                    from models.incident_history import IncidentHistory
+                    IncidentHistory.record(
+                        incident_id=incident.id,
+                        new_status=incident.status or 'nouveau',
+                        old_status=None,
+                        action_type='status_change',
+                        comment='Création de l\'incident',
+                        user_id=user_id
+                    )
+                except Exception as hist_err:
+                    logger.warning(f"Impossible d'enregistrer l'historique initial: {hist_err}")
+
             # ✅ BIDIRECTIONNALITÉ : Détecter le rôle de l'utilisateur qui crée l'incident
             creator_role = None
             if user_id:
@@ -824,6 +839,37 @@ class IncidentService:
                     logger.warning(f"Utilisateur assigné non trouvé: ID={data['assigned_to']}")
                     return None, False, f"L'utilisateur avec l'ID {data['assigned_to']} n'existe pas. Veuillez vérifier l'ID de l'utilisateur à assigner."
                 logger.info(f"Utilisateur assigné validé: {assigned_user.name} (ID: {assigned_user.id})")
+
+            # Validation : motif_attente obligatoire pour le statut 'en_attente'
+            new_status = data.get('status')
+            if new_status == 'en_attente':
+                motif = data.get('motif_attente') or incident.motif_attente
+                if not motif or not str(motif).strip():
+                    return None, False, "Le motif d'attente (motif_attente) est obligatoire pour passer l'incident en statut 'En attente'."
+
+            # Enregistrer l'historique si le statut change
+            old_status = incident.status
+            if new_status and new_status != old_status:
+                from models.incident_history import IncidentHistory
+                action_type_map = {
+                    'en_attente': 'waiting',
+                    'en_cours': 'status_change',
+                    'resolu': 'resolution',
+                    'ferme': 'closure',
+                    'en_arbitrage': 'status_change',
+                    'nouveau': 'reopening',
+                }
+                action_type = action_type_map.get(new_status, 'status_change')
+                comment = data.get('motif_attente') if new_status == 'en_attente' else data.get('resolution_notes')
+                IncidentHistory.record(
+                    incident_id=incident_id,
+                    new_status=new_status,
+                    old_status=old_status,
+                    action_type=action_type,
+                    comment=comment,
+                    user_id=user_id
+                )
+                logger.info(f"Historique enregistré: {old_status} → {new_status} pour incident {incident_id}")
 
             # Mettre à jour les champs
             for key, value in data.items():
