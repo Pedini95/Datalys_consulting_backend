@@ -829,22 +829,39 @@ def add_incident_note(incident_id):
     # Traiter les pièces jointes
     saved_attachments = []
     if files:
-        from utils.file_upload import file_upload_manager
-        subfolder = f"incidents/{incident_id}/notes"
+        import os, uuid
+        from flask import current_app
+        from werkzeug.utils import secure_filename
+
+        upload_base = current_app.config.get('UPLOAD_FOLDER', '/app/src/static')
+        subfolder = os.path.join(upload_base, 'incidents', str(incident_id), 'notes')
+        os.makedirs(subfolder, exist_ok=True)
+
+        app_url = current_app.config.get('APP_URL', 'http://localhost:5000')
+
         for f in files:
             if not f or f.filename == '':
                 continue
-            success, msg, relative_path = file_upload_manager.save_file(f, subfolder=subfolder)
-            if not success:
-                db.session.rollback()
-                return {"status": "error", "message": f"Erreur fichier '{f.filename}': {msg}", "code": 400}, 400
 
-            file_url = file_upload_manager.get_file_url(relative_path)
-
-            # Lire la taille
+            # Taille
             f.seek(0, 2)
             file_size = f.tell()
             f.seek(0)
+
+            # Nom unique
+            ext = f.filename.rsplit('.', 1)[-1].lower() if '.' in f.filename else ''
+            unique_name = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}.{ext}" if ext else f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
+            file_path = os.path.join(subfolder, unique_name)
+
+            try:
+                f.save(file_path)
+            except Exception as e:
+                db.session.rollback()
+                logging.error(f"Erreur sauvegarde fichier: {str(e)}")
+                return {"status": "error", "message": f"Erreur sauvegarde fichier '{f.filename}': {str(e)}", "code": 500}, 500
+
+            relative_path = f"incidents/{incident_id}/notes/{unique_name}"
+            file_url = f"{app_url}/api/files/serve/{relative_path}"
 
             attachment = IncidentAttachment(
                 note_id=note.id,
