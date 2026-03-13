@@ -801,7 +801,7 @@ def add_incident_note(incident_id):
             user = json.loads(user_raw) if isinstance(user_raw, str) else user_raw
         except Exception:
             user = {}
-        files = request.files.getlist('files[]')
+        files = request.files.getlist('attachments[]') or request.files.getlist('files[]')
     else:
         r = request.get_json() or {}
         content = (r.get('content') or '').strip()
