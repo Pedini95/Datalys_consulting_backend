@@ -18,6 +18,8 @@ from .file import File
 from .user_project_permission import UserProjectPermission
 from .action_history import ActionHistory
 from .incident_history import IncidentHistory
+from .incident_note import IncidentNote
+from .incident_attachment import IncidentAttachment
 
 __all__ = [
     'Role',
@@ -29,5 +31,7 @@ __all__ = [
     'File',
     'UserProjectPermission',
     'ActionHistory',
-    'IncidentHistory'
+    'IncidentHistory',
+    'IncidentNote',
+    'IncidentAttachment'
 ] 

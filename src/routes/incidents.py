@@ -765,4 +765,168 @@ def export_incidents():
             "status": "error",
             "message": f"Erreur lors de la génération du rapport : {str(e)}",
             "code": 500
-        }, 500 
+        }, 500
+
+
+# ─────────────────────────────────────────────
+#  Notes de résolution
+# ─────────────────────────────────────────────
+
+@bp.route('/incidents/<int:incident_id>/notes', methods=['POST'])
+@cross_origin()
+@require_auth
+def add_incident_note(incident_id):
+    """
+    Ajouter une note de résolution horodatée à un incident.
+    Accepte multipart/form-data pour permettre l'upload de pièces jointes.
+
+    Champs form-data:
+        content       (str, obligatoire) — texte de la note
+        user          (JSON str, obligatoire) — {"id": 1}
+        files[]       (fichiers, optionnel) — une ou plusieurs pièces jointes
+    """
+    logging.info(f"**** Begin add_incident_note (incident_id={incident_id}) ****")
+
+    from models.incident import Incident
+    from models.incident_note import IncidentNote
+    from models.incident_attachment import IncidentAttachment
+    from extensions import db
+    import json
+
+    # Récupérer les champs (multipart ou JSON)
+    if request.content_type and 'multipart/form-data' in request.content_type:
+        content = (request.form.get('content') or '').strip()
+        user_raw = request.form.get('user', '{}')
+        try:
+            user = json.loads(user_raw) if isinstance(user_raw, str) else user_raw
+        except Exception:
+            user = {}
+        files = request.files.getlist('files[]')
+    else:
+        r = request.get_json() or {}
+        content = (r.get('content') or '').strip()
+        user = r.get('user', {})
+        files = []
+
+    if not content:
+        return {"status": "error", "message": "Le contenu de la note est obligatoire.", "code": 400}, 400
+
+    incident = Incident.query.filter_by(id=incident_id, is_deleted=False).first()
+    if not incident:
+        return {"status": "error", "message": "Incident non trouvé.", "code": 404}, 404
+
+    user_id = user.get('id')
+
+    note = IncidentNote(
+        incident_id=incident_id,
+        content=content,
+        created_by=user_id,
+        updated_by=user_id,
+    )
+    db.session.add(note)
+    db.session.flush()  # Pour obtenir note.id avant de créer les pièces jointes
+
+    # Traiter les pièces jointes
+    saved_attachments = []
+    if files:
+        from utils.file_upload import file_upload_manager
+        subfolder = f"incidents/{incident_id}/notes"
+        for f in files:
+            if not f or f.filename == '':
+                continue
+            success, msg, relative_path = file_upload_manager.save_file(f, subfolder=subfolder)
+            if not success:
+                db.session.rollback()
+                return {"status": "error", "message": f"Erreur fichier '{f.filename}': {msg}", "code": 400}, 400
+
+            file_url = file_upload_manager.get_file_url(relative_path)
+
+            # Lire la taille
+            f.seek(0, 2)
+            file_size = f.tell()
+            f.seek(0)
+
+            attachment = IncidentAttachment(
+                note_id=note.id,
+                incident_id=incident_id,
+                file_name=f.filename,
+                file_url=file_url,
+                file_type=f.content_type,
+                file_size=file_size,
+                created_by=user_id,
+            )
+            db.session.add(attachment)
+            saved_attachments.append(attachment)
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Erreur ajout note incident {incident_id}: {str(e)}")
+        return {"status": "error", "message": f"Erreur lors de l'ajout de la note : {str(e)}", "code": 500}, 500
+
+    # Recharger pour avoir les relations (author, attachments)
+    db.session.refresh(note)
+    logging.info(f"Note {note.id} ajoutée à l'incident {incident_id} par user {user_id}")
+    return {"code": 200, "message": "Note ajoutée avec succès.", "data": note.as_dict()}
+
+
+@bp.route('/incidents/<int:incident_id>/notes', methods=['GET'])
+@cross_origin()
+@require_auth
+def get_incident_notes(incident_id):
+    """
+    Récupérer toutes les notes de résolution d'un incident (avec pièces jointes).
+    """
+    logging.info(f"**** Begin get_incident_notes (incident_id={incident_id}) ****")
+
+    from models.incident import Incident
+    from models.incident_note import IncidentNote
+
+    incident = Incident.query.filter_by(id=incident_id, is_deleted=False).first()
+    if not incident:
+        return {"status": "error", "message": "Incident non trouvé.", "code": 404}, 404
+
+    notes = IncidentNote.query.filter_by(incident_id=incident_id, is_deleted=False) \
+        .order_by(IncidentNote.created_at.asc()).all()
+
+    return {
+        "code": 200,
+        "message": "Notes récupérées avec succès.",
+        "items": [n.as_dict() for n in notes],
+        "total": len(notes)
+    }
+
+
+@bp.route('/incidents/<int:incident_id>/notes/<int:note_id>', methods=['DELETE'])
+@cross_origin()
+@require_auth
+def delete_incident_note(incident_id, note_id):
+    """
+    Supprimer (soft delete) une note de résolution.
+    """
+    logging.info(f"**** Begin delete_incident_note (incident_id={incident_id}, note_id={note_id}) ****")
+
+    from models.incident_note import IncidentNote
+    from extensions import db
+
+    note = IncidentNote.query.filter_by(id=note_id, incident_id=incident_id, is_deleted=False).first()
+    if not note:
+        return {"status": "error", "message": "Note non trouvée.", "code": 404}, 404
+
+    r = request.get_json() or {}
+    user_id = r.get('user', {}).get('id')
+
+    note.is_deleted = True
+    note.updated_by = user_id
+    note.updated_at = datetime.utcnow()
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Erreur suppression note {note_id}: {str(e)}")
+        return {"status": "error", "message": f"Erreur lors de la suppression : {str(e)}", "code": 500}, 500
+
+    logging.info(f"Note {note_id} supprimée par user {user_id}")
+    return {"code": 200, "message": "Note supprimée avec succès."} 
