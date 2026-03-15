@@ -72,10 +72,10 @@ class FolderService:
             # Créer le répertoire physique
             try:
                 import os
-                import config
-                
+                from flask import current_app
+
                 # Construire le chemin du répertoire (structure hybride: ID_Nom)
-                upload_folder = getattr(config, 'UPLOAD_FOLDER', './static/files')
+                upload_folder = current_app.config.get('UPLOAD_FOLDER', '/app/src/static')
                 if folder.project_id:
                     # Dossier dans un projet
                     folder_name_safe = folder.name.replace(' ', '_').replace('/', '_').replace('\\', '_')
