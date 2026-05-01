@@ -80,6 +80,10 @@ def get_incidents():
         incidents = query.order_by(Incident.created_at.desc()).offset(index).limit(size).all()
     else:
         # Pour les autres types (incidents normaux), utiliser la méthode standard
+        # 🔒 SÉCURITÉ: un partenaire ne voit que ses propres incidents
+        user_role = g.current_user.role.name if g.current_user.role else None
+        if user_role == 'partner':
+            criteria['user_id'] = g.current_user.id
         incidents, total_items = incident_service.model_class.get_by_criteria(criteria, index, size)
     
     if incidents:

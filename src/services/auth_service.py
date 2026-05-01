@@ -425,13 +425,13 @@ class AuthService:
             # Rechercher l'utilisateur par email
             users, _ = self.model_class.get_by_criteria({'email': email}, 0, 1)
             if not users:
-                return True, "Si l'email existe, un lien de réinitialisation a été envoyé"
-            
+                return False, "Aucun compte n'est associé à cette adresse email"
+
             user = users[0]
-            
+
             # Vérifier si l'utilisateur est actif
             if not user.is_active:
-                return True, "Si l'email existe, un lien de réinitialisation a été envoyé"
+                return False, "Ce compte est désactivé. Contactez l'administrateur"
             
             # Générer un token de reset (expire dans 1 heure)
             reset_token_data = {
