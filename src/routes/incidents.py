@@ -800,10 +800,10 @@ def add_incident_note(incident_id):
     # Récupérer les champs (multipart ou JSON)
     if request.content_type and 'multipart/form-data' in request.content_type:
         content = (request.form.get('content') or '').strip()
-        user_raw = request.form.get('user', '{}')
+        user_raw = request.form.get('user')
         try:
-            user = json.loads(user_raw) if isinstance(user_raw, str) else user_raw
-        except Exception:
+            user = {'id': int(user_raw)} if user_raw else {}
+        except (ValueError, TypeError):
             user = {}
         files = request.files.getlist('attachments[]') or request.files.getlist('files[]')
     else:
