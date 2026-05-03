@@ -430,30 +430,25 @@ class Incident(db.Model):
                 self.sla_resolution_status = 'respecte'
     
     @classmethod
-    def generate_incident_number(cls):
+    def generate_incident_number(cls, ticket_type='incident'):
         """
-        Génère un numéro d'incident unique et séquentiel
-        Format : INC-YYYY-NNNNN (ex: INC-2025-00001)
-        
-        Utilise un verrouillage de ligne pour garantir l'unicité
-        même en cas de créations simultanées
+        Génère un numéro de ticket unique et séquentiel.
+        Format : INC-YYYY-NNNNN pour les incidents, SUPP-YYYY-NNNNN pour le support.
         """
         year = datetime.now().year
-        
-        # Verrouiller la dernière ligne pour éviter les doublons (FOR UPDATE)
-        last_incident = cls.query.filter(
-            cls.incident_number.like(f'INC-{year}-%')
+        prefix = 'SUPP' if ticket_type == 'support' else 'INC'
+
+        last_ticket = cls.query.filter(
+            cls.incident_number.like(f'{prefix}-{year}-%')
         ).order_by(cls.id.desc()).with_for_update().first()
-        
-        if last_incident:
-            # Extraire le numéro de la dernière entrée
-            last_num = int(last_incident.incident_number.split('-')[-1])
+
+        if last_ticket:
+            last_num = int(last_ticket.incident_number.split('-')[-1])
             new_num = last_num + 1
         else:
-            # Premier incident de l'année
             new_num = 1
-        
-        return f'INC-{year}-{new_num:05d}'
+
+        return f'{prefix}-{year}-{new_num:05d}'
 
     def __repr__(self):
         return f'<Incident {self.incident_number}: {self.title}>' 

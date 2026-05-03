@@ -515,8 +515,8 @@ class IncidentService:
         try:
             # ✅ NOUVEAU : Générer automatiquement le numéro d'incident
             if 'incident_number' not in data or not data['incident_number']:
-                data['incident_number'] = self.model_class.generate_incident_number()
-                logger.info(f"Numéro d'incident généré automatiquement: {data['incident_number']}")
+                data['incident_number'] = self.model_class.generate_incident_number(data.get('type', 'incident'))
+                logger.info(f"Numéro de ticket généré automatiquement: {data['incident_number']}")
             
             # ✅ NOUVEAU : Calculer automatiquement les deadlines SLA
             priority = data.get('priority', 'P3')
