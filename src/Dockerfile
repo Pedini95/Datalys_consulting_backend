@@ -47,16 +47,13 @@ RUN python -m pip install --no-cache-dir --timeout 600 --upgrade -r requirements
 COPY --chown=app:app src/ /app/src
 COPY --chown=app:app scripts/ /app/scripts
 
-# S'assurer que l'utilisateur app a les permissions d'écriture sur tous les dossiers
-RUN chown -R app:app /app/src/logs /app/src/static && \
-    chmod -R 777 /app/src/logs /app/src/static
-
-USER app
-
 # ##Créer le script de démarrage avec Gunicorn
 RUN echo '#!/bin/bash' > /app/start.sh && \
     echo 'set -e' >> /app/start.sh && \
     echo 'echo " Démarrage de l application Datalys Consulting avec Gunicorn..."' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
+    echo '# Corriger les permissions des volumes bind-montés (nécessaire à chaque démarrage)' >> /app/start.sh && \
+    echo 'chmod -R 777 /app/src/static /app/src/logs 2>/dev/null || true' >> /app/start.sh && \
     echo '' >> /app/start.sh && \
     echo '# Migration automatique de la structure des fichiers' >> /app/start.sh && \
     echo 'echo " Vérification de la structure des fichiers..."' >> /app/start.sh && \
@@ -95,6 +92,9 @@ RUN echo '#!/bin/bash' > /app/start.sh && \
     echo 'cd /app/src' >> /app/start.sh && \
     echo 'exec gunicorn --config gunicorn_config.py app:app' >> /app/start.sh && \
     chmod +x /app/start.sh
+
+# Le conteneur tourne en root pour pouvoir corriger les permissions des volumes montés
+# La sécurité périmétrique est assurée par nginx en frontal
 
 # Exposer le port
 EXPOSE 8082
