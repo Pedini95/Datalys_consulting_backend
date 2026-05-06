@@ -259,8 +259,6 @@ class Incident(db.Model):
             conditions.append(Incident.project_id == criteria['project_id'])
         if 'assigned_to' in criteria:
             conditions.append(Incident.assigned_to == criteria['assigned_to'])
-        if 'assigned_to_user_id' in criteria:
-            conditions.append(Incident.assigned_to == criteria['assigned_to_user_id'])
         if 'parent_id' in criteria:
             conditions.append(Incident.parent_id == criteria['parent_id'])
         if 'is_read' in criteria:
