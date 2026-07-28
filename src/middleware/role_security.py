@@ -118,17 +118,12 @@ def get_role_based_criteria(base_criteria, user_role, user_id=None):
 
 def _get_user_role(user):
     """
-    Déterminer le rôle d'un utilisateur
-    Adaptez selon votre logique de rôles
+    Déterminer le rôle d'un utilisateur à partir de la relation `role`
+    (table `roles`, ex: 'Admin', 'Manager', 'User', 'partner')
     """
     try:
-        if hasattr(user, 'role_id'):
-            role_mapping = {
-                1: 'admin',
-                2: 'partner', 
-                3: 'user'
-            }
-            return role_mapping.get(user.role_id, 'user')
+        if getattr(user, 'role', None):
+            return user.role.name.lower()
         return 'user'
     except:
         return 'user'
