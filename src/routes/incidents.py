@@ -34,10 +34,12 @@ def get_incidents():
     # 🔒 SÉCURITÉ: Filtrer par utilisateur pour les messages et support
     incident_type = criteria.get('type')
     logging.info(f"🔍 DEBUG: incident_type={incident_type}, user_id={g.current_user.id}, criteria={criteria}")
+    user_role = g.current_user.role.name if g.current_user.role else None
     if incident_type in ['message', 'support']:
         # Pour les messages et support, l'utilisateur ne voit que les siens
         # Filtrer par created_by (créateur) OU assigned_to (destinataire)
         # ET respecter les suppressions individuelles (deleted_by_sender / deleted_by_recipient)
+        # 🔒 Exception: admin/manager voient tous les tickets support/message (comme pour les incidents normaux)
         from sqlalchemy import or_, and_
         from models.incident import Incident
 
@@ -53,35 +55,35 @@ def get_incidents():
         if incident_type:
             query = query.filter(Incident.type == incident_type)
 
-        # 🔒 Filtrer par utilisateur: créateur OU destinataire
-        # AVEC respect des suppressions individuelles
-        query = query.filter(
-            or_(
-                # Messages créés par l'utilisateur (non supprimés par lui en tant qu'expéditeur)
-                and_(
-                    Incident.created_by == g.current_user.id,
-                    Incident.deleted_by_sender == False
-                ),
-                # Messages reçus par l'utilisateur (non supprimés par lui en tant que destinataire)
-                and_(
-                    Incident.assigned_to == g.current_user.id,
-                    Incident.deleted_by_recipient == False
-                ),
-                # Messages où user_id est l'utilisateur (cas legacy, non supprimés)
-                and_(
-                    Incident.user_id == g.current_user.id,
-                    Incident.deleted_by_sender == False
+        if user_role not in ['admin', 'manager']:
+            # 🔒 Filtrer par utilisateur: créateur OU destinataire
+            # AVEC respect des suppressions individuelles
+            query = query.filter(
+                or_(
+                    # Messages créés par l'utilisateur (non supprimés par lui en tant qu'expéditeur)
+                    and_(
+                        Incident.created_by == g.current_user.id,
+                        Incident.deleted_by_sender == False
+                    ),
+                    # Messages reçus par l'utilisateur (non supprimés par lui en tant que destinataire)
+                    and_(
+                        Incident.assigned_to == g.current_user.id,
+                        Incident.deleted_by_recipient == False
+                    ),
+                    # Messages où user_id est l'utilisateur (cas legacy, non supprimés)
+                    and_(
+                        Incident.user_id == g.current_user.id,
+                        Incident.deleted_by_sender == False
+                    )
                 )
             )
-        )
-        
+
         # Pagination
         total_items = query.count()
         incidents = query.order_by(Incident.created_at.desc()).offset(index).limit(size).all()
     else:
         # Pour les autres types (incidents normaux), utiliser la méthode standard
         # 🔒 SÉCURITÉ: un partenaire ne voit que ses propres incidents
-        user_role = g.current_user.role.name if g.current_user.role else None
         if user_role == 'partner':
             criteria['user_id'] = g.current_user.id
         incidents, total_items = incident_service.model_class.get_by_criteria(criteria, index, size)
