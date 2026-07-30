@@ -2,6 +2,8 @@ from flask import Blueprint, request
 from services.action_history_service import ActionHistoryService
 import logging
 from utils import functional_error
+from .auth import require_auth
+from middleware.role_security import require_permission
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -12,6 +14,8 @@ bp = Blueprint('action_history', __name__)
 action_history_service = ActionHistoryService()
 
 @bp.route('/action_history/getByCriteria', methods=['POST'])
+@require_auth
+@require_permission('audit.view')
 def get_action_history():
     logging.info("**** Begin get_action_history ****")
     logging.info("/action_history/getByCriteria")
@@ -35,6 +39,7 @@ def get_action_history():
     return response
 
 @bp.route('/action_history/create', methods=['POST'])
+@require_auth
 def create_action_history():
     logging.info("**** Begin create_action_history ****")
     logging.info("/action_history/create")
@@ -84,6 +89,7 @@ def create_action_history():
     return response
 
 @bp.route('/action_history/log', methods=['POST'])
+@require_auth
 def log_action():
     logging.info("**** Begin log_action ****")
     logging.info("/action_history/log")

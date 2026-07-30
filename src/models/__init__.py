@@ -9,6 +9,8 @@ if parent_dir not in sys.path:
 
 # Imports avec noms de fichiers en minuscules
 from .role import Role
+from .permission import Permission
+from .role_permission import RolePermission
 from .user import User
 from .partner import Partner
 from .project import Project
@@ -23,6 +25,8 @@ from .incident_attachment import IncidentAttachment
 
 __all__ = [
     'Role',
+    'Permission',
+    'RolePermission',
     'User',
     'Partner',
     'Project',
@@ -34,4 +38,4 @@ __all__ = [
     'IncidentHistory',
     'IncidentNote',
     'IncidentAttachment'
-] 
+]

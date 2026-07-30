@@ -5,7 +5,7 @@ import logging
 from utils import functional_error, utilities
 from flask_cors import cross_origin
 from .auth import require_auth
-from middleware.role_security import require_role
+from middleware.role_security import require_permission
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -20,7 +20,7 @@ user_service = UserService()
 @bp.route('/users/getByCriteria', methods=['POST'])
 @cross_origin()
 @require_auth
-@require_role(['admin', 'manager'])  # Seuls admins et managers peuvent voir la liste des utilisateurs
+@require_permission('users.view')
 def get_users():
     logging.info("**** Begin get_users ****")
     logging.info("/users/getByCriteria")
@@ -46,7 +46,7 @@ def get_users():
 @bp.route('/users/create', methods=['POST'])
 @cross_origin()
 @require_auth
-@require_role('admin')  # Seuls les admins peuvent créer des utilisateurs
+@require_permission('users.create')
 def create_users():
     logging.info("**** Begin create_users ****")
     logging.info("/users/create")
@@ -69,9 +69,9 @@ def create_users():
         # Note: Pour créer un utilisateur avec mot de passe temporaire auto-généré,
         # utilisez l'endpoint /users/create-with-temp-password
         
-        # VÉRIFICATION : Cette API est dédiée uniquement aux utilisateurs admin/manager
+        # VÉRIFICATION : Cette API est dédiée uniquement aux utilisateurs admin
         role_name = data.get('role_name')
-        if role_name.lower() not in ['admin', 'manager', 'user']:
+        if role_name.lower() not in ['admin', 'user']:
             return {"status": "error", "message": f"Rôle invalide: {role_name}"}, 400
         
         processed_data = {
@@ -136,6 +136,8 @@ def create_users():
 
 @bp.route('/users/update', methods=['POST'])
 @cross_origin()
+@require_auth
+@require_permission('users.update')
 def update_users():
     logging.info("**** Begin update_users ****")
     logging.info("/users/update")
@@ -202,7 +204,7 @@ def update_users():
 @bp.route('/users/delete', methods=['POST'])
 @cross_origin()
 @require_auth
-@require_role('admin')  # Seuls les admins peuvent supprimer des utilisateurs
+@require_permission('users.delete')
 def delete_users():
     logging.info("**** Begin delete_users ****")
     logging.info("/users/delete")
@@ -235,7 +237,7 @@ def delete_users():
 @bp.route('/users/create-with-temp-password', methods=['POST'])
 @cross_origin()
 @require_auth
-@require_role('admin')  # Seuls les admins peuvent créer des utilisateurs
+@require_permission('users.create')
 def create_users_with_temp_password():
     """
     Créer des utilisateurs avec mot de passe temporaire généré automatiquement
@@ -260,7 +262,7 @@ def create_users_with_temp_password():
         
         # Vérification du rôle
         role_name = data.get('role_name')
-        if role_name.lower() not in ['admin', 'manager', 'user', 'partner']:
+        if role_name.lower() not in ['admin', 'user', 'partner']:
             return {"status": "error", "message": f"Rôle invalide: {role_name}"}, 400
         
         # Générer un mot de passe temporaire

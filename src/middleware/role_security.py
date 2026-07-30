@@ -4,21 +4,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def require_role(required_roles):
+def require_permission(permission_key):
     """
-    Décorateur pour restreindre l'accès selon le rôle utilisateur
-    
-    Args:
-        required_roles: Liste des rôles autorisés ['admin', 'partner', 'user']
-                       ou rôle unique 'admin'
-    
+    Décorateur pour restreindre l'accès selon la permission accordée au rôle
+    (table `role_permissions`), plutôt que selon un nom de rôle codé en dur.
+
     Usage:
-        @require_role(['admin', 'partner'])
-        def admin_or_partner_only():
-            pass
-            
-        @require_role('admin')
-        def admin_only():
+        @require_permission('roles.manage')
+        def delete_roles():
             pass
     """
     def decorator(func):
@@ -26,28 +19,26 @@ def require_role(required_roles):
         def wrapper(*args, **kwargs):
             if not hasattr(g, 'current_user') or not g.current_user:
                 return jsonify({
-                    "status": "error", 
+                    "status": "error",
                     "message": "Authentification requise"
                 }), 401
-            
-            user_role = _get_user_role(g.current_user)
-            
-            # Normaliser required_roles en liste
-            if isinstance(required_roles, str):
-                allowed_roles = [required_roles]
-            else:
-                allowed_roles = required_roles
-            
-            if user_role not in allowed_roles:
-                logger.warning(f"Accès refusé: user {g.current_user.id} (rôle: {user_role}) tentative accès à {func.__name__}")
+
+            role = getattr(g.current_user, 'role', None)
+            if not role or not role.has_permission(permission_key):
+                logger.warning(
+                    f"Accès refusé: user {g.current_user.id} "
+                    f"(rôle: {role.name if role else None}) "
+                    f"sans la permission '{permission_key}' pour {func.__name__}"
+                )
                 return jsonify({
                     "status": "error",
-                    "message": f"Accès réservé aux rôles: {', '.join(allowed_roles)}"
+                    "message": f"Permission manquante: {permission_key}"
                 }), 403
-            
+
             return func(*args, **kwargs)
         return wrapper
     return decorator
+
 
 def filter_data_by_role(data_list, user_role, user_id=None):
     """

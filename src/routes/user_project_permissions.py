@@ -3,6 +3,8 @@ from services import UserProjectPermissionService
 import logging
 from utils import functional_error
 from flask_cors import cross_origin
+from .auth import require_auth
+from middleware.role_security import require_permission
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -16,6 +18,7 @@ permission_service = UserProjectPermissionService()
 
 @bp.route('/user_project_permissions/getByCriteria', methods=['POST'])
 @cross_origin()
+@require_auth
 def get_user_project_permissions():
     logging.info("**** Begin get_user_project_permissions ****")
     logging.info("/user_project_permissions/getByCriteria")
@@ -40,6 +43,8 @@ def get_user_project_permissions():
 
 @bp.route('/user_project_permissions/create', methods=['POST'])
 @cross_origin()
+@require_auth
+@require_permission('permissions.manage')
 def create_user_project_permissions():
     logging.info("**** Begin create_user_project_permissions ****")
     logging.info("/user_project_permissions/create")
@@ -92,6 +97,8 @@ def create_user_project_permissions():
 
 @bp.route('/user_project_permissions/update', methods=['POST'])
 @cross_origin()
+@require_auth
+@require_permission('permissions.manage')
 def update_user_project_permissions():
     logging.info("**** Begin update_user_project_permissions ****")
     logging.info("/user_project_permissions/update")
@@ -146,6 +153,8 @@ def update_user_project_permissions():
 
 @bp.route('/user_project_permissions/delete', methods=['POST'])
 @cross_origin()
+@require_auth
+@require_permission('permissions.manage')
 def delete_user_project_permissions():
     logging.info("**** Begin delete_user_project_permissions ****")
     logging.info("/user_project_permissions/delete")

@@ -4,7 +4,7 @@ import logging
 from utils import functional_error, utilities
 from flask_cors import cross_origin
 from .auth import require_auth
-from middleware.role_security import require_role
+from middleware.role_security import require_permission
 import io
 from datetime import datetime
 
@@ -295,7 +295,7 @@ def update_incidents():
 @bp.route('/incidents/delete', methods=['POST'])
 @cross_origin()
 @require_auth
-@require_role(['admin', 'manager'])  # Seuls admins et managers peuvent supprimer
+@require_permission('incidents.delete')
 def delete_incidents():
     logging.info("**** Begin delete_incidents ****")
     logging.info("/incidents/delete")
@@ -636,7 +636,7 @@ def get_incident_history(incident_id):
 @bp.route('/incidents/export', methods=['POST'])
 @cross_origin()
 @require_auth
-@require_role('admin')  # Réservé aux admins
+@require_permission('incidents.export')
 def export_incidents():
     """
     Exporter les incidents dans différents formats (PDF, Excel, CSV)

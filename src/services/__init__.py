@@ -1,4 +1,6 @@
 from .role_service import RoleService
+from .permission_service import PermissionService
+from .role_permission_service import RolePermissionService
 from .user_service import UserService
 from .partner_service import PartnerService
 from .project_service import ProjectService
@@ -11,6 +13,8 @@ from .auth_service import AuthService
 
 __all__ = [
     'RoleService',
+    'PermissionService',
+    'RolePermissionService',
     'UserService',
     'PartnerService',
     'ProjectService',

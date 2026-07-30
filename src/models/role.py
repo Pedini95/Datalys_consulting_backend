@@ -53,5 +53,21 @@ class Role(db.Model):
         query = query.offset(index * size).limit(size)
         return query.all(), total_items
 
+    def has_permission(self, permission_key: str) -> bool:
+        """
+        Vérifie si ce rôle possède la permission donnée (via la table role_permissions).
+        """
+        from models.permission import Permission
+        from models.role_permission import RolePermission
+
+        return db.session.query(RolePermission).join(
+            Permission, RolePermission.permission_id == Permission.id
+        ).filter(
+            RolePermission.role_id == self.id,
+            Permission.key == permission_key,
+            Permission.is_active == True,
+            Permission.is_deleted == False,
+        ).first() is not None
+
     def __repr__(self):
         return f'<Role {self.name}>' 

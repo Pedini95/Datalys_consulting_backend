@@ -2,6 +2,8 @@ from flask import Blueprint, request
 from services import RoleService
 import logging
 from utils import functional_error, utilities
+from .auth import require_auth
+from middleware.role_security import require_permission
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -12,6 +14,7 @@ bp = Blueprint('roles', __name__)
 role_service = RoleService()
 
 @bp.route('/roles/getByCriteria', methods=['POST'])
+@require_auth
 def get_roles():
     logging.info("**** Begin get_roles ****")
     logging.info("/roles/getByCriteria")
@@ -35,6 +38,8 @@ def get_roles():
     return response
 
 @bp.route('/roles/create', methods=['POST'])
+@require_auth
+@require_permission('roles.manage')
 def create_roles():
     logging.info("**** Begin create_roles ****")
     logging.info("/roles/create")
@@ -80,6 +85,8 @@ def create_roles():
     return response
 
 @bp.route('/roles/update', methods=['POST'])
+@require_auth
+@require_permission('roles.manage')
 def update_roles():
     logging.info("**** Begin update_roles ****")
     logging.info("/roles/update")
@@ -128,6 +135,8 @@ def update_roles():
     return response
 
 @bp.route('/roles/delete', methods=['POST'])
+@require_auth
+@require_permission('roles.manage')
 def delete_roles():
     logging.info("**** Begin delete_roles ****")
     logging.info("/roles/delete")

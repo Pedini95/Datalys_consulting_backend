@@ -265,6 +265,7 @@ def reopen_project(project_id):
 
 @bp.route('/projects/delete', methods=['POST'])
 @cross_origin()
+@require_auth
 def delete_projects():
     logging.info("**** Begin delete_projects ****")
     logging.info("/projects/delete")

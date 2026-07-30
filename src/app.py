@@ -99,10 +99,11 @@ from models import *
 
 
 # Importer les routes ici pour éviter les imports circulaires
-from routes import roles, users, partners, projects, incidents, folders, folders_with_upload, files, user_project_permissions, action_history, auth, health_check, session_routes, communication, fcm_routes, action_history_readonly, dashboard, sse
+from routes import roles, permissions, users, partners, projects, incidents, folders, folders_with_upload, files, user_project_permissions, action_history, auth, health_check, session_routes, communication, fcm_routes, action_history_readonly, dashboard, sse
 
 # Enregistrer les blueprints
 app.register_blueprint(roles.bp)
+app.register_blueprint(permissions.bp)
 app.register_blueprint(users.bp)
 app.register_blueprint(partners.bp)
 app.register_blueprint(projects.bp)
